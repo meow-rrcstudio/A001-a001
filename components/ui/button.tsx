@@ -1,3 +1,32 @@
+// components/ui/button.tsx
+// 사이트 전체에서 쓰는 공용 버튼입니다. 여기서 고치면 모든 버튼이 함께 바뀝니다.
+//
+// ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
+// │ Tailwind 값 읽는 법: 숫자 1칸 = 4px (예: px-2.5 = 좌우 패딩 10px)
+// │
+// │ [공통 모양 — 아래 첫 번째 긴 문자열에서 수정]
+// │ · 모서리 둥글기 : rounded-lg → globals.css의 --radius(0.75rem=12px) 기준.
+// │                   더 둥글게 = rounded-xl, 완전 알약 = rounded-full
+// │ · 글자 크기     : text-sm (14px) → text-base(16px)로 키울 수 있음
+// │ · 글자 굵기     : font-medium → font-semibold가 더 굵음
+// │ · 테두리        : border border-transparent → 기본은 투명 테두리
+// │                   (outline 종류만 아래 variant에서 색을 입힘)
+// │
+// │ [종류별 색 — variant 블록에서 수정]
+// │ · default    : 포인트색 채움 (bg-primary + 흰 글자)
+// │ · outline    : 테두리만 있는 버튼 (border-border + 배경색)
+// │ · secondary  : 연한 회갈색 채움 (bg-secondary)
+// │ · ghost      : 평소엔 투명, 올리면 살짝 배경
+// │ · destructive: 삭제·경고용 붉은 톤
+// │ · link       : 글자만 있는 링크 모양
+// │
+// │ [크기 — size 블록에서 수정]
+// │ · default: 높이 h-8(32px), 좌우 패딩 px-2.5(10px)
+// │ · sm     : 높이 h-7(28px) — 작은 버튼
+// │ · lg     : 높이 h-9(36px) — 큰 버튼
+// │ · icon   : 정사각형 size-8(32×32px) — 아이콘 전용
+// │ 예) 모든 기본 버튼을 키우고 싶으면: default의 h-8 → h-9, px-2.5 → px-4
+// └──────────────────────────────────────────────────────────────────
 import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
 

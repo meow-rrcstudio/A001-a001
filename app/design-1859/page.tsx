@@ -4,11 +4,11 @@
 // 여기 보이는 모든 색·글꼴·모양은 app/globals.css 의 변수를 그대로 쓰므로,
 // globals.css 를 수정하면 실제 사이트와 이 페이지가 함께 바뀝니다.
 import type { Metadata } from "next"
-import Link from "next/link"
-import { ArrowUpRight, Sparkle, Copy } from "lucide-react"
+import { Sparkle, Copy } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { MenuList } from "@/components/menu-list"
 import { TokenSwatch } from "./token-swatch"
 
 export const metadata: Metadata = {
@@ -124,25 +124,18 @@ export default function DesignSystemPage() {
         {/* ── 4. 메뉴 리스트 (홈 화면 스타일) ────── */}
         <section className="mt-14">
           <h2 className="font-serif text-2xl font-semibold text-foreground">4. 메뉴 리스트</h2>
-          <p className="mt-1 text-sm text-muted-foreground">홈 화면에서 쓰는 큰 메뉴 스타일.</p>
-          <nav className="mt-5 flex flex-col">
-            <Link
-              href="#"
-              className="group flex items-center justify-between border-t border-border py-5"
-            >
-              <span className="flex items-baseline gap-4">
-                <span className="text-xs text-primary">01</span>
-                <span className="font-serif text-4xl tracking-tight">Tarot</span>
-              </span>
-              <ArrowUpRight className="h-6 w-6 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
-            <div className="flex cursor-not-allowed items-center justify-between border-y border-border py-5 opacity-40">
-              <span className="flex items-baseline gap-4">
-                <span className="text-xs text-primary">02</span>
-                <span className="font-serif text-4xl tracking-tight">Meditation</span>
-              </span>
-            </div>
-          </nav>
+          <p className="mt-1 text-sm text-muted-foreground">
+            홈 화면과 같은 공용 컴포넌트(components/menu-list.tsx)를 그대로 렌더링합니다. 그
+            파일을 고치면 홈과 여기가 함께 바뀝니다.
+          </p>
+          <div className="mt-5">
+            <MenuList
+              items={[
+                { number: "01", label: "Tarot", href: "#", active: true },
+                { number: "02", label: "Meditation", href: "#", active: false },
+              ]}
+            />
+          </div>
         </section>
 
         {/* ── 5. 본문(블로그) 스타일 ─────────────── */}
