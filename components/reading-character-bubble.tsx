@@ -1,0 +1,95 @@
+// components/reading-character-bubble.tsx
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { Copy, Check } from "lucide-react"
+import { TypewriterText } from "@/components/typewriter-text"
+import { CharacterAvatar } from "@/components/character-avatar"
+import { ACTIVE_CHARACTER, type CharacterProfile } from "@/lib/character"
+
+export function ReadingCharacterBubble({
+  message,
+  character = ACTIVE_CHARACTER,
+  promptText,
+  onHeightChange,
+}: {
+  message: string
+  character?: CharacterProfile
+  promptText?: string
+  onHeightChange?: (height: number) => void
+}) {
+  const [copied, setCopied] = useState(false)
+  const bubbleRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!bubbleRef.current || !onHeightChange) return
+    const el = bubbleRef.current
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        onHeightChange(entry.contentRect.height)
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [onHeightChange])
+
+async function handleCopy() {
+    if (!promptText) return
+
+    try {
+      await navigator.clipboard.writeText(promptText)
+    } catch {
+      const textarea = document.createElement("textarea")
+      textarea.value = promptText
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      try {
+        document.execCommand("copy")
+      } finally {
+        document.body.removeChild(textarea)
+      }
+    }
+
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div
+      ref={bubbleRef}
+      className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-3xl px-6 pb-6 transition-[height] duration-300 ease-out sm:px-8"
+    >
+    <div className="rounded-[20px] border border-white bg-[rgba(250,249,245,0.7)] px-4 pb-4 pt-2 shadow-lg backdrop-blur-[7px]">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CharacterAvatar size={44} character={character} />
+            <span className="font-serif text-2xl leading-none text-black">{character.name}</span>
+          </div>
+          {promptText && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label="프롬프트 복사"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-black/60 transition-colors hover:bg-black/5 hover:text-black"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
+
+        <p className="min-h-[1.5em] text-base leading-relaxed text-black">
+          <TypewriterText text={message} />
+        </p>
+
+        {promptText && (
+          <div className="mt-3 max-h-40 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-lg bg-black/5 p-3 font-mono text-xs leading-relaxed text-black/70">
+            {promptText}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
