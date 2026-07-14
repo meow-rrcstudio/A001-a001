@@ -2,7 +2,6 @@
 import Link from "next/link"
 import { ArrowUpRight, Sparkle } from "lucide-react"
 import { Footer } from "@/components/footer"
-import { PageHeader } from "@/components/page-header"
 
 const menuItems = [
   { number: "01", label: "Tarot", href: "/tarot", active: true },
@@ -15,6 +14,8 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-20 sm:px-8">
+        {/* 시안의 상단 이탤릭 라벨 */}
+        <p className="mb-2 font-serif text-sm italic text-primary">The 12th Annual</p>
         <p className="mb-6 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Personal Archive
         </p>
@@ -25,7 +26,7 @@ export default function HomePage() {
             <br />
             Seoul
             <br />
-            <span className="border-b-2 border-foreground/40">—Shanti</span>
+            <span className="border-b-2 border-primary/60">—Shanti</span>
           </span>
           <Sparkle className="mt-3 h-8 w-8 shrink-0 text-primary" aria-hidden="true" />
         </h1>
@@ -45,11 +46,11 @@ export default function HomePage() {
                 }`}
             >
               <span className="flex items-baseline gap-4">
-                <span className="text-xs text-muted-foreground">{item.number}</span>
+                <span className="text-xs text-primary">{item.number}</span>
                 <span className="font-serif text-4xl tracking-tight sm:text-5xl">{item.label}</span>
               </span>
               {item.active && (
-                <ArrowUpRight className="h-6 w-6 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                <ArrowUpRight className="h-6 w-6 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               )}
             </Link>
           ))}

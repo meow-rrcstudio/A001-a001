@@ -50,6 +50,31 @@
 }
 
 :root {
+  /* Soul Seoul 시안 기반 라이트(크림) 테마 — Site design.pdf 참조 */
+  color-scheme: light;
+  --background: oklch(0.958 0.012 92);          /* 크림/아이보리 종이 */
+  --foreground: oklch(0.31 0.03 55);            /* 다크 브라운 잉크 */
+  --card: oklch(0.975 0.009 92);                /* 살짝 밝은 크림 카드 */
+  --card-foreground: oklch(0.31 0.03 55);
+  --popover: oklch(0.975 0.009 92);
+  --popover-foreground: oklch(0.31 0.03 55);
+  --primary: oklch(0.56 0.17 38);               /* 테라코타 오렌지 ✳ */
+  --primary-foreground: oklch(0.975 0.009 92);
+  --secondary: oklch(0.92 0.015 90);
+  --secondary-foreground: oklch(0.31 0.03 55);
+  --muted: oklch(0.92 0.015 90);
+  --muted-foreground: oklch(0.5 0.025 60);      /* 웜 그레이 브라운 */
+  --accent: oklch(0.56 0.17 38);                /* 포인트도 테라코타로 통일 */
+  --accent-foreground: oklch(0.975 0.009 92);
+  --destructive: oklch(0.55 0.19 25);
+  --border: oklch(0.31 0.03 55 / 14%);
+  --input: oklch(0.31 0.03 55 / 16%);
+  --ring: oklch(0.56 0.17 38 / 60%);
+  --radius: 0.75rem;
+}
+
+.dark {
+  /* 기존 다크 네이비 팔레트 (블랙 버전 테스트용으로 보존) */
   color-scheme: dark;
   --background: oklch(0.15 0.018 265);
   --foreground: oklch(0.95 0.008 260);
@@ -69,7 +94,6 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.7 0.1 280);
-  --radius: 0.75rem;
 }
 
 @layer base {
@@ -84,17 +108,17 @@
     @apply text-[17px] leading-[1.8] text-foreground/80;
   }
   .prose-blog > * + * { @apply mt-6; }
-  
+
   .prose-blog h1, .prose-blog h2, .prose-blog h3, .prose-blog h4 {
     @apply font-serif font-semibold leading-snug tracking-tight text-foreground mt-10;
   }
-  
+
   .prose-blog strong, .prose-blog b { @apply font-bold text-foreground; }
-  
+
   .prose-blog a {
     @apply font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/80;
   }
-  
+
   /* 이미지 선명도 강제 설정 */
   .prose-blog img {
     @apply my-6 h-auto max-w-full rounded-md;
@@ -139,4 +163,3 @@ a[href*="built-with-v0"] {
   width: 0 !important;
   height: 0 !important;
 }
-

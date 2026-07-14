@@ -17,10 +17,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Notion Blog',
-    template: '%s | Notion Blog',
+    default: 'Soul Seoul — Shānti',
+    template: '%s | Soul Seoul',
   },
-  description: 'Notion 데이터베이스를 CMS로 사용하는 SEO 최적화 블로그',
+  description: '타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -42,8 +42,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#0d0f1a',
+  colorScheme: 'light',
+  themeColor: '#f4f1e8',
 }
 
 export default function RootLayout({
