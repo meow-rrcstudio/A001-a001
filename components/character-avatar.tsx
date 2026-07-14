@@ -4,8 +4,18 @@
 
 import { useId } from "react"
 import { motion } from "framer-motion"
+import type { CharacterProfile } from "@/lib/character"
 
-export function CharacterAvatar({ size = 44, speaking = false }: { size?: number; speaking?: boolean }) {
+// TODO: 아바타 SVG 색상을 character.eyeColors/noseColor와 연결하기 (현재는 SVG에 하드코딩)
+export function CharacterAvatar({
+  size = 44,
+  speaking = false,
+  character: _character,
+}: {
+  size?: number
+  speaking?: boolean
+  character?: CharacterProfile
+}) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "")
 
   const eyeAnimate = speaking
@@ -13,12 +23,12 @@ export function CharacterAvatar({ size = 44, speaking = false }: { size?: number
     : { scaleY: [1, 1, 1, 0.06, 1, 1, 1] }
 
   const eyeTransition = speaking
-    ? { duration: 0.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
+    ? { duration: 0.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" as const }
     : {
         duration: 4.2,
         repeat: Number.POSITIVE_INFINITY,
         times: [0, 0.4, 0.86, 0.9, 0.94, 0.97, 1],
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
       }
 
   return (

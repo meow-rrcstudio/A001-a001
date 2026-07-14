@@ -101,8 +101,8 @@ ${content.slice(0, 4000)}`,
       // 그래도 깨지는 극히 드문 경우를 위한 안전망 (대괄호 등 JSON 기호까지 확실히 제거)
       bullets = cleaned
         .split("\n")
-        .map((line) => line.replace(/^[-*"[\]\s]+|["[\],\s]+$/g, "").trim())
-        .filter((line) => line.length > 0 && line.length < 60)
+        .map((line: string) => line.replace(/^[-*"[\]\s]+|["[\],\s]+$/g, "").trim())
+        .filter((line: string) => line.length > 0 && line.length < 60)
         .slice(0, 3)
       console.warn("[v0] JSON 파싱 실패, 텍스트에서 대체 추출:", bullets)
     }

@@ -8,8 +8,6 @@ import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 import { buildReadingPrompt, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
-// 기존 import들 아래에 추가
-import { ReadingCardLinks } from "@/components/reading-card-links"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
