@@ -5,7 +5,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { readingTopics } from "@/lib/reading-topics"
-import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import { getTopicConfig } from "@/lib/reading-prompt-templates"
 import { ScatteredCardsBackground } from "@/components/scattered-cards-bg"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { PageHeader } from "@/components/page-header"
@@ -19,7 +19,7 @@ export default async function TopicSubQuestionPage({
   const matchedTopic = readingTopics.find((t) => t.slug === topic)
   if (!matchedTopic) notFound()
 
-  const config = getTopicConfig(matchedTopic.slug as ReadingTopicKey)
+  const config = getTopicConfig(matchedTopic.slug)
 
   return (
     <div className="relative flex min-h-screen flex-col">

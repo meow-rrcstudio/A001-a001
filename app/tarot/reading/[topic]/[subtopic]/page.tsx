@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { readingTopics } from "@/lib/reading-topics"
-import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import { getTopicConfig } from "@/lib/reading-prompt-templates"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { PageHeader } from "@/components/page-header"
 
@@ -15,7 +15,7 @@ export default async function TarotReadingResultPage({
   const matchedTopic = readingTopics.find((t) => t.slug === topic)
   if (!matchedTopic) notFound()
 
-  const config = getTopicConfig(matchedTopic.slug as ReadingTopicKey)
+  const config = getTopicConfig(matchedTopic.slug)
   const question = config.questions.find((q) => q.slug === subtopic)
   if (!question) notFound()
 
@@ -31,7 +31,7 @@ export default async function TarotReadingResultPage({
 
         <CardReadingFlow
           topicLabel={matchedTopic.label}
-          topicSlug={matchedTopic.slug as ReadingTopicKey}
+          topicSlug={matchedTopic.slug}
           question={question}
           introMessage={introMessage}
         />
