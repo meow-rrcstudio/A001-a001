@@ -58,8 +58,12 @@ export default async function TarotListPage() {
 
       {/* gemini 수정: 기존 Floating 버튼 삭제 후, Button 컴포넌트를 사용해 하단 고정 버튼 구현 */}
       <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 px-6">
-        <Button asChild variant="default" size="lg" className="rounded-full shadow-lg h-16" >
-          <Link href="/tarot/reading">Connect with Shānti-</Link>
+        <Button 
+        asChild variant="default"
+        size="lg"
+        className="rounded-full shadow-lg h-14 font-serif text-xl italic text-primary bg-[var(--foreground)] text-[#ffffff] px-8"
+        >
+        <Link href="/tarot/reading">Connect with Shānti-</Link>
         </Button>
       </div>
 
