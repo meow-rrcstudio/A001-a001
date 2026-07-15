@@ -1,9 +1,9 @@
 // components/card-reading-flow.tsx
 // 카드 섞기 → 고르기 → 결과 공개까지의 리딩 플로우입니다.
 //
-// 화면 구조 (Site design.pdf 리딩 화면 기준, 모든 단계 공통):
+// 섞기 단계는 화면 가득 흩어진 카드 더미(셔플 시안), 고르기/결과 무대 구조는 아래와 같습니다:
 // ┌───────────────────────────────┐
-// │  부채꼴 카드 (한 방향 아치)   │ ← 무대 위쪽 ~38%
+// │  부채꼴 카드 (좌우 대칭 아치) │ ← 무대 위쪽 ~35%
 // │                               │
 // │  스프레드 슬롯 (번호 표시)    │ ← 무대 아래쪽. 최소 160px~최대 280px
 // ├───────────────────────────────┤
@@ -22,6 +22,7 @@ import { spreadLayouts } from "@/lib/spread-layouts"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
+const FAN_COUNT = 24
 const SHUFFLE_TARGET_DISTANCE = 2400
 const SHUFFLE_STEPS = 4 // 최대 4번 섞으면 자동으로 다음 화면으로
 const MIN_STEPS_FOR_QUICK_DRAW = 1 // 1번만 섞어도 "고르러 가기" 가능
@@ -48,6 +49,17 @@ function useIsTouchDevice() {
     return () => mql.removeEventListener("change", listener)
   }, [])
   return isTouch
+}
+
+// 섞기 단계마다 카드가 흩어질 자리 (섞을 때마다 다르게 흩어짐)
+function getPileLayout(step: number, index: number) {
+  const seed = (step + 1) * 911 + index * 137.5
+  return {
+    top: `${4 + ((seed * 1.7) % 80)}%`,
+    left: `${4 + ((seed * 2.3) % 76)}%`,
+    rotate: ((seed * 4.7) % 140) - 70,
+    z: Math.floor(seed) % FAN_COUNT,
+  }
 }
 
 // 시드 기반 셔플 — 같은 시드면 같은 순서 (섞을 때마다 시드가 바뀌어 카드가 아치 위에서 재배열됨)
@@ -219,18 +231,18 @@ export function CardReadingFlow({
     }
   }
 
-  // ── 아치형 부채 좌표 (시안: 한 방향으로 쭉 이어지는 무지개 아치) ──
-  // 왼쪽 끝(-62도)에서 오른쪽 끝(+48도)까지 한 호흡으로 이어집니다.
-  // 부채는 무대 위쪽 ~38% 안에만 머물러 스프레드 영역을 침범하지 않습니다.
+  // ── 아치형 부채 좌표 (좌우 대칭 무지개 아치) ──
+  // 왼쪽 끝(-55도)에서 오른쪽 끝(+55도)까지 한 호흡으로 이어지며,
+  // 정중앙(50%)을 기준으로 좌우가 똑같습니다.
+  // 부채는 무대 위쪽 ~35% 안에만 머물러 스프레드 영역을 침범하지 않습니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
-    const startAngle = -62
-    const endAngle = 48
-    const angle = startAngle + (index / Math.max(1, total - 1)) * (endAngle - startAngle)
+    const spread = 110 // 부채가 벌어지는 전체 각도 (좌우 각 55도)
+    const angle = -spread / 2 + (index / Math.max(1, total - 1)) * spread
     const rad = (angle * Math.PI) / 180
-    const x = 53 + Math.sin(rad) * 50 //   가로: 8% ~ 92% 사이
-    const y = 5 + (1 - Math.cos(rad)) * 44 // 세로: 아치 정점 5%, 양 끝 ~28%
+    const x = 50 + Math.sin(rad) * 46 //   가로: 12% ~ 88% (중앙 대칭)
+    const y = 5 + (1 - Math.cos(rad)) * 48 // 세로: 아치 정점 5%, 양 끝 ~26%
     return { left: `${x}%`, top: `${y}%`, rotate: angle, zIndex: 10 + index }
   }
 
@@ -267,28 +279,64 @@ export function CardReadingFlow({
 
   return (
     <div className="flex flex-1 flex-col" style={{ paddingBottom: bubbleHeight }}>
-      {/* 무대: 부채(위) + 스프레드 슬롯(아래)이 한 화면에, 겹치지 않게 */}
-      <motion.div
-        onPan={isShuffling ? handlePan : undefined}
-        onMouseMove={isShuffling ? handleMouseMove : undefined}
-        onMouseLeave={
-          isShuffling
-            ? () => {
-                lastMouseX.current = null
-              }
-            : undefined
-        }
-        onClick={isShuffling ? handleShuffleClick : undefined}
-        className={`relative mx-auto w-full max-w-3xl transition-[height] duration-500 ${
-          isShuffling ? "cursor-pointer touch-none" : ""
-        }`}
+      {/* ── 섞기 단계: 화면 가득 흩어진 카드 더미 (셔플 시안) ── */}
+      {isShuffling && (
+        <div className="flex flex-1 flex-col">
+          <p className="mb-2 text-center text-base font-bold text-foreground">카드를 섞어주세요</p>
+          <motion.div
+            onPan={handlePan}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => {
+              lastMouseX.current = null
+            }}
+            onClick={handleShuffleClick}
+            className="relative mx-auto h-[52dvh] min-h-80 w-full max-w-md cursor-pointer touch-none"
+          >
+            {shuffledDeck.map((card, i) => {
+              const startLayout = getScatteredLayout(i)
+              const pileTarget = getPileLayout(shuffleStep, i)
+              return (
+                <motion.div
+                  key={card.slug}
+                  className="absolute aspect-[1144/1919]"
+                  initial={{
+                    top: startLayout.top,
+                    left: startLayout.left,
+                    rotate: startLayout.rotate,
+                    width: "38vw",
+                    x: "-50%",
+                    zIndex: 0,
+                  }}
+                  animate={{
+                    top: entered ? pileTarget.top : startLayout.top,
+                    left: entered ? pileTarget.left : startLayout.left,
+                    rotate: entered ? pileTarget.rotate : startLayout.rotate,
+                    width: "42vw",
+                    x: "-50%",
+                    zIndex: entered ? pileTarget.z : 0,
+                  }}
+                  transition={{ duration: 0.7, ease: "easeInOut" }}
+                  style={{ maxWidth: 168 }}
+                >
+                  <CardBack flipped={!entered} faceImageUrl={card.imageUrl} faceAlt={card.nameKo} />
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── 고르기/결과 무대: 부채(위) + 스프레드 슬롯(아래), 겹치지 않게 ── */}
+      {!isShuffling && (
+      <div
+        className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
         style={{
           height: phase === "revealing" ? "clamp(300px, 46dvh, 430px)" : "clamp(400px, 72dvh, 560px)",
         }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
-          const filled = selected.length > i && (phase !== "shuffling")
+          const filled = selected.length > i
           return (
             <div
               key={i}
@@ -333,30 +381,21 @@ export function CardReadingFlow({
           }
 
           const canClick = !isPicked && phase === "selecting"
-          const startLayout = getScatteredLayout(index)
           const isPeeked = peekedIndex === index
 
           return (
             <motion.div
               key={card.slug}
               className="absolute aspect-[1144/1919]"
-              initial={{
-                top: startLayout.top,
-                left: startLayout.left,
-                rotate: startLayout.rotate,
-                width: 110,
-                x: "-50%",
-                y: "-50%",
-                zIndex: 0,
-              }}
+              initial={false}
               animate={{
-                top: entered ? target.top : startLayout.top,
-                left: entered ? target.left : startLayout.left,
-                rotate: entered ? target.rotate : startLayout.rotate,
-                width: entered ? target.width : 110,
+                top: target.top,
+                left: target.left,
+                rotate: target.rotate,
+                width: target.width,
                 x: "-50%",
                 y: "-50%",
-                zIndex: entered ? target.zIndex : 0,
+                zIndex: target.zIndex,
               }}
               transition={{ duration: 0.6, ease: "easeInOut" }}
             >
@@ -401,7 +440,7 @@ export function CardReadingFlow({
               >
                 <CardBack
                   selected={isPicked}
-                  flipped={isShuffling ? !entered : isPicked && flippedIndices.includes(index)}
+                  flipped={isPicked && flippedIndices.includes(index)}
                   reversed={cardOrientations[index] === "역방향"}
                   faceImageUrl={card.imageUrl}
                   faceAlt={card.nameKo}
@@ -410,14 +449,15 @@ export function CardReadingFlow({
             </motion.div>
           )
         })}
-      </motion.div>
+      </div>
+      )}
 
       {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}
       {isShuffling && shuffleStep >= 1 && (
         <button
           type="button"
           onClick={handleGoToPick}
-          className="fixed right-6 z-[70] rounded-full bg-foreground/90 px-4 py-2.5 text-sm font-semibold text-background shadow-lg transition-transform hover:scale-105 sm:right-8"
+          className="fixed right-6 z-[70] rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:right-8"
           style={{ bottom: bubbleHeight + 44 }}
         >
           고르러 가기
