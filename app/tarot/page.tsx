@@ -1,11 +1,12 @@
 import Link from "next/link"
 import { allTarotCards } from "@/lib/tarot-cards"
 import { TarotCardImage } from "@/components/tarot-card-image"
-import { FloatingReadingButton } from "@/components/floating-reading-button"
 import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
 import { PageBackground } from "@/components/page-background"
 import { Footer } from "@/components/footer"
+// gemini 수정: Button 컴포넌트 추가
+import { Button } from "@/components/ui/button"
 
 export const revalidate = 3600
 
@@ -20,12 +21,11 @@ export default async function TarotListPage() {
         <PageHeader backHref="/tarot/reading" showShare showSearch className="mb-8" />
         
         <div className="mb-8">
-          <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot ☀︎</h1>
+          <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             카드 한 장 한 장의 의미를 깊게 들여다보는 아카이브입니다.
           </p>
           
-          {/* Astrology 링크 추가 */}
           <div className="mt-6 flex gap-4">
             <Link
               href="/tarot/astrology"
@@ -56,10 +56,14 @@ export default async function TarotListPage() {
         </div>
       </main>
 
-      <FloatingReadingButton />
+      {/* gemini 수정: 기존 Floating 버튼 삭제 후, Button 컴포넌트를 사용해 하단 고정 버튼 구현 */}
+      <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 px-6">
+        <Button asChild variant="default" size="lg" className="rounded-full shadow-lg h-16" >
+          <Link href="/tarot/reading">Connect with Shānti-</Link>
+        </Button>
+      </div>
 
-      {/* 목록 페이지는 시안 기준 다크 브라운 푸터 */}
-      <Footer variant="dark" />
+      <Footer variant="light" />
     </div>
   )
 }
