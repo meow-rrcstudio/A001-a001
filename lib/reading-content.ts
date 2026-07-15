@@ -44,7 +44,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "current-mind",
         label: "지금 내 마음은 어떤 상태일까?",
-        layoutKey: "three-1",
+        layoutKey: "three-arch",
         positions: [
           { label: "현재 마음", guide: g("지금 내 마음") },
           { label: "원인", guide: g("이런 마음이 든 이유") },
@@ -54,7 +54,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "why-hard",
         label: "요즘 내가 힘든 진짜 이유는?",
-        layoutKey: "four-1",
+        layoutKey: "four-diamond",
         positions: [
           { label: "겉으로 드러난 문제", guide: g("겉으로 드러난 문제") },
           { label: "숨은 원인", guide: g("숨겨진 진짜 원인") },
@@ -65,7 +65,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "becoming",
         label: "나는 어떤 사람이 되어가고 있을까?",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "현재의 나", guide: g("지금의 나") },
           { label: "변화하는 모습", guide: g("변화하고 있는 모습") },
@@ -75,7 +75,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "needed-advice",
         label: "지금 가장 필요한 조언은?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "내려놓을 것", guide: g("내려놓아야 할 것") },
           { label: "붙잡을 것", guide: g("붙잡아야 할 것") },
@@ -85,7 +85,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "hidden-strength",
         label: "내 강점과 숨겨진 재능은?",
-        layoutKey: "four-2",
+        layoutKey: "four-grid",
         positions: [
           { label: "타고난 강점", guide: g("타고난 강점") },
           { label: "숨겨진 재능", guide: g("아직 몰랐던 재능") },
@@ -96,7 +96,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "focus-on",
         label: "앞으로 집중해야 할 것은?",
-        layoutKey: "three-2",
+        layoutKey: "three-arch",
         positions: [
           { label: "우선순위", guide: g("지금 우선순위") },
           { label: "방해 요소", guide: g("나를 방해하는 것") },
@@ -106,7 +106,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "is-this-right",
         label: "지금 이 선택이 맞을까?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "선택의 장점", guide: g("이 선택의 장점") },
           { label: "위험 요소", guide: g("주의해야 할 위험") },
@@ -116,7 +116,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "near-future-me",
         label: "가까운 미래의 나는 어떤 모습일까?",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "현재", guide: g("지금의 나") },
           { label: "가까운 미래", guide: g("가까운 미래의 나") },
@@ -126,7 +126,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "general",
         label: "그냥 요즘 나에 대해 전체적으로 보고 싶어",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "현재", guide: g("지금의 나") },
           { label: "흐름", guide: g("흘러가는 흐름") },
@@ -145,7 +145,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "their-feelings",
         label: "그 사람은 지금 나를 어떻게 생각할까?",
-        layoutKey: "five-1",
+        layoutKey: "five-tee",
         positions: [
           { label: "현재 마음", guide: g("그 사람의 지금 마음") },
           { label: "겉으로 보이는 태도", guide: g("겉으로 드러나는 태도") },
@@ -157,7 +157,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "relationship-future",
         label: "우리 관계는 앞으로 어떻게 될까?",
-        layoutKey: "five-2",
+        layoutKey: "five-two-three",
         positions: [
           { label: "현재 관계", guide: g("지금 두 사람의 관계") },
           { label: "나의 영향", guide: g("내가 관계에 주는 영향") },
@@ -169,7 +169,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "reunion-chance",
         label: "재회 가능성은 있을까?",
-        layoutKey: "five-1",
+        layoutKey: "five-grid",
         positions: [
           { label: "현재 상황", guide: g("지금 두 사람의 상황") },
           { label: "상대의 마음", guide: g("상대의 지금 마음") },
@@ -181,7 +181,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "new-connection",
         label: "새로운 인연은 언제쯤 찾아올까?",
-        layoutKey: "four-1",
+        layoutKey: "four-diamond",
         positions: [
           { label: "현재 연애운", guide: g("지금의 연애운") },
           { label: "새로운 기회", guide: g("다가올 새로운 기회") },
@@ -192,7 +192,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "casual-to-love",
         label: "썸이 연애로 이어질 가능성은?",
-        layoutKey: "four-2",
+        layoutKey: "four-grid",
         positions: [
           { label: "현재 분위기", guide: g("지금 두 사람의 분위기") },
           { label: "상대의 마음", guide: g("상대의 진짜 마음") },
@@ -203,7 +203,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "what-to-change",
         label: "연애를 잘하려면 무엇을 바꿔야 할까?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "현재 패턴", guide: g("반복되는 연애 패턴") },
           { label: "바꿔야 할 점", guide: g("바꿔야 할 부분") },
@@ -213,7 +213,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "should-i-text",
         label: "지금 연락해도 괜찮을까?",
-        layoutKey: "three-2",
+        layoutKey: "three-arch",
         positions: [
           { label: "지금의 에너지", guide: g("지금 두 사람 사이의 기운") },
           { label: "연락 결과", guide: g("연락했을 때의 결과") },
@@ -223,7 +223,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "yearly-love",
         label: "올해 내 연애운은 어떨까?",
-        layoutKey: "five-2",
+        layoutKey: "five-two-three",
         positions: [
           { label: "현재", guide: g("지금의 연애운") },
           { label: "상반기", guide: g("올해 상반기 흐름") },
@@ -235,7 +235,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "general",
         label: "그냥 요즘 내 연애운이 궁금해",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "나의 마음", guide: g("지금 내 마음") },
           { label: "상대의 마음", guide: g("상대의 마음") },
@@ -254,7 +254,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "should-change-job",
         label: "지금 이직하는 것이 좋을까?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "이직한다면", guide: g("이직했을 때의 흐름") },
           { label: "남는다면", guide: g("남았을 때의 흐름") },
@@ -264,7 +264,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "should-stay",
         label: "현재 직장에서 계속 다니는 것이 맞을까?",
-        layoutKey: "three-2",
+        layoutKey: "three-arch",
         positions: [
           { label: "계속 다닌다면", guide: g("계속 다녔을 때의 흐름") },
           { label: "떠난다면", guide: g("떠났을 때의 흐름") },
@@ -274,7 +274,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "fit-job",
         label: "나에게 잘 맞는 직업은 무엇일까?",
-        layoutKey: "four-1",
+        layoutKey: "four-row",
         positions: [
           { label: "적성", guide: g("타고난 적성") },
           { label: "강점", guide: g("일에서의 강점") },
@@ -285,7 +285,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "interview-result",
         label: "이번 면접이나 시험 결과는 어떨까?",
-        layoutKey: "four-2",
+        layoutKey: "four-diamond",
         positions: [
           { label: "현재 준비 상태", guide: g("지금까지의 준비 상태") },
           { label: "강점", guide: g("나의 강점") },
@@ -296,7 +296,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "promotion-chance",
         label: "승진이나 좋은 기회가 찾아올까?",
-        layoutKey: "four-1",
+        layoutKey: "four-grid",
         positions: [
           { label: "현재 위치", guide: g("지금 내 위치") },
           { label: "기회", guide: g("다가올 기회") },
@@ -307,7 +307,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "new-challenge",
         label: "새로운 도전을 시작해도 될까?",
-        layoutKey: "three-1",
+        layoutKey: "three-row",
         positions: [
           { label: "시작한다면", guide: g("시작했을 때의 흐름") },
           { label: "주의점", guide: g("주의해야 할 점") },
@@ -317,7 +317,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "how-others-see-me",
         label: "직장에서 나를 어떻게 보고 있을까?",
-        layoutKey: "four-2",
+        layoutKey: "four-grid",
         positions: [
           { label: "첫인상", guide: g("사람들에게 남긴 첫인상") },
           { label: "업무 평가", guide: g("업무에 대한 평가") },
@@ -328,7 +328,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "career-direction",
         label: "앞으로 커리어 방향은 어떻게 잡아야 할까?",
-        layoutKey: "five-2",
+        layoutKey: "five-tee",
         positions: [
           { label: "현재", guide: g("지금의 커리어") },
           { label: "버릴 것", guide: g("내려놓아야 할 것") },
@@ -340,7 +340,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "general",
         label: "그냥 요즘 내 직업운이 궁금해",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "지금 서 있는 자리", guide: g("지금 서 있는 자리") },
           { label: "넘어야 할 과제", guide: g("넘어야 할 과제") },
@@ -359,7 +359,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "yearly-money",
         label: "올해 금전운은 어떨까?",
-        layoutKey: "five-1",
+        layoutKey: "five-two-three",
         positions: [
           { label: "현재", guide: g("지금의 금전운") },
           { label: "수입", guide: g("올해 수입의 흐름") },
@@ -371,7 +371,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "incoming-chance",
         label: "돈이 들어올 기회가 있을까?",
-        layoutKey: "four-1",
+        layoutKey: "four-diamond",
         positions: [
           { label: "현재 흐름", guide: g("지금 돈의 흐름") },
           { label: "기회", guide: g("다가올 기회") },
@@ -382,7 +382,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "should-invest",
         label: "지금 투자해도 괜찮을까?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "투자한다면", guide: g("투자했을 때의 흐름") },
           { label: "위험 요소", guide: g("주의해야 할 위험") },
@@ -392,7 +392,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "spending-habit",
         label: "소비를 줄여야 할 부분은 무엇일까?",
-        layoutKey: "three-2",
+        layoutKey: "three-arch",
         positions: [
           { label: "소비 습관", guide: g("지금의 소비 습관") },
           { label: "줄일 부분", guide: g("줄여야 할 부분") },
@@ -402,7 +402,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "side-income",
         label: "부수입이나 새로운 수익이 생길까?",
-        layoutKey: "four-2",
+        layoutKey: "four-grid",
         positions: [
           { label: "현재 재정", guide: g("지금의 재정 상태") },
           { label: "새로운 기회", guide: g("새로운 수익 기회") },
@@ -413,7 +413,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "big-spending",
         label: "큰 지출을 해도 괜찮을까?",
-        layoutKey: "three-1",
+        layoutKey: "three-inverted",
         positions: [
           { label: "지출의 장점", guide: g("이 지출의 장점") },
           { label: "위험 요소", guide: g("주의해야 할 위험") },
@@ -423,7 +423,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "when-stable",
         label: "재정적으로 언제쯤 안정될까?",
-        layoutKey: "five-2",
+        layoutKey: "five-grid",
         positions: [
           { label: "현재", guide: g("지금의 재정 상태") },
           { label: "가까운 미래", guide: g("가까운 미래의 흐름") },
@@ -435,7 +435,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "what-to-watch",
         label: "돈과 관련해 지금 가장 조심해야 할 것은?",
-        layoutKey: "three-2",
+        layoutKey: "three-arch",
         positions: [
           { label: "위험 요소", guide: g("가장 주의해야 할 위험") },
           { label: "피해야 할 행동", guide: g("피해야 할 행동") },
@@ -445,7 +445,7 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       {
         slug: "general",
         label: "그냥 요즘 내 금전운이 궁금해",
-        layoutKey: "three-2",
+        layoutKey: "three-row",
         positions: [
           { label: "현재 재정 흐름", guide: g("지금의 재정 흐름") },
           { label: "놓치고 있는 부분", guide: g("놓치고 있는 부분") },

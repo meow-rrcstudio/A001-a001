@@ -2,7 +2,6 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Lora } from 'next/font/google'
 import './globals.css'
-import { AuroraBackground } from "@/components/aurora-background"
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({
@@ -56,8 +55,8 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} bg-background`}
     >
+      {/* 배경은 페이지마다 components/page-background.tsx 로 선택합니다 */}
       <body className="relative font-sans antialiased">
-        <AuroraBackground />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

@@ -4,6 +4,8 @@ import { TarotCardImage } from "@/components/tarot-card-image"
 import { FloatingReadingButton } from "@/components/floating-reading-button"
 import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
+import { PageBackground } from "@/components/page-background"
+import { Footer } from "@/components/footer"
 
 export const revalidate = 3600
 
@@ -13,8 +15,9 @@ export default async function TarotListPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
-        <PageHeader backHref="/tarot/reading" className="mb-8" />
+      <PageBackground variant="aurora" />
+      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
+        <PageHeader backHref="/tarot/reading" showShare showSearch className="mb-8" />
         
         <div className="mb-8">
           <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot ☀︎</h1>
@@ -54,6 +57,9 @@ export default async function TarotListPage() {
       </main>
 
       <FloatingReadingButton />
+
+      {/* 목록 페이지는 시안 기준 다크 브라운 푸터 */}
+      <Footer variant="dark" />
     </div>
   )
 }

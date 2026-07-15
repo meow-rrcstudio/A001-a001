@@ -5,7 +5,7 @@ import { getAISummary } from "@/lib/ai-summary"
 import { AISummaryBox } from "@/components/ai-summary-box"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { Share } from "lucide-react"
+import { Footer } from "@/components/footer"
 import { getPostBySlug, getPostContent, getAllSlugs } from "@/lib/notion"
 import { MarkdownContent } from "@/components/markdown-content"
 import { AdFit } from "@/components/adfit"
@@ -72,17 +72,8 @@ export default async function BlogPostPage({
   return (
     <div className="tarot-detail-light flex min-h-screen flex-col bg-background">
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 sm:px-8">
-        {/* 뒤로가기 / 공유 상단바 */}
-        <div className="mb-8 flex items-center justify-between">
-          <PageHeader backHref={backHref} />
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="공유"
-          >
-            <Share className="h-6 w-6" />
-          </button>
-        </div>
+        {/* 상단 바: 뒤로가기 + 공유·검색·더보기 (Site design.pdf 본문 헤더) */}
+        <PageHeader backHref={backHref} showShare showSearch showMore className="mb-8" />
 
         <article>
           <header className="mb-8">
@@ -130,6 +121,9 @@ export default async function BlogPostPage({
           </div>
         </article>
       </main>
+
+      {/* 본문 페이지는 시안(Site design.pdf) 기준 미니멀 푸터 */}
+      <Footer variant="minimal" />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { getTopicConfig } from "@/lib/reading-prompt-templates"
 import { ScatteredCardsBackground } from "@/components/scattered-cards-bg"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { PageHeader } from "@/components/page-header"
+import { PageBackground } from "@/components/page-background"
 
 export default async function TopicSubQuestionPage({
   params,
@@ -23,6 +24,7 @@ export default async function TopicSubQuestionPage({
 
   return (
     <div className="relative flex min-h-screen flex-col">
+      <PageBackground variant="aurora" />
       <ScatteredCardsBackground />
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 pb-48 sm:px-8">
   <PageHeader backHref="/tarot/reading" className="mb-8" />
