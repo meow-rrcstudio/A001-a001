@@ -1,16 +1,28 @@
 // components/page-header.tsx
+// 콘텐츠 페이지 상단 바 — blog-post-list 시안의 헤더입니다.
+// 왼쪽에 뒤로가기, 오른쪽에 공유·검색 아이콘. (사이트 로고 헤더는 components/header.tsx)
+//
+// ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
+// │ · 아이콘 크기 : h-7 w-7 (28px)
+// │ · 아이콘 색   : text-muted-foreground → 올리면 text-foreground
+// │ · 공유 버튼   : showShare, 검색 버튼: showSearch 로 켜고 끕니다
+// └──────────────────────────────────────────────────────────────────
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, Share } from "lucide-react"
+import { ArrowLeft, Share, Search } from "lucide-react"
 
 export function PageHeader({
   backHref,
   showShare = false,
+  showSearch = false,
+  onSearchClick,
   className = "",
 }: {
   backHref: string
   showShare?: boolean
+  showSearch?: boolean // 검색 기능이 생기면 onSearchClick과 함께 켜세요
+  onSearchClick?: () => void
   className?: string
 }) {
   async function handleShare() {
@@ -35,16 +47,28 @@ export function PageHeader({
         <ArrowLeft className="h-7 w-7" />
       </Link>
 
-      {showShare && (
-        <button
-          type="button"
-          onClick={handleShare}
-          className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="공유"
-        >
-          <Share className="h-7 w-7" />
-        </button>
-      )}
+      <div className="flex items-center gap-4">
+        {showShare && (
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="공유"
+          >
+            <Share className="h-7 w-7" />
+          </button>
+        )}
+        {showSearch && (
+          <button
+            type="button"
+            onClick={onSearchClick}
+            className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="검색"
+          >
+            <Search className="h-7 w-7" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

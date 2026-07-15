@@ -78,7 +78,8 @@ export default async function AstrologyPage() {
         </div>
       </main>
 
-      <Footer />
+      {/* 목록 페이지는 시안(blog-post-list) 기준 라이트 푸터 사용 */}
+      <Footer variant="light" />
     </div>
   )
 }

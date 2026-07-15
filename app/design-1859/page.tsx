@@ -12,6 +12,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { MenuList } from "@/components/menu-list"
+import { PageHeader } from "@/components/page-header"
 import { PostListBoard } from "@/components/post-list-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
 import { CardSpread } from "@/components/card-spread"
@@ -220,14 +221,37 @@ export default function DesignSystemPage() {
           <section id="chrome" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>7. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              이 페이지의 맨 위/아래에 실제로 쓰인 공용 컴포넌트입니다. (components/header.tsx ·
-              components/footer.tsx)
+              케이스에 따라 골라 쓰는 두 가지 헤더와 두 가지 푸터입니다.
             </p>
-            <div className="mt-5 overflow-hidden rounded-xl border border-border">
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ① 페이지 상단 바 — 시안(blog-post-list)의 헤더. 목록·리딩 등 콘텐츠 페이지용
+              (components/page-header.tsx)
+            </p>
+            <div className="mt-2 rounded-xl border border-border bg-background px-4 py-3">
+              <PageHeader backHref="#" showShare showSearch />
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ② 사이트 헤더 — 로고+메뉴. 블로그 본문 등 사이트형 페이지용
+              (components/header.tsx)
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border">
               <Header />
             </div>
-            <div className="mt-3 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
-              <Footer />
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ③ 푸터 (라이트) — 시안(blog-post-list). 목록·본문처럼 가볍게 끝나는 페이지용
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
+              <Footer variant="light" />
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ④ 푸터 (다크 밴드) — Site design.pdf 홈 하단. 화면을 묵직하게 마무리하는 페이지용
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
+              <Footer variant="dark" />
             </div>
           </section>
 
