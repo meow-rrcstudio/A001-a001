@@ -9,6 +9,9 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { MenuList } from "@/components/menu-list"
+import { PostListBoard } from "@/components/post-list-board"
+import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
+import { CardSpread } from "@/components/card-spread"
 import { TokenSwatch } from "./token-swatch"
 
 export const metadata: Metadata = {
@@ -169,6 +172,104 @@ export default function DesignSystemPage() {
                 </div>
               )
             )}
+          </div>
+        </section>
+
+        {/* ── 7. 헤더 · 푸터 ─────────────────────── */}
+        <section className="mt-14">
+          <h2 className="font-serif text-2xl font-semibold text-foreground">7. 헤더 · 푸터</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            이 페이지의 맨 위/아래에 실제로 쓰인 공용 컴포넌트입니다. (components/header.tsx ·
+            components/footer.tsx)
+          </p>
+          <div className="mt-5 overflow-hidden rounded-xl border border-border">
+            <Header />
+          </div>
+          <div className="mt-3 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
+            <Footer />
+          </div>
+        </section>
+
+        {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
+        <section className="mt-14">
+          <h2 className="font-serif text-2xl font-semibold text-foreground">
+            8. 그리드 박스 (글 목록)
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            /tarot/astrology 페이지와 같은 공용 컴포넌트(components/post-list-board.tsx)입니다.
+            흐린 항목은 아직 글이 없는 상태의 모습입니다.
+          </p>
+          <div className="mt-5">
+            <PostListBoard
+              title="Universal waite"
+              badgeLabel="minor arcana"
+              badgeCount={4}
+              badgeClassName="bg-[#e8d8d2]"
+              altBadgeClassName="bg-[#cadff6]"
+              items={[
+                { id: 0, name: "The Fool", meaning: "새로운 시작", href: "#" },
+                { id: 1, name: "The Magician", meaning: "창조력과 의지", href: "#" },
+                { id: 2, name: "The High Priestess", href: "#", active: false },
+                { id: 3, name: "The Empress", href: "#", active: false },
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* ── 9. 타로 카드 ───────────────────────── */}
+        <section className="mt-14">
+          <h2 className="font-serif text-2xl font-semibold text-foreground">9. 타로 카드</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            앞면 · 뒷면 · 번호 슬롯 3종. (components/tarot-card.tsx)
+          </p>
+          <div className="mt-5 flex flex-wrap items-end gap-6 rounded-xl border border-border bg-card p-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-24">
+                <TarotCardFront />
+              </div>
+              <span className="text-xs text-muted-foreground">앞면</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-24">
+                <TarotCardBack />
+              </div>
+              <span className="text-xs text-muted-foreground">뒷면</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16">
+                <TarotCardSlot number={1} />
+              </div>
+              <span className="text-xs text-muted-foreground">번호 슬롯</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 10. 카드 스프레드 ──────────────────── */}
+        <section className="mt-14">
+          <h2 className="font-serif text-2xl font-semibold text-foreground">10. 카드 스프레드</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            카드 배열 레이아웃. 좌표의 원본은 lib/spread-layouts.ts 하나뿐이라, 거기를 고치면
+            실제 리딩 화면과 여기가 함께 바뀝니다.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {(
+              [
+                { key: "one-card", label: "1장" },
+                { key: "three-2", label: "3장 일렬" },
+                { key: "three-1", label: "3장 지그재그" },
+                { key: "four-1", label: "4장 격자" },
+                { key: "five-1", label: "5장 (격자+1)" },
+                { key: "five-2", label: "5장 (2+3)" },
+              ] as const
+            ).map((spread) => (
+              <div key={spread.key} className="rounded-xl border border-border bg-card p-4">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  {spread.label}{" "}
+                  <span className="font-mono text-[10px] opacity-60">{spread.key}</span>
+                </p>
+                <CardSpread layout={spread.key} />
+              </div>
+            ))}
           </div>
         </section>
 

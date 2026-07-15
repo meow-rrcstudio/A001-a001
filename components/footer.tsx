@@ -6,8 +6,10 @@ export function Footer() {
   return (
     <footer className="mt-16 bg-foreground text-background">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-1.5 px-4 py-10 text-center sm:px-6">
-        <p className="text-xs font-medium uppercase tracking-[0.25em]">
+        <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.25em]">
+          <span aria-hidden="true">✳</span>
           www.soulseoul.xyz
+          <span aria-hidden="true">✳</span>
         </p>
         <p className="text-xs text-background/70">
           © {year} Soul Seoul Shānti Archive. All Rights Reserved.

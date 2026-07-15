@@ -1,8 +1,12 @@
 // app/tarot/astrology/page.tsx
-import Link from 'next/link'
-import { PageHeader } from '@/components/page-header'
-import { getAllSlugs } from '@/lib/notion'
-import { astrologyDecks, astrologyFilters } from '@/lib/astrology-data'
+// 카드 아카이브 목록 페이지 (blog-post-list mobile compact 시안 기반).
+// 목록 그리드의 생김새는 components/post-list-board.tsx 에서 수정합니다.
+import { Asterisk } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { Footer } from "@/components/footer"
+import { PostListBoard } from "@/components/post-list-board"
+import { getAllSlugs } from "@/lib/notion"
+import { astrologyDecks, astrologyFilters } from "@/lib/astrology-data"
 
 export const revalidate = 3600
 
@@ -12,23 +16,21 @@ export default async function AstrologyPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 pt-10 pb-28 sm:px-8">
-        {/* 헤더 */}
-        <PageHeader backHref="/tarot" className="mb-8" />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
+        {/* 상단 바: 뒤로가기 + 공유 */}
+        <PageHeader backHref="/tarot" showShare className="mb-8" />
 
-        {/* 페이지 제목 */}
+        {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
         <div className="mb-8 space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <h1 className="font-serif text-5xl italic leading-tight text-foreground sm:text-6xl">
               Astrologyㅡ
             </h1>
-            <div className="h-12 w-12 flex-shrink-0 text-accent">
-              <svg viewBox="0 0 100 100" className="h-full w-full">
-                <g fill="currentColor">
-                  <polygon points="50,10 61,40 90,40 68,60 79,90 50,70 21,90 32,60 10,40 39,40" />
-                </g>
-              </svg>
-            </div>
+            <Asterisk
+              className="h-12 w-12 shrink-0 text-primary sm:h-14 sm:w-14"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
           </div>
 
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -37,95 +39,46 @@ export default async function AstrologyPage() {
           </p>
         </div>
 
-        {/* 필터 바 */}
-        <div className="mb-8 space-y-4 border-t border-border py-4">
-          <div className="flex flex-wrap gap-2">
-            {astrologyFilters.map((filter) => (
-              <button
-                key={filter.id}
-                className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
-                  filter.id === 'all'
-                    ? 'bg-accent text-background'
-                    : 'bg-muted text-accent'
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+        {/* 필터 칩 — 선택된 것은 테라코타 채움, 나머지는 크림 배경 */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          {astrologyFilters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                filter.id === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-primary hover:bg-secondary/70"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
 
-        {/* 보드 뷰 */}
-        <div className="space-y-8">
+        {/* 덱별 그리드 박스 */}
+        <div className="space-y-6 pb-8">
           {astrologyDecks.map((deck) => (
-            <div key={deck.id} className="space-y-4">
-              <h2 className="font-serif text-4xl italic text-foreground">{deck.name}</h2>
-
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                {/* 첫 번째 컬럼 */}
-                <div className="space-y-4 rounded-lg bg-muted p-4">
-                  <div className={`inline-block rounded px-3 py-1 text-xs font-medium text-foreground ${deck.headerBg}`}>
-                    <span>{deck.cardType}</span>
-                    <span className="ml-2 font-mono text-xs opacity-60">{deck.count}</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {deck.cards.slice(0, Math.ceil(deck.cards.length / 2)).map((card) => {
-                      const isPublished = publishedSet.has(card.slug)
-                      return (
-                        <Link
-                          key={card.slug}
-                          href={isPublished ? `/blog/${card.slug}?from=astrology` : '#'}
-                          className={`flex gap-2 rounded-lg border border-border bg-background p-2 transition-opacity ${
-                            isPublished ? 'cursor-pointer hover:bg-muted' : 'cursor-default opacity-40'
-                          }`}
-                        >
-                          <span className="w-4 flex-shrink-0 font-mono text-xs text-accent opacity-80">
-                            {card.id}
-                          </span>
-                          <span className="flex-1 text-xs text-foreground">{card.name}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* 두 번째 컬럼 */}
-                <div className="space-y-4 rounded-lg bg-muted p-4">
-                  <div className={`inline-block rounded px-3 py-1 text-xs font-medium text-foreground ${deck.altHeaderBg}`}>
-                    <span>{deck.cardType}</span>
-                    <span className="ml-2 font-mono text-xs opacity-60">{deck.count}</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {deck.cards.slice(Math.ceil(deck.cards.length / 2)).map((card) => {
-                      const isPublished = publishedSet.has(card.slug)
-                      return (
-                        <Link
-                          key={card.slug}
-                          href={isPublished ? `/blog/${card.slug}` : '#'}
-                          className={`flex gap-2 rounded-lg border border-border bg-background p-2 transition-opacity ${
-                            isPublished ? 'cursor-pointer hover:bg-muted' : 'cursor-default opacity-40'
-                          }`}
-                        >
-                          <span className="w-4 flex-shrink-0 font-mono text-xs text-accent opacity-80">
-                            {card.id}
-                          </span>
-                          <span className="flex-1 text-xs text-foreground">{card.name}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <button className="w-full rounded-lg border border-border bg-background py-2 text-center text-xs text-foreground transition-colors hover:bg-muted">
-                더 불러오기
-              </button>
-            </div>
+            <PostListBoard
+              key={deck.id}
+              title={deck.name}
+              badgeLabel={deck.cardType}
+              badgeCount={deck.count}
+              badgeClassName={deck.headerBg}
+              altBadgeClassName={deck.altHeaderBg}
+              items={deck.cards.map((card) => ({
+                id: card.id,
+                name: card.name,
+                meaning: card.meaning,
+                href: `/blog/${card.slug}?from=astrology`,
+                active: publishedSet.has(card.slug),
+              }))}
+            />
           ))}
         </div>
       </main>
+
+      <Footer />
     </div>
   )
 }
