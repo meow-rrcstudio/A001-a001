@@ -287,17 +287,30 @@ export default function DesignSystemPage() {
           <section id="spreads" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>10. 카드 스프레드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Card.pdf 시안 기준 배열. 좌표의 원본은 lib/spread-layouts.ts 하나뿐이라, 거기를
-              고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
+              Card.pdf 시안 기준 배열 전체. 좌표의 원본은 lib/spread-layouts.ts 하나뿐이라,
+              거기를 고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
             </p>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {(
                 [
-                  { key: "one-card", label: "1장" },
-                  { key: "three-2", label: "3장 일렬" },
-                  { key: "four-2", label: "4장 일렬" },
-                  { key: "five-1", label: "5장 (3+2)" },
-                  { key: "five-2", label: "5장 십자형" },
+                  { key: "one-card", label: "1장", aspect: undefined, cardWidth: undefined },
+                  { key: "two-card", label: "2장", aspect: undefined, cardWidth: undefined },
+                  { key: "three-2", label: "3장 일렬", aspect: undefined, cardWidth: undefined },
+                  { key: "four-2", label: "4장 일렬", aspect: undefined, cardWidth: undefined },
+                  { key: "five-1", label: "5장 (위3+아래2)", aspect: undefined, cardWidth: undefined },
+                  { key: "five-2", label: "5장 십자형", aspect: "aspect-[16/12]", cardWidth: "w-[15%]" },
+                  {
+                    key: "seven-horseshoe",
+                    label: "7장 말굽형",
+                    aspect: "aspect-[16/12]",
+                    cardWidth: "w-[15%]",
+                  },
+                  {
+                    key: "ten-celtic",
+                    label: "10장 켈틱 크로스",
+                    aspect: "aspect-[16/13]",
+                    cardWidth: "w-[13%]",
+                  },
                 ] as const
               ).map((spread) => (
                 <div key={spread.key} className="rounded-xl border border-border bg-card p-4">
@@ -305,12 +318,18 @@ export default function DesignSystemPage() {
                     {spread.label}{" "}
                     <span className="font-mono text-[10px] opacity-60">{spread.key}</span>
                   </p>
-                  <CardSpread layout={spread.key} />
+                  <CardSpread
+                    layout={spread.key}
+                    aspectClassName={spread.aspect}
+                    cardWidthClassName={spread.cardWidth}
+                  />
                 </div>
               ))}
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
               * three-1/four-1 키는 three-2/four-2와 같은 배치를 쓰는 하위 호환용 별칭입니다.
+              현재 리딩 질문은 3·4·5장 배치를 쓰고, 2장·7장 말굽·10장 켈틱 크로스는 질문과
+              매칭할 준비가 된 상태입니다.
             </p>
           </section>
 
