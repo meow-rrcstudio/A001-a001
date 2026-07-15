@@ -1,0 +1,181 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-lora), 'Lora Fallback', serif;
+  --font-serif: var(--font-lora), 'Lora Fallback', serif;
+  --font-sans: var(--font-geist-sans), 'Geist Fallback';
+  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Soul Seoul 디자인시스템 — 색상·모양의 원본 (여기가 "진짜" 디자인시스템)
+   여기 값을 바꾸면 사이트의 모든 페이지에 동시에 적용됩니다.
+   견본 확인: /design-1859 (비공개 스타일가이드 페이지)
+
+   ─ 색상 값 읽는 법: oklch(밝기 채도 색상각)
+     · 밝기   : 0(검정) ~ 1(흰색).  숫자를 키우면 밝아짐
+     · 채도   : 0(무채색) ~ 0.3쯤(쨍함).  숫자를 키우면 선명해짐
+     · 색상각 : 색상환 각도. 38≈테라코타 주황, 55≈브라운, 92≈크림 베이지
+
+   ─ 자주 하는 조절 예시
+     · 포인트색을 연하게  : --primary 의 0.56 → 0.62 (밝기만 올리기)
+     · 포인트색을 차분하게: --primary 의 0.17 → 0.12 (채도만 내리기)
+     · 배경을 더 하얗게   : --background 의 0.958 → 0.98
+     · 전체 모서리 각지게 : --radius 0.75rem → 0.5rem (버튼·카드 전부 적용)
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* Soul Seoul 시안 기반 라이트(크림) 테마 — Site design.pdf 참조 */
+  color-scheme: light;
+  --background: oklch(0.958 0.012 92);          /* 사이트 전체 배경 — 크림/아이보리 종이 */
+  --foreground: oklch(0.31 0.03 55);            /* 기본 글자색 — 다크 브라운 잉크 */
+  --card: oklch(0.975 0.009 92);                /* 카드·상자 배경 — 배경보다 살짝 밝음 */
+  --card-foreground: oklch(0.31 0.03 55);       /* 카드 안 글자색 */
+  --popover: oklch(0.975 0.009 92);             /* 팝업·드롭다운 배경 */
+  --popover-foreground: oklch(0.31 0.03 55);    /* 팝업 안 글자색 */
+  --primary: oklch(0.56 0.17 38);               /* ★ 포인트색 — 테라코타 오렌지. 버튼·링크·강조 전부 */
+  --primary-foreground: oklch(0.975 0.009 92);  /* 포인트색 버튼 위의 글자색 (밝은 크림) */
+  --secondary: oklch(0.92 0.015 90);            /* 보조 버튼 배경 — 연한 베이지 */
+  --secondary-foreground: oklch(0.31 0.03 55);  /* 보조 버튼 글자색 */
+  --muted: oklch(0.92 0.015 90);                /* 옅은 배경 — 인용문·코드블록 바탕 */
+  --muted-foreground: oklch(0.5 0.025 60);      /* 보조 글자색 — 설명·날짜 등 (웜 그레이 브라운) */
+  --accent: oklch(0.56 0.17 38);                /* 호버 강조색 — 포인트와 같은 테라코타로 통일 */
+  --accent-foreground: oklch(0.975 0.009 92);   /* 강조 위 글자색 */
+  --destructive: oklch(0.55 0.19 25);           /* 경고·삭제 — 붉은 톤 */
+  --border: oklch(0.31 0.03 55 / 14%);          /* 구분선 — 글자색의 14% 투명도. %를 올리면 선이 진해짐 */
+  --input: oklch(0.31 0.03 55 / 16%);           /* 입력창 테두리 */
+  --ring: oklch(0.56 0.17 38 / 60%);            /* 키보드 포커스 테두리 (접근성) */
+  --radius: 0.75rem;                            /* ★ 모서리 둥글기 기준값 (12px). 버튼·카드 전체에 적용 */
+}
+
+.dark {
+  /* 기존 다크 네이비 팔레트 (블랙 버전 테스트용으로 보존) */
+  color-scheme: dark;
+  --background: oklch(0.15 0.018 265);
+  --foreground: oklch(0.95 0.008 260);
+  --card: oklch(0.19 0.02 265);
+  --card-foreground: oklch(0.95 0.008 260);
+  --popover: oklch(0.17 0.02 265);
+  --popover-foreground: oklch(0.95 0.008 260);
+  --primary: oklch(0.85 0.13 88);
+  --primary-foreground: oklch(0.2 0.03 265);
+  --secondary: oklch(0.25 0.02 265);
+  --secondary-foreground: oklch(0.95 0.008 260);
+  --muted: oklch(0.25 0.02 265);
+  --muted-foreground: oklch(0.7 0.02 265);
+  --accent: oklch(0.62 0.16 280);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.7 0.1 280);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+  html { @apply font-sans; }
+}
+
+@layer components {
+  /* 블로그 포스팅 본문 스타일 */
+  .prose-blog {
+    @apply text-[17px] leading-[1.8] text-foreground/80;
+  }
+  .prose-blog > * + * { @apply mt-6; }
+
+  .prose-blog h1, .prose-blog h2, .prose-blog h3, .prose-blog h4 {
+    @apply font-serif font-semibold leading-snug tracking-tight text-foreground mt-10;
+  }
+
+  .prose-blog strong, .prose-blog b { @apply font-bold text-foreground; }
+
+  .prose-blog a {
+    @apply font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/80;
+  }
+
+  /* 이미지 선명도 강제 설정 */
+  .prose-blog img {
+    @apply my-6 h-auto max-w-full rounded-md;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
+  }
+
+  .prose-blog blockquote {
+    @apply border-l-4 border-primary/50 pl-4 italic text-muted-foreground bg-muted/30 py-2;
+  }
+
+  .prose-blog code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground;
+  }
+
+  .prose-blog pre {
+    @apply overflow-x-auto rounded-lg bg-muted p-4 text-sm;
+  }
+}
+
+/* 애니메이션 및 기타 */
+@keyframes drift-a { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(40px, 60px) scale(1.1); } 66% { transform: translate(-30px, 20px) scale(0.95); } }
+@keyframes drift-b { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-50px, -40px) scale(1.15); } }
+@keyframes drift-c { 0%, 100% { transform: translate(0, 0) scale(1); } 40% { transform: translate(30px, -50px) scale(1.05); } 70% { transform: translate(-20px, 30px) scale(0.9); } }
+
+.tarot-detail-light {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2 0 0);
+  --primary: oklch(0.55 0.13 88);
+  --muted-foreground: oklch(0.45 0 0);
+  /* ... (기타 상세 색상 유지) */
+}
+/* v0 플로팅 배너 및 관련 요소를 완전히 숨김 */
+[id^="v0-built-with-button-"],
+div[style*="position: fixed"][style*="bottom: 24px"][style*="background: #121212"],
+a[href*="built-with-v0"] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
