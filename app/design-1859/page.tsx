@@ -106,10 +106,10 @@ export default function DesignSystemPage() {
             <div className="mt-5 space-y-6 rounded-xl border border-border bg-card p-6">
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  제목 (세리프 · Lora)
+                  제목 (세리프 · main)
                 </p>
                 <p className="font-serif text-5xl font-medium tracking-tight text-foreground">
-                  Soul Seoul
+                  SoulSeoul
                 </p>
               </div>
               <div>
@@ -401,8 +401,13 @@ export default function DesignSystemPage() {
                   ④ 이미지 <span className="font-mono text-[10px] opacity-60">image</span> —
                   사진 위에 가독성 딤 처리
                 </p>
+                {/* gemini 수정: backdrop-blur 클래스 추가 */}
                 <div className="relative h-44 overflow-hidden rounded-xl border border-border">
-                  <PageBackground variant="image" imageSrc="/placeholder.jpg" />
+                  <PageBackground 
+                    variant="image" 
+                    imageSrc="/placeholder.jpg" 
+                    className="backdrop-blur-sm bg-black/30" 
+                  />
                 </div>
               </div>
             </div>

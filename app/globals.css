@@ -1,3 +1,5 @@
+/* gemini 수정: 폰트 이름의 공백을 +로 정확히 수정 */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -5,8 +7,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-lora), 'Lora Fallback', serif;
-  --font-serif: var(--font-lora), 'Lora Fallback', serif;
+  --font-heading: var(--font-serif-main);
+  --font-serif: var(--font-serif-main);
   --font-sans: var(--font-geist-sans), 'Geist Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
@@ -66,6 +68,8 @@
      · 전체 모서리 각지게 : --radius 0.75rem → 0.5rem (버튼·카드 전부 적용)
    ═══════════════════════════════════════════════════════════════════ */
 :root {
+  --font-serif-main: 'Instrument Serif', serif;
+  
   /* Soul Seoul 시안 기반 라이트(크림) 테마 — Site design.pdf 참조 */
   color-scheme: light;
   --background: oklch(0.958 0.012 92);          /* 사이트 전체 배경 — 크림/아이보리 종이 */
