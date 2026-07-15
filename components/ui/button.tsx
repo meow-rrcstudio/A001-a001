@@ -47,6 +47,8 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40',
         link: 'text-primary underline-offset-4 hover:underline',
+        // gemini 수정: 다크 브라운 배경(foreground)과 화이트 텍스트를 가진 원형 연결 버튼 스타일 추가
+        connect: 'bg-foreground text-white hover:opacity-90 rounded-full h-16 px-8 text-lg font-serif shadow-xl transition-all duration-300',
       },
       size: {
         default:

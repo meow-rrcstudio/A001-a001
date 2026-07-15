@@ -3,6 +3,7 @@ import { Sparkle } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { MenuList } from "@/components/menu-list"
 import { PageBackground } from "@/components/page-background"
+import { Button } from "@/components/ui/button"
 
 // 홈 메뉴의 내용(번호·이름·주소)은 여기서 수정합니다.
 // 메뉴의 생김새(글자 크기·간격·색)는 components/menu-list.tsx에서 수정합니다.
@@ -48,6 +49,15 @@ export default function HomePage() {
 
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
       <Footer variant="light" />
+      <Button variant="connect" className="fixed bottom-6 left-6 right-6 z-50 flex items-center justify-center gap-3">
+  {/* 고양이 이미지나 아이콘이 들어갈 자리 */}
+  <div className="h-8 w-8 rounded-full bg-white/20" /> 
+  
+  <span>Connect with Shānti-</span>
+</Button>
+
+
+      
     </div>
   )
 }
