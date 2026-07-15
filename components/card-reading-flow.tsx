@@ -333,8 +333,12 @@ export function CardReadingFlow({
             {resultSlots.map((slot, i) => (
               <div
                 key={i}
-                className="absolute aspect-[1144/1919] w-24 -translate-x-1/2 -translate-y-1/2 rounded-[6%] border border-dashed border-white/25 sm:w-28"
-                style={{ left: slot.left, top: slot.top }}
+                className="absolute aspect-[1144/1919] w-24 rounded-[6%] border border-dashed border-white/25 sm:w-28"
+                style={{
+                  left: slot.left,
+                  top: slot.top,
+                  transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+                }}
               />
             ))}
 
