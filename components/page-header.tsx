@@ -10,19 +10,23 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, Share, Search } from "lucide-react"
+import { ArrowLeft, Share, Search, MoreHorizontal } from "lucide-react"
 
 export function PageHeader({
   backHref,
   showShare = false,
   showSearch = false,
+  showMore = false,
   onSearchClick,
+  onMoreClick,
   className = "",
 }: {
   backHref: string
   showShare?: boolean
   showSearch?: boolean // 검색 기능이 생기면 onSearchClick과 함께 켜세요
+  showMore?: boolean //   "⋯" 더보기 — 시안의 블로그 본문 헤더에 있음
   onSearchClick?: () => void
+  onMoreClick?: () => void
   className?: string
 }) {
   async function handleShare() {
@@ -66,6 +70,16 @@ export function PageHeader({
             aria-label="검색"
           >
             <Search className="h-7 w-7" />
+          </button>
+        )}
+        {showMore && (
+          <button
+            type="button"
+            onClick={onMoreClick}
+            className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="더보기"
+          >
+            <MoreHorizontal className="h-7 w-7" />
           </button>
         )}
       </div>

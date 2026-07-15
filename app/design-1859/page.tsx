@@ -221,19 +221,19 @@ export default function DesignSystemPage() {
           <section id="chrome" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>7. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              케이스에 따라 골라 쓰는 두 가지 헤더와 두 가지 푸터입니다.
+              Site design.pdf 기준. 헤더 2종 + 푸터 3종을 페이지 케이스에 따라 골라 씁니다.
             </p>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ① 페이지 상단 바 — 시안(blog-post-list)의 헤더. 목록·리딩 등 콘텐츠 페이지용
+              ① 페이지 상단 바 — 목록은 공유·검색, 블로그 본문은 공유·검색·더보기(⋯)까지
               (components/page-header.tsx)
             </p>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 py-3">
-              <PageHeader backHref="#" showShare showSearch />
+              <PageHeader backHref="#" showShare showSearch showMore />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ② 사이트 헤더 — 로고+메뉴. 블로그 본문 등 사이트형 페이지용
+              ② 사이트 헤더 — 로고+메뉴. 시안 외 추가 버전으로, 필요한 페이지에만 사용
               (components/header.tsx)
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border">
@@ -241,17 +241,24 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ③ 푸터 (라이트) — 시안(blog-post-list). 목록·본문처럼 가볍게 끝나는 페이지용
+              ③ 푸터 라이트 — 시안의 &ldquo;홈&rdquo; 하단. ✳ URL ✳ + 두 줄 카피라이트
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="light" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ④ 푸터 (다크 밴드) — Site design.pdf 홈 하단. 화면을 묵직하게 마무리하는 페이지용
+              ④ 푸터 다크 밴드 — 시안의 &ldquo;목록(Astrology)&rdquo; 하단
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="dark" />
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ⑤ 푸터 미니멀 — 시안의 &ldquo;블로그 본문&rdquo; 하단. 세리프 로고 + 한 줄
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
+              <Footer variant="minimal" />
             </div>
           </section>
 

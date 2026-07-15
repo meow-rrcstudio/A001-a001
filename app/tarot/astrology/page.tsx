@@ -18,7 +18,7 @@ export default async function AstrologyPage() {
     <div className="flex min-h-screen flex-col">
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
         {/* 상단 바: 뒤로가기 + 공유 */}
-        <PageHeader backHref="/tarot" showShare className="mb-8" />
+        <PageHeader backHref="/tarot" showShare showSearch className="mb-8" />
 
         {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
         <div className="mb-8 space-y-4">
@@ -78,8 +78,8 @@ export default async function AstrologyPage() {
         </div>
       </main>
 
-      {/* 목록 페이지는 시안(blog-post-list) 기준 라이트 푸터 사용 */}
-      <Footer variant="light" />
+      {/* 목록 페이지는 시안(Site design.pdf) 기준 다크 브라운 푸터 */}
+      <Footer variant="dark" />
     </div>
   )
 }

@@ -43,7 +43,8 @@ export default function HomePage() {
         </div>
       </main>
 
-      <Footer />
+      {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
+      <Footer variant="light" />
     </div>
   )
 }
