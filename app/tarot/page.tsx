@@ -5,8 +5,9 @@ import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
 import { PageBackground } from "@/components/page-background"
 import { Footer } from "@/components/footer"
-// gemini 수정: Button 컴포넌트 추가
-import { Button } from "@/components/ui/button"
+// gemini 수정: Button 스타일 재사용을 위한 import
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 export const revalidate = 3600
 
@@ -56,15 +57,18 @@ export default async function TarotListPage() {
         </div>
       </main>
 
-      {/* gemini 수정: 기존 Floating 버튼 삭제 후, Button 컴포넌트를 사용해 하단 고정 버튼 구현 */}
+      {/* gemini 수정: 기존 Floating 버튼 삭제 후 하단 고정 버튼 구현
+          (이 버튼 컴포넌트는 asChild를 지원하지 않아, 같은 스타일을 Link에 직접 입힘) */}
       <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 px-6">
-        <Button 
-        asChild variant="default"
-        size="lg"
-        className="rounded-full shadow-lg h-14 font-serif text-xl italic text-primary bg-[var(--foreground)] text-[#ffffff] px-8"
+        <Link
+          href="/tarot/reading"
+          className={cn(
+            buttonVariants({ variant: "connect", size: "lg" }),
+            "h-14 rounded-full px-8 font-serif text-xl italic shadow-lg"
+          )}
         >
-        <Link href="/tarot/reading">Connect with Shānti-</Link>
-        </Button>
+          Connect with Shānti-
+        </Link>
       </div>
 
       <Footer variant="light" />
