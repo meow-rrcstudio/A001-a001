@@ -2,6 +2,7 @@
 import { Sparkle } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { MenuList } from "@/components/menu-list"
+import { PageBackground } from "@/components/page-background"
 
 // 홈 메뉴의 내용(번호·이름·주소)은 여기서 수정합니다.
 // 메뉴의 생김새(글자 크기·간격·색)는 components/menu-list.tsx에서 수정합니다.
@@ -15,7 +16,9 @@ const menuItems = [
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-20 sm:px-8">
+      {/* 홈은 웜톤 오로라 배경 */}
+      <PageBackground variant="aurora" />
+      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-20 sm:px-8">
         {/* 시안의 상단 이탤릭 라벨 */}
         <p className="mb-2 font-serif text-sm italic text-primary">The 12th Annual</p>
         <p className="mb-6 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">

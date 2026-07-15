@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/page-header"
 import { PostListBoard } from "@/components/post-list-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
 import { CardSpread } from "@/components/card-spread"
+import { PageBackground } from "@/components/page-background"
 import { TokenSwatch } from "./token-swatch"
 import { Toc, type TocGroup } from "./toc"
 
@@ -55,6 +56,7 @@ const tocGroups: TocGroup[] = [
       { id: "board", label: "8. 그리드 박스" },
       { id: "cards", label: "9. 타로 카드" },
       { id: "spreads", label: "10. 카드 스프레드" },
+      { id: "backgrounds", label: "11. 배경" },
     ],
   },
 ]
@@ -358,6 +360,52 @@ export default function DesignSystemPage() {
               리딩 질문 36개가 질문 성격에 따라 3·4·5장 배열 8종에 매칭되어 있습니다.
               2장·6장·7장·10장 배열은 새 질문을 만들 때 바로 쓸 수 있습니다.
             </p>
+          </section>
+
+          {/* ── 11. 배경 ───────────────────────────── */}
+          <section id="backgrounds" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>11. 배경</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              푸터처럼 페이지 성격에 맞게 골라 쓰는 공용 배경입니다.
+              (components/page-background.tsx) 현재: 홈·타로·리딩 = 오로라, 목록·본문 = 단색.
+            </p>
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  ① 단색 <span className="font-mono text-[10px] opacity-60">plain</span> — 효과
+                  없는 크림 배경
+                </p>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border bg-background" />
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  ② 오로라 <span className="font-mono text-[10px] opacity-60">aurora</span> —
+                  웜톤 블러가 천천히 떠다님
+                </p>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border bg-background">
+                  <PageBackground variant="aurora" />
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  ③ 다크 오로라{" "}
+                  <span className="font-mono text-[10px] opacity-60">aurora-dark</span> — 몰입형
+                  화면용 어두운 배경
+                </p>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border">
+                  <PageBackground variant="aurora-dark" />
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  ④ 이미지 <span className="font-mono text-[10px] opacity-60">image</span> —
+                  사진 위에 가독성 딤 처리
+                </p>
+                <div className="relative h-44 overflow-hidden rounded-xl border border-border">
+                  <PageBackground variant="image" imageSrc="/placeholder.jpg" />
+                </div>
+              </div>
+            </div>
           </section>
 
           <div className="mt-16 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground">

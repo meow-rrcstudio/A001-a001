@@ -9,6 +9,7 @@ import { ScatteredCardsBackground } from "@/components/scattered-cards-bg"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { resetReadingDeck } from "@/lib/reading-session"
 import { PageHeader } from "@/components/page-header"
+import { PageBackground } from "@/components/page-background"
 
 export default function TarotReadingPage() {
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function TarotReadingPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col">
+      <PageBackground variant="aurora" />
       <ScatteredCardsBackground />
 
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 sm:px-8">

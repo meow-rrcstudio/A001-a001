@@ -4,6 +4,7 @@ import { TarotCardImage } from "@/components/tarot-card-image"
 import { FloatingReadingButton } from "@/components/floating-reading-button"
 import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
+import { PageBackground } from "@/components/page-background"
 
 export const revalidate = 3600
 
@@ -13,6 +14,7 @@ export default async function TarotListPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <PageBackground variant="aurora" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
         <PageHeader backHref="/tarot/reading" className="mb-8" />
         
