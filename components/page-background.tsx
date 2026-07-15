@@ -18,15 +18,18 @@
 // │ · 이미지 딤 농도 : image variant의 bg-background/70 → /50이면 이미지가 더 보임
 // └──────────────────────────────────────────────────────────────────
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 export function PageBackground({
   variant = "aurora",
   imageSrc,
   imageAlt = "",
+  className,
 }: {
   variant?: "plain" | "aurora" | "aurora-dark" | "image"
   imageSrc?: string // variant="image"일 때 배경 이미지 경로
   imageAlt?: string
+  className?: string // 딤/블러 레이어를 덮어쓰는 추가 클래스 (예: "backdrop-blur-sm bg-black/30")
 }) {
   if (variant === "plain") return null
 
@@ -35,8 +38,8 @@ export function PageBackground({
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <Image src={imageSrc} alt={imageAlt} fill className="object-cover" sizes="100vw" />
-        {/* 글자 가독성을 위한 딤 처리 */}
-        <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
+        {/* 글자 가독성을 위한 딤 처리 — className으로 농도/블러를 조절할 수 있음 */}
+        <div className={cn("absolute inset-0 bg-background/70 backdrop-blur-[2px]", className)} />
       </div>
     )
   }

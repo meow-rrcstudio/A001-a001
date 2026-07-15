@@ -1,4 +1,15 @@
 // components/card-reading-flow.tsx
+// 카드 섞기 → 고르기 → 결과 공개까지의 리딩 플로우입니다.
+//
+// 화면 구조 (Site design.pdf 리딩 화면 기준, 모든 단계 공통):
+// ┌───────────────────────────────┐
+// │  부채꼴 카드 (한 방향 아치)   │ ← 무대 위쪽 ~38%
+// │                               │
+// │  스프레드 슬롯 (번호 표시)    │ ← 무대 아래쪽. 최소 160px~최대 280px
+// ├───────────────────────────────┤
+// │  샨티 말풍선 (화면 하단 고정) │
+// └───────────────────────────────┘
+// 화면이 아주 작으면 무대가 최소 높이를 지키고 페이지가 스크롤됩니다.
 "use client"
 
 import { useMemo, useRef, useState, useEffect } from "react"
@@ -11,7 +22,6 @@ import { spreadLayouts } from "@/lib/spread-layouts"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
-const FAN_COUNT = 24
 const SHUFFLE_TARGET_DISTANCE = 2400
 const SHUFFLE_STEPS = 4 // 최대 4번 섞으면 자동으로 다음 화면으로
 const MIN_STEPS_FOR_QUICK_DRAW = 1 // 1번만 섞어도 "고르러 가기" 가능
@@ -28,17 +38,6 @@ const shufflePersuasionMessages = [
   "이 몸이 삼천 번의 계절을 지켜봤는데, 서두른 패는 늘 흐릿하더군. 조금만 더 섞어보라냥.",
 ]
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
-  }, [])
-  return isMobile
-}
-
 function useIsTouchDevice() {
   const [isTouch, setIsTouch] = useState(true)
   useEffect(() => {
@@ -51,14 +50,19 @@ function useIsTouchDevice() {
   return isTouch
 }
 
-function getPileLayout(step: number, index: number) {
-  const seed = (step + 1) * 911 + index * 137.5
-  return {
-    top: `${4 + ((seed * 1.7) % 80)}%`,
-    left: `${4 + ((seed * 2.3) % 76)}%`,
-    rotate: ((seed * 4.7) % 140) - 70,
-    z: Math.floor(seed) % FAN_COUNT,
+// 시드 기반 셔플 — 같은 시드면 같은 순서 (섞을 때마다 시드가 바뀌어 카드가 아치 위에서 재배열됨)
+function seededOrder(length: number, seed: number) {
+  const indices = Array.from({ length }, (_, i) => i)
+  let state = seed * 9301 + 49297
+  const random = () => {
+    state = (state * 233280 + 49297) % 233280233
+    return (state % 10000) / 10000
   }
+  for (let i = length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[indices[i], indices[j]] = [indices[j], indices[i]]
+  }
+  return indices
 }
 
 function deriveShuffleStyle({ durationMs, interactionCount }: { durationMs: number; interactionCount: number }) {
@@ -82,20 +86,21 @@ export function CardReadingFlow({
   const resultSlots = spreadLayouts[question.layoutKey]
 
   const [phase, setPhase] = useState<Phase>("shuffling")
-  const [progress, setProgress] = useState(0)
   const [shuffleStep, setShuffleStep] = useState(0)
   const [entered, setEntered] = useState(false)
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null)
   const [shuffleStyle, setShuffleStyle] = useState<string | null>(null)
   const [bubbleHeight, setBubbleHeight] = useState(160)
+  // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
+  const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
 
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
   const shuffleStartRef = useRef<number | null>(null)
   const interactionCountRef = useRef(0)
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const touchStartYRef = useRef<number | null>(null)
 
-  const isMobile = useIsMobile()
   const isTouchDevice = useIsTouchDevice()
 
   const [selected, setSelected] = useState<number[]>([])
@@ -115,11 +120,11 @@ export function CardReadingFlow({
   const cardOrientations = useMemo(() => {
   const total = shuffledDeck.length;
   // 전체의 20%를 역방향으로 설정 (최소 1장은 역방향이 나오게 하려면 Math.max(1, ...) 사용)
-  const targetReverseCount = Math.round(total * 0.2); 
-  
+  const targetReverseCount = Math.round(total * 0.2);
+
   // 처음에는 모두 정방향으로 채움
   const orientations = Array(total).fill("정방향");
-  
+
   // 역방향으로 바꿀 인덱스를 무작위로 뽑음
   const indices = Array.from({ length: total }, (_, i) => i);
   for (let i = 0; i < targetReverseCount; i++) {
@@ -127,18 +132,15 @@ export function CardReadingFlow({
     const targetIdx = indices.splice(randomIndex, 1)[0];
     orientations[targetIdx] = "역방향";
   }
-  
+
   return orientations as ("정방향" | "역방향")[];
 }, [shuffledDeck]);
 
-  const fanOrder = useMemo(() => {
-    const indices = shuffledDeck.map((_, i) => i)
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-        ;[indices[i], indices[j]] = [indices[j], indices[i]]
-    }
-    return indices
-  }, [shuffledDeck.length])
+  // 아치 위 카드 순서 — 섞을 때마다(shuffleStep 변경) 재배열되어 섞이는 느낌을 줍니다.
+  const fanOrder = useMemo(
+    () => seededOrder(shuffledDeck.length, shuffleStep + 1),
+    [shuffledDeck.length, shuffleStep]
+  )
 
   const shuffleMessages = useMemo(() => [introMessage, ...genericShuffleMessages], [introMessage])
 
@@ -166,7 +168,6 @@ export function CardReadingFlow({
     interactionCountRef.current += 1
     traveledRef.current += delta
     const next = Math.min(100, Math.round((traveledRef.current / SHUFFLE_TARGET_DISTANCE) * 100))
-    setProgress(next)
     setShuffleStep(Math.min(SHUFFLE_STEPS, Math.ceil((next / 100) * SHUFFLE_STEPS)))
     if (next >= 100) {
       setTimeout(finishShuffling, 500)
@@ -203,6 +204,7 @@ export function CardReadingFlow({
 
   function handlePick(index: number) {
     if (selected.includes(index) || selected.length >= requiredPicks) return
+    setPeekedIndex(null)
     const next = [...selected, index]
     setSelected(next)
     if (next.length >= requiredPicks) {
@@ -217,28 +219,37 @@ export function CardReadingFlow({
     }
   }
 
-  const rows = isMobile ? 2 : 1
-  const arcSpan = 150
-
-  // 부채꼴 카드의 zIndex는 최대 40까지만 — 말풍선(z-60)보다 항상 아래에 있도록
-  function getFanStyle(cardIndex: number, total: number) {
+  // ── 아치형 부채 좌표 (시안: 한 방향으로 쭉 이어지는 무지개 아치) ──
+  // 왼쪽 끝(-62도)에서 오른쪽 끝(+48도)까지 한 호흡으로 이어집니다.
+  // 부채는 무대 위쪽 ~38% 안에만 머물러 스프레드 영역을 침범하지 않습니다.
+  function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
-    const spread = 46
-    const angle = -spread / 2 + (index / (total - 1)) * spread
-    const radius = 340
+    const total = shuffledDeck.length
+    const startAngle = -62
+    const endAngle = 48
+    const angle = startAngle + (index / Math.max(1, total - 1)) * (endAngle - startAngle)
     const rad = (angle * Math.PI) / 180
-    const x = 50 + Math.sin(rad) * (radius / 4)
-    const y = 6 + (1 - Math.cos(rad)) * (radius / 3)
-    return { left: `${x}%`, top: `${y}%`, rotate: angle, zIndex: 40 - Math.abs(Math.round(angle)) }
+    const x = 53 + Math.sin(rad) * 50 //   가로: 8% ~ 92% 사이
+    const y = 5 + (1 - Math.cos(rad)) * 44 // 세로: 아치 정점 5%, 양 끝 ~28%
+    return { left: `${x}%`, top: `${y}%`, rotate: angle, zIndex: 10 + index }
   }
 
+  // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
   function getLeftoverStackStyle(orderAmongLeftovers: number) {
     return {
-      left: "6%",
-      top: `${4 + orderAmongLeftovers * 0.25}%`,
+      left: "9%",
+      top: `${8 + orderAmongLeftovers * 0.25}%`,
       rotate: (orderAmongLeftovers % 2 === 0 ? 1 : -1) * 1.5,
       zIndex: orderAmongLeftovers,
     }
+  }
+
+  // ── 스프레드 슬롯 영역 매핑 ──
+  // 좌표 원본(lib/spread-layouts.ts)은 0~100% 기준이므로,
+  // 고르는 중에는 무대 아래쪽 영역으로, 결과 화면에서는 무대 전체로 펼칩니다.
+  const spreadZone = phase === "revealing" ? { offset: 4, scale: 0.92 } : { offset: 44, scale: 0.5 }
+  function mapSlotTop(slotTop: string) {
+    return `${spreadZone.offset + parseFloat(slotTop) * spreadZone.scale}%`
   }
 
   function buildPrompt() {
@@ -251,168 +262,181 @@ export function CardReadingFlow({
     return shuffleStyle ? `${basePrompt}\nshuffle_style=${shuffleStyle}` : basePrompt
   }
 
+  const isShuffling = phase === "shuffling"
   let leftoverCounter = 0
 
   return (
-    <div className="flex flex-1 flex-col">
-      {phase === "shuffling" && (
-        <div className="flex flex-1 flex-col">
-          <motion.div
-            onPan={handlePan}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => {
-              lastMouseX.current = null
-            }}
-            onClick={handleShuffleClick}
-            className="relative mx-auto h-[52dvh] min-h-80 w-full max-w-md cursor-pointer touch-none"
-          >
-            {shuffledDeck.map((card, i) => {
-              const startLayout = getScatteredLayout(i)
-              const pileTarget = getPileLayout(shuffleStep, i)
-              return (
-                <motion.div
-                  key={card.slug}
-                  className="absolute aspect-[1144/1919]"
-                  initial={{
-                    top: startLayout.top,
-                    left: startLayout.left,
-                    rotate: startLayout.rotate,
-                    width: "38vw",
-                    x: "-50%",
-                    zIndex: 0,
-                  }}
-                  animate={{
-                    top: entered ? pileTarget.top : startLayout.top,
-                    left: entered ? pileTarget.left : startLayout.left,
-                    rotate: entered ? pileTarget.rotate : startLayout.rotate,
-                    width: "42vw",
-                    x: "-50%",
-                    zIndex: entered ? pileTarget.z : 0,
-                  }}
-                  transition={{ duration: 0.7, ease: "easeInOut" }}
-                  style={{ maxWidth: 168 }}
-                  >
-                  <CardBack flipped={!entered} faceImageUrl={card.imageUrl} faceAlt={card.nameKo} />
-                </motion.div>
-              )
-            })}
-
-            {/* 고르러 가기 — 1번만 섞어도 이동 가능, 피그마 스타일 알약 버튼 */}
-          </motion.div>
-
-          <div className="mt-4 px-6">
-          </div>
-        </div>
-      )}
-
-      {phase === "shuffling" && (
-        <>
-          {shuffleStep >= 1 && (
-            <button
-              type="button"
-              onClick={handleGoToPick}
-              className="fixed right-6 z-[70] rounded-full bg-neutral-800/80 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 sm:right-8"
-              style={{ bottom: bubbleHeight + 44 }}
-            >
-              고르러 가기
-            </button>
-          )}
-          <ReadingCharacterBubble
-            message={nudgeMessage ?? shuffleMessages[Math.min(shuffleStep, shuffleMessages.length - 1)]}
-            onHeightChange={setBubbleHeight}
-          />
-        </>
-      )}
-
-      {(phase === "selecting" || phase === "revealing") && (
-        <div className="flex flex-1 flex-col" style={{ paddingBottom: bubbleHeight }}>
-          <div
-            className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
-            style={{ height: phase === "revealing" ? "40dvh" : "68dvh" }}
-          >
-            {resultSlots.map((slot, i) => (
-              <div
-                key={i}
-                className="absolute aspect-[1144/1919] w-24 rounded-[6%] border border-dashed border-white/25 sm:w-28"
-                style={{
-                  left: slot.left,
-                  top: slot.top,
-                  transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
-                }}
-              />
-            ))}
-
-            {shuffledDeck.map((card, index) => {
-              const pickedOrder = selected.indexOf(index)
-              const isPicked = pickedOrder !== -1
-              const isLeftover = phase === "revealing" && !isPicked
-              const leftoverOrder = isLeftover ? leftoverCounter++ : -1
-
-              let target: { left: string; top: string; rotate: number; zIndex: number; width: number }
-              if (isPicked) {
-                const s = resultSlots[pickedOrder]
-                // 뽑힌 카드는 부채꼴(최대 40)보다 살짝 위, 말풍선(60)보다는 항상 아래
-                target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: 41 + pickedOrder, width: 100 }
-              } else if (isLeftover) {
-                const s = getLeftoverStackStyle(leftoverOrder)
-                target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 44 }
-              } else {
-                const s = getFanStyle(index, shuffledDeck.length)
-                target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 72 }
+    <div className="flex flex-1 flex-col" style={{ paddingBottom: bubbleHeight }}>
+      {/* 무대: 부채(위) + 스프레드 슬롯(아래)이 한 화면에, 겹치지 않게 */}
+      <motion.div
+        onPan={isShuffling ? handlePan : undefined}
+        onMouseMove={isShuffling ? handleMouseMove : undefined}
+        onMouseLeave={
+          isShuffling
+            ? () => {
+                lastMouseX.current = null
               }
+            : undefined
+        }
+        onClick={isShuffling ? handleShuffleClick : undefined}
+        className={`relative mx-auto w-full max-w-3xl transition-[height] duration-500 ${
+          isShuffling ? "cursor-pointer touch-none" : ""
+        }`}
+        style={{
+          height: phase === "revealing" ? "clamp(300px, 46dvh, 430px)" : "clamp(400px, 72dvh, 560px)",
+        }}
+      >
+        {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
+        {resultSlots.map((slot, i) => {
+          const filled = selected.length > i && (phase !== "shuffling")
+          return (
+            <div
+              key={i}
+              className="absolute flex aspect-[1144/1919] w-20 items-center justify-center rounded-[8%] border border-border bg-muted/60 sm:w-24"
+              style={{
+                left: slot.left,
+                top: mapSlotTop(slot.top),
+                transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+              }}
+            >
+              {!filled && (
+                <span className="font-serif text-xl text-muted-foreground/60">{i + 1}</span>
+              )}
+            </div>
+          )
+        })}
 
-              const canClick = !isPicked && phase === "selecting"
+        {/* 카드들 */}
+        {shuffledDeck.map((card, index) => {
+          const pickedOrder = selected.indexOf(index)
+          const isPicked = pickedOrder !== -1
+          const isLeftover = phase === "revealing" && !isPicked
+          const leftoverOrder = isLeftover ? leftoverCounter++ : -1
 
-              return (
-                <motion.div
-                  key={card.slug}
-                  className="absolute aspect-[1144/1919] origin-bottom"
-                  initial={false}
-                  animate={{
-                    top: target.top,
-                    left: target.left,
-                    rotate: target.rotate,
-                    width: target.width,
-                    x: "-50%",
-                    y: "-50%",
-                    zIndex: target.zIndex,
-                  }}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                >
-                  <motion.div
-                    onClick={canClick ? () => handlePick(index) : undefined}
-                    whileHover={canClick ? { y: -16 } : undefined}
-                    whileTap={canClick ? { y: -16 } : undefined}
-                    className={`h-full w-full ${canClick ? "cursor-pointer" : ""}`}
-                  >
-                    <CardBack
-                      selected={isPicked}
-                      flipped={isPicked && flippedIndices.includes(index)}
-                      reversed={cardOrientations[index] === "역방향"}
-                      faceImageUrl={card.imageUrl}
-                      faceAlt={card.nameKo}
-                    />
-                  </motion.div>
-                </motion.div>
-              )
-            })}
-          </div>
-        </div>
+          let target: { left: string; top: string; rotate: number; zIndex: number; width: number }
+          if (isPicked) {
+            const s = resultSlots[pickedOrder]
+            // 뽑힌 카드는 부채(최대 40)보다 위, 말풍선(60)보다는 항상 아래
+            target = {
+              left: s.left,
+              top: mapSlotTop(s.top),
+              rotate: s.rotate,
+              zIndex: 41 + pickedOrder,
+              width: 92,
+            }
+          } else if (isLeftover) {
+            const s = getLeftoverStackStyle(leftoverOrder)
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40 }
+          } else {
+            const s = getFanStyle(index)
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 76 }
+          }
+
+          const canClick = !isPicked && phase === "selecting"
+          const startLayout = getScatteredLayout(index)
+          const isPeeked = peekedIndex === index
+
+          return (
+            <motion.div
+              key={card.slug}
+              className="absolute aspect-[1144/1919]"
+              initial={{
+                top: startLayout.top,
+                left: startLayout.left,
+                rotate: startLayout.rotate,
+                width: 110,
+                x: "-50%",
+                y: "-50%",
+                zIndex: 0,
+              }}
+              animate={{
+                top: entered ? target.top : startLayout.top,
+                left: entered ? target.left : startLayout.left,
+                rotate: entered ? target.rotate : startLayout.rotate,
+                width: entered ? target.width : 110,
+                x: "-50%",
+                y: "-50%",
+                zIndex: entered ? target.zIndex : 0,
+              }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            >
+              {/* 카드 한 장 — PC는 마우스 오버, 모바일은 꾹 눌렀다 떼면 선택 */}
+              <motion.div
+                onClick={!isTouchDevice && canClick ? () => handlePick(index) : undefined}
+                onTouchStart={
+                  isTouchDevice && canClick
+                    ? (e) => {
+                        touchStartYRef.current = e.touches[0].clientY
+                        setPeekedIndex(index)
+                      }
+                    : undefined
+                }
+                onTouchMove={
+                  isTouchDevice && canClick
+                    ? (e) => {
+                        // 스크롤하려는 움직임이면 선택을 취소 (빼꼼 해제)
+                        if (
+                          touchStartYRef.current !== null &&
+                          Math.abs(e.touches[0].clientY - touchStartYRef.current) > 14
+                        ) {
+                          setPeekedIndex(null)
+                        }
+                      }
+                    : undefined
+                }
+                onTouchEnd={
+                  isTouchDevice && canClick
+                    ? () => {
+                        if (peekedIndex === index) handlePick(index)
+                        setPeekedIndex(null)
+                        touchStartYRef.current = null
+                      }
+                    : undefined
+                }
+                onTouchCancel={isTouchDevice ? () => setPeekedIndex(null) : undefined}
+                whileHover={!isTouchDevice && canClick ? { y: -16 } : undefined}
+                animate={isTouchDevice && canClick ? { y: isPeeked ? -16 : 0 } : undefined}
+                transition={{ duration: 0.15 }}
+                className={`h-full w-full ${canClick ? "cursor-pointer" : ""}`}
+              >
+                <CardBack
+                  selected={isPicked}
+                  flipped={isShuffling ? !entered : isPicked && flippedIndices.includes(index)}
+                  reversed={cardOrientations[index] === "역방향"}
+                  faceImageUrl={card.imageUrl}
+                  faceAlt={card.nameKo}
+                />
+              </motion.div>
+            </motion.div>
+          )
+        })}
+      </motion.div>
+
+      {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}
+      {isShuffling && shuffleStep >= 1 && (
+        <button
+          type="button"
+          onClick={handleGoToPick}
+          className="fixed right-6 z-[70] rounded-full bg-foreground/90 px-4 py-2.5 text-sm font-semibold text-background shadow-lg transition-transform hover:scale-105 sm:right-8"
+          style={{ bottom: bubbleHeight + 44 }}
+        >
+          고르러 가기
+        </button>
       )}
 
-      {(phase === "selecting" || phase === "revealing") && (
-        <ReadingCharacterBubble
-          message={
-            phase === "selecting"
+      <ReadingCharacterBubble
+        message={
+          isShuffling
+            ? (nudgeMessage ?? shuffleMessages[Math.min(shuffleStep, shuffleMessages.length - 1)])
+            : phase === "selecting"
               ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
               : flippedIndices.length >= requiredPicks
                 ? `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
                 : "카드를 하나씩 뒤집어보는 중이야냥..."
-          }
-          promptText={phase === "revealing" && flippedIndices.length >= requiredPicks ? buildPrompt() : undefined}
-          onHeightChange={setBubbleHeight}
-        />
-      )}
+        }
+        promptText={phase === "revealing" && flippedIndices.length >= requiredPicks ? buildPrompt() : undefined}
+        onHeightChange={setBubbleHeight}
+      />
     </div>
   )
 }
