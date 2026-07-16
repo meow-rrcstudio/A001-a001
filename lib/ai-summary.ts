@@ -19,7 +19,8 @@ const redis =
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7
 
 export async function getAISummary(content: string, title: string, id?: string): Promise<AISummaryResult> {
-  const cacheKey = id ? `ai-summary:v2:${id}` : null
+  // v3: 3문장 요약 방식으로 변경 — 키 버전을 올려 예전(키워드식) 캐시를 무효화
+  const cacheKey = id ? `ai-summary:v3:${id}` : null
   if (redis && cacheKey) {
     try {
       const cached = await redis.get<{ status: "ok"; bullets: string[] }>(cacheKey)
@@ -48,23 +49,26 @@ export async function getAISummary(content: string, title: string, id?: string):
             {
               parts: [
                 {
-                  text: `다음은 "${title}"에 대한 타로 카드 해석 글입니다. 이 글을 딱 3개의 서로 다른 관점으로 요약해주세요.
+                  text: `다음은 "${title}"라는 제목의 블로그 글입니다. 글을 처음 읽는 독자가 3문장만 읽고도 내용을 파악할 수 있도록 요약해주세요.
 
-1번째 불릿: 이 카드의 핵심 의미나 키워드를 압축한 한 줄
-2번째 불릿: 연애·직업·금전 중 가장 눈에 띄는 실전 조언 한 줄
-3번째 불릿: 역방향일 때 주의할 점, 또는 이 카드 해석에서 반전이 되는 포인트 한 줄
-
-각 불릿은 22자 내외, 명사형이나 짧은 문장으로 끝내주세요. 세 불릿이 서로 겹치는 내용이면 안 됩니다.
+규칙:
+- 정확히 3개의 문장으로 요약합니다.
+- 반드시 글에 실제로 담긴 내용만 쓰세요. 글에 없는 일반적인 상식이나 추측을 지어내면 안 됩니다.
+- 1번째 문장: 이 글이 무엇을 다루는지 — 핵심 주제와 그 의미
+- 2번째 문장: 글에서 가장 중요하게 설명하는 해석이나 포인트
+- 3번째 문장: 독자가 가져갈 조언, 또는 글의 마무리가 전하는 메시지
+- 각 문장은 40~80자의 자연스럽고 완결된 문장으로, "~해요"체로 통일해주세요.
+- 세 문장의 내용이 서로 겹치면 안 됩니다.
 
 ---
-${content.slice(0, 4000)}`,
+${content.slice(0, 8000)}`,
                 },
               ],
             },
           ],
           generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 500,
+            temperature: 0.3,
+            maxOutputTokens: 800,
             // Gemini가 순수 JSON 배열만 반환하도록 API 차원에서 강제합니다.
             // (앞뒤 설명 문구나 마크다운 코드블럭이 섞여서 파싱이 깨지는 문제를 근본적으로 방지)
             responseMimeType: "application/json",
@@ -102,7 +106,7 @@ ${content.slice(0, 4000)}`,
       bullets = cleaned
         .split("\n")
         .map((line: string) => line.replace(/^[-*"[\]\s]+|["[\],\s]+$/g, "").trim())
-        .filter((line: string) => line.length > 0 && line.length < 60)
+        .filter((line: string) => line.length > 0 && line.length < 200)
         .slice(0, 3)
       console.warn("[v0] JSON 파싱 실패, 텍스트에서 대체 추출:", bullets)
     }
