@@ -13,7 +13,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { MenuList } from "@/components/menu-list"
 import { PageHeader } from "@/components/page-header"
-import { PostListBoard } from "@/components/post-list-board"
+import { ArchiveDeckSection } from "@/components/card-archive-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
 import { CardSpread } from "@/components/card-spread"
 import { PageBackground } from "@/components/page-background"
@@ -53,7 +53,7 @@ const tocGroups: TocGroup[] = [
       { id: "menu", label: "5. 메뉴 리스트" },
       { id: "prose", label: "6. 블로그 본문" },
       { id: "chrome", label: "7. 헤더 · 푸터" },
-      { id: "board", label: "8. 그리드 박스" },
+      { id: "board", label: "8. 카드 아카이브" },
       { id: "cards", label: "9. 타로 카드" },
       { id: "spreads", label: "10. 카드 스프레드" },
       { id: "backgrounds", label: "11. 배경" },
@@ -266,24 +266,37 @@ export default function DesignSystemPage() {
 
           {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
           <section id="board" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>8. 그리드 박스 (글 목록)</h2>
+            <h2 className={h2Class}>8. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              /tarot/astrology 페이지와 같은 공용 컴포넌트(components/post-list-board.tsx)입니다.
-              흐린 항목은 아직 글이 없는 상태의 모습입니다.
+              /tarot/astrology 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
+              노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
+              대분류 컬럼은 좌우로 스크롤됩니다 (컬럼 폭 200px 고정).
             </p>
             <div className="mt-5">
-              <PostListBoard
-                title="Universal waite"
-                badgeLabel="minor arcana"
-                badgeCount={4}
-                badgeClassName="bg-[#e8d8d2]"
-                altBadgeClassName="bg-[#cadff6]"
-                items={[
-                  { id: 0, name: "The Fool", meaning: "새로운 시작", href: "#" },
-                  { id: 1, name: "The Magician", meaning: "창조력과 의지", href: "#" },
-                  { id: 2, name: "The High Priestess", href: "#", active: false },
-                  { id: 3, name: "The Empress", href: "#", active: false },
-                ]}
+              <ArchiveDeckSection
+                deck={{
+                  key: "universal",
+                  label: "Universal waite",
+                  categories: [
+                    {
+                      key: "major",
+                      label: "major arcana",
+                      cards: [
+                        { slug: "#", number: 0, title: "The Fool" },
+                        { slug: "#", number: 1, title: "The Magician" },
+                        { slug: "#", number: 5, title: "The Hierophant - 전통과 신뢰" },
+                      ],
+                    },
+                    {
+                      key: "swords",
+                      label: "swords",
+                      cards: [
+                        { slug: "#", number: 1, title: "Ace of Swords" },
+                        { slug: "#", number: 2, title: "Two of Swords" },
+                      ],
+                    },
+                  ],
+                }}
               />
             </div>
           </section>
