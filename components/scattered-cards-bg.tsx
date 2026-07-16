@@ -7,7 +7,8 @@ import Image from "next/image"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 
 export function ScatteredCardsBackground() {
-  const cards = useMemo(() => getReadingDeck(), [])
+  // 배경 연출은 20장이면 충분 (덱이 커져도 무거워지지 않게)
+  const cards = useMemo(() => getReadingDeck().slice(0, 20), [])
 
   const layout = useMemo(() => {
     return cards.map((_, i) => {
