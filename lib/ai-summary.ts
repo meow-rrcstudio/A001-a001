@@ -19,8 +19,8 @@ const redis =
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7
 
 export async function getAISummary(content: string, title: string, id?: string): Promise<AISummaryResult> {
-  // v3: 3문장 요약 방식으로 변경 — 키 버전을 올려 예전(키워드식) 캐시를 무효화
-  const cacheKey = id ? `ai-summary:v3:${id}` : null
+  // v4: 잘린 문장이 저장된 캐시를 무효화 (버전을 올리면 전부 새로 생성됩니다)
+  const cacheKey = id ? `ai-summary:v4:${id}` : null
   if (redis && cacheKey) {
     try {
       const cached = await redis.get<{ status: "ok"; bullets: string[] }>(cacheKey)
@@ -68,7 +68,10 @@ ${content.slice(0, 8000)}`,
           ],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 800,
+            maxOutputTokens: 1024,
+            // Gemini 2.5는 답하기 전에 내부적으로 "생각"을 하는데, 그 분량도 출력 한도에서
+            // 차감되어 답이 중간에 잘리는 원인이 됩니다. 요약에는 불필요하므로 끕니다.
+            thinkingConfig: { thinkingBudget: 0 },
             // Gemini가 순수 JSON 배열만 반환하도록 API 차원에서 강제합니다.
             // (앞뒤 설명 문구나 마크다운 코드블럭이 섞여서 파싱이 깨지는 문제를 근본적으로 방지)
             responseMimeType: "application/json",
@@ -102,13 +105,10 @@ ${content.slice(0, 8000)}`,
       const parsed = JSON.parse(cleaned)
       if (Array.isArray(parsed)) bullets = parsed.filter((b) => typeof b === "string" && b.trim().length > 0)
     } catch {
-      // 그래도 깨지는 극히 드문 경우를 위한 안전망 (대괄호 등 JSON 기호까지 확실히 제거)
-      bullets = cleaned
-        .split("\n")
-        .map((line: string) => line.replace(/^[-*"[\]\s]+|["[\],\s]+$/g, "").trim())
-        .filter((line: string) => line.length > 0 && line.length < 200)
-        .slice(0, 3)
-      console.warn("[v0] JSON 파싱 실패, 텍스트에서 대체 추출:", bullets)
+      // 답이 중간에 잘리면 JSON이 깨집니다. 잘린 토막을 보여주거나 캐시에 저장하는 것보다
+      // "준비 중" 안내가 낫습니다 — 다음 방문 때 다시 시도됩니다.
+      console.warn("[v0] AI 요약 JSON 파싱 실패 (응답이 잘렸을 가능성):", cleaned.slice(0, 120))
+      return { status: "unavailable" }
     }
 
     if (bullets.length === 0) {

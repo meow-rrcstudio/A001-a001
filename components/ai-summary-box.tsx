@@ -10,9 +10,6 @@ export function AISummaryBox({ summary }: { summary: AISummaryResult }) {
           <Sparkles className="h-3 w-3" />
           AI 요약
         </span>
-        {summary.status === "ok" && (
-          <span className="text-xs text-muted-foreground">3초 만에 핵심만 확인하세요</span>
-        )}
       </div>
 
       {summary.status === "ok" && (
