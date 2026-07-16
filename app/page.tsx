@@ -45,7 +45,6 @@ export default function HomePage() {
           <MenuList items={menuItems} />
         </div>
       </main>
-
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
       <Footer variant="light" />
     </div>
