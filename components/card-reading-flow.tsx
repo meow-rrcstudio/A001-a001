@@ -22,7 +22,7 @@ import { spreadLayouts } from "@/lib/spread-layouts"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
-const FAN_COUNT = 24
+const FAN_COUNT = 48 // 덱 크기와 동일 (섞기 더미의 z순서 계산용)
 const SHUFFLE_TARGET_DISTANCE = 2400
 const SHUFFLE_STEPS = 4 // 최대 4번 섞으면 자동으로 다음 화면으로
 const MIN_STEPS_FOR_QUICK_DRAW = 1 // 1번만 섞어도 "고르러 가기" 가능
@@ -105,6 +105,9 @@ export function CardReadingFlow({
   const [bubbleHeight, setBubbleHeight] = useState(160)
   // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
+  // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [stageWidth, setStageWidth] = useState(360)
 
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
@@ -166,6 +169,16 @@ export function CardReadingFlow({
       if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current)
     }
   }, [])
+
+  // 무대 폭을 측정 (화면 회전·창 크기 변경에도 대응)
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    setStageWidth(el.clientWidth)
+    const observer = new ResizeObserver(() => setStageWidth(el.clientWidth))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [phase])
 
   function finishShuffling() {
     if (shuffleStartRef.current !== null) {
@@ -231,37 +244,48 @@ export function CardReadingFlow({
     }
   }
 
-  // ── 아치형 부채 좌표 (좌우 대칭 무지개 아치) ──
-  // 왼쪽 끝(-55도)에서 오른쪽 끝(+55도)까지 한 호흡으로 이어지며,
-  // 정중앙(50%)을 기준으로 좌우가 똑같습니다.
-  // 부채는 무대 위쪽 ~35% 안에만 머물러 스프레드 영역을 침범하지 않습니다.
+  // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
+  // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
+  // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
+  const FAN_ZONE_HEIGHT = 210 //   부채 영역 높이
+  const BOARD_WIDTH = 340 //       스프레드 보드 폭 (시안의 모바일 화면 기준, 기기와 무관하게 고정)
+  const BOARD_HEIGHT_SELECT = 240 // 고르는 중 보드 높이
+  const BOARD_HEIGHT_REVEAL = 330 // 결과 화면 보드 높이
+  const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : FAN_ZONE_HEIGHT + BOARD_HEIGHT_SELECT + 10
+
+  // ── 부채꼴: 정중앙 기준 좌우 대칭(-55도~+55도)의 "진짜 원호" ──
+  // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
     const spread = 110 // 부채가 벌어지는 전체 각도 (좌우 각 55도)
     const angle = -spread / 2 + (index / Math.max(1, total - 1)) * spread
     const rad = (angle * Math.PI) / 180
-    const x = 50 + Math.sin(rad) * 46 //   가로: 12% ~ 88% (중앙 대칭)
-    const y = 5 + (1 - Math.cos(rad)) * 48 // 세로: 아치 정점 5%, 양 끝 ~26%
-    return { left: `${x}%`, top: `${y}%`, rotate: angle, zIndex: 10 + index }
+    // 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서, 최대 300px
+    const radius = Math.min((stageWidth / 2 - 44) / Math.sin((spread / 2) * (Math.PI / 180)), 300)
+    const x = stageWidth / 2 + Math.sin(rad) * radius
+    const y = 12 + (1 - Math.cos(rad)) * radius
+    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 10 + index }
   }
 
   // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
   function getLeftoverStackStyle(orderAmongLeftovers: number) {
     return {
-      left: "9%",
-      top: `${8 + orderAmongLeftovers * 0.25}%`,
+      left: "44px",
+      top: `${34 + orderAmongLeftovers * 0.8}px`,
       rotate: (orderAmongLeftovers % 2 === 0 ? 1 : -1) * 1.5,
       zIndex: orderAmongLeftovers,
     }
   }
 
-  // ── 스프레드 슬롯 영역 매핑 ──
-  // 좌표 원본(lib/spread-layouts.ts)은 0~100% 기준이므로,
-  // 고르는 중에는 무대 아래쪽 영역으로, 결과 화면에서는 무대 전체로 펼칩니다.
-  const spreadZone = phase === "revealing" ? { offset: 4, scale: 0.92 } : { offset: 44, scale: 0.5 }
-  function mapSlotTop(slotTop: string) {
-    return `${spreadZone.offset + parseFloat(slotTop) * spreadZone.scale}%`
+  // ── 스프레드 슬롯: 340px 고정 보드의 정중앙 정렬 ──
+  // 카드 사이 간격이 픽셀로 고정되어 기기 폭이 달라져도 시안과 같은 간격입니다.
+  function mapSlot(slot: { left: string; top: string }) {
+    const boardTop = phase === "revealing" ? 20 : FAN_ZONE_HEIGHT + 5
+    const boardHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL : BOARD_HEIGHT_SELECT
+    const left = stageWidth / 2 + ((parseFloat(slot.left) - 50) / 100) * BOARD_WIDTH
+    const top = boardTop + (parseFloat(slot.top) / 100) * boardHeight
+    return { left: `${left}px`, top: `${top}px` }
   }
 
   function buildPrompt() {
@@ -329,10 +353,9 @@ export function CardReadingFlow({
       {/* ── 고르기/결과 무대: 부채(위) + 스프레드 슬롯(아래), 겹치지 않게 ── */}
       {!isShuffling && (
       <div
+        ref={stageRef}
         className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
-        style={{
-          height: phase === "revealing" ? "clamp(300px, 46dvh, 430px)" : "clamp(400px, 72dvh, 560px)",
-        }}
+        style={{ height: stageHeight }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
@@ -340,15 +363,14 @@ export function CardReadingFlow({
           return (
             <div
               key={i}
-              className="absolute flex aspect-[1144/1919] w-20 items-center justify-center rounded-[8%] border border-border bg-muted/60 sm:w-24"
+              className="absolute flex aspect-[1144/1919] w-14 items-center justify-center rounded-[8%] border border-border bg-muted/60"
               style={{
-                left: slot.left,
-                top: mapSlotTop(slot.top),
+                ...mapSlot(slot),
                 transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
               }}
             >
               {!filled && (
-                <span className="font-serif text-xl text-muted-foreground/60">{i + 1}</span>
+                <span className="font-serif text-lg text-muted-foreground/60">{i + 1}</span>
               )}
             </div>
           )
@@ -364,20 +386,21 @@ export function CardReadingFlow({
           let target: { left: string; top: string; rotate: number; zIndex: number; width: number }
           if (isPicked) {
             const s = resultSlots[pickedOrder]
+            const pos = mapSlot(s)
             // 뽑힌 카드는 부채(최대 40)보다 위, 말풍선(60)보다는 항상 아래
             target = {
-              left: s.left,
-              top: mapSlotTop(s.top),
+              left: pos.left,
+              top: pos.top,
               rotate: s.rotate,
               zIndex: 41 + pickedOrder,
-              width: 92,
+              width: 58,
             }
           } else if (isLeftover) {
             const s = getLeftoverStackStyle(leftoverOrder)
             target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40 }
           } else {
             const s = getFanStyle(index)
-            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 76 }
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 64 }
           }
 
           const canClick = !isPicked && phase === "selecting"
