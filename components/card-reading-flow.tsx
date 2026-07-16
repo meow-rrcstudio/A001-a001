@@ -108,13 +108,14 @@ export function CardReadingFlow({
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
+  // 화면 높이 — 스프레드 보드가 남는 공간에 맞춰 늘고 줄기 위해 필요
+  const [viewportHeight, setViewportHeight] = useState(800)
 
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
   const shuffleStartRef = useRef<number | null>(null)
   const interactionCountRef = useRef(0)
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const touchStartYRef = useRef<number | null>(null)
 
   const isTouchDevice = useIsTouchDevice()
 
@@ -179,6 +180,14 @@ export function CardReadingFlow({
     observer.observe(el)
     return () => observer.disconnect()
   }, [phase])
+
+  // 화면 높이 측정
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight)
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
 
   function finishShuffling() {
     if (shuffleStartRef.current !== null) {
@@ -247,24 +256,42 @@ export function CardReadingFlow({
   // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
   // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
   // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
-  const FAN_ZONE_HEIGHT = 210 //   부채 영역 높이
+  const FAN_SPREAD = 110 //        부채가 벌어지는 전체 각도 (좌우 각 55도)
+  const FAN_CARD_WIDTH = 64 //     부채 카드 폭
   const BOARD_WIDTH = 340 //       스프레드 보드 폭 (시안의 모바일 화면 기준, 기기와 무관하게 고정)
-  const BOARD_HEIGHT_SELECT = 240 // 고르는 중 보드 높이
   const BOARD_HEIGHT_REVEAL = 330 // 결과 화면 보드 높이
-  const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : FAN_ZONE_HEIGHT + BOARD_HEIGHT_SELECT + 10
+
+  // 부채 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서 최대 300px
+  const halfSpreadRad = ((FAN_SPREAD / 2) * Math.PI) / 180
+  const fanRadius = Math.min((stageWidth / 2 - 44) / Math.sin(halfSpreadRad), 300)
+  // 부채 영역 높이 = 부채가 실제로 차지하는 만큼만 (모바일에선 부채가 작아 영역도 작아짐)
+  const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
+  const fanZoneHeight = Math.round(12 + fanRadius * (1 - Math.cos(halfSpreadRad)) + fanCardHalfHeight + 6)
+
+  // 스프레드 보드 높이: 시안 규칙대로 "화면에 남는 공간"에 맞춰 160~280px 사이에서 유동.
+  // 160px보다 좁아지면 160을 지키고 페이지가 스크롤됩니다.
+  const PAGE_CHROME = 130 // 상단 뒤로가기 줄 + 여백의 대략적인 높이
+  const boardHeightSelect = Math.max(
+    160,
+    Math.min(280, viewportHeight - PAGE_CHROME - fanZoneHeight - bubbleHeight)
+  )
+  const stageHeight =
+    phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : fanZoneHeight + boardHeightSelect + 6
+
+  // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
+  const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
+  const slotWidth =
+    phase === "revealing" ? 56 : Math.round(Math.max(44, Math.min(56, (56 * boardHeightSelect) / 240)))
 
   // ── 부채꼴: 정중앙 기준 좌우 대칭(-55도~+55도)의 "진짜 원호" ──
   // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
-    const spread = 110 // 부채가 벌어지는 전체 각도 (좌우 각 55도)
-    const angle = -spread / 2 + (index / Math.max(1, total - 1)) * spread
+    const angle = -FAN_SPREAD / 2 + (index / Math.max(1, total - 1)) * FAN_SPREAD
     const rad = (angle * Math.PI) / 180
-    // 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서, 최대 300px
-    const radius = Math.min((stageWidth / 2 - 44) / Math.sin((spread / 2) * (Math.PI / 180)), 300)
-    const x = stageWidth / 2 + Math.sin(rad) * radius
-    const y = 12 + (1 - Math.cos(rad)) * radius
+    const x = stageWidth / 2 + Math.sin(rad) * fanRadius
+    const y = 12 + (1 - Math.cos(rad)) * fanRadius
     return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 10 + index }
   }
 
@@ -281,10 +308,9 @@ export function CardReadingFlow({
   // ── 스프레드 슬롯: 340px 고정 보드의 정중앙 정렬 ──
   // 카드 사이 간격이 픽셀로 고정되어 기기 폭이 달라져도 시안과 같은 간격입니다.
   function mapSlot(slot: { left: string; top: string }) {
-    const boardTop = phase === "revealing" ? 20 : FAN_ZONE_HEIGHT + 5
-    const boardHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL : BOARD_HEIGHT_SELECT
+    const boardTop = phase === "revealing" ? 20 : fanZoneHeight + 3
     const left = stageWidth / 2 + ((parseFloat(slot.left) - 50) / 100) * BOARD_WIDTH
-    const top = boardTop + (parseFloat(slot.top) / 100) * boardHeight
+    const top = boardTop + (parseFloat(slot.top) / 100) * boardHeightNow
     return { left: `${left}px`, top: `${top}px` }
   }
 
@@ -363,9 +389,10 @@ export function CardReadingFlow({
           return (
             <div
               key={i}
-              className="absolute flex aspect-[1144/1919] w-14 items-center justify-center rounded-[8%] border border-border bg-muted/60"
+              className="absolute flex aspect-[1144/1919] items-center justify-center rounded-[8%] border border-border bg-muted/60"
               style={{
                 ...mapSlot(slot),
+                width: slotWidth,
                 transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
               }}
             >
@@ -393,14 +420,14 @@ export function CardReadingFlow({
               top: pos.top,
               rotate: s.rotate,
               zIndex: 41 + pickedOrder,
-              width: 58,
+              width: slotWidth + 2,
             }
           } else if (isLeftover) {
             const s = getLeftoverStackStyle(leftoverOrder)
             target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40 }
           } else {
             const s = getFanStyle(index)
-            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 64 }
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: FAN_CARD_WIDTH }
           }
 
           const canClick = !isPicked && phase === "selecting"
@@ -409,6 +436,7 @@ export function CardReadingFlow({
           return (
             <motion.div
               key={card.slug}
+              data-fan-card={canClick ? index : undefined}
               className="absolute aspect-[1144/1919]"
               initial={false}
               animate={{
@@ -422,13 +450,13 @@ export function CardReadingFlow({
               }}
               transition={{ duration: 0.6, ease: "easeInOut" }}
             >
-              {/* 카드 한 장 — PC는 마우스 오버, 모바일은 꾹 눌렀다 떼면 선택 */}
+              {/* 카드 한 장 — PC는 마우스 오버로 빼꼼 후 클릭,
+                  모바일은 누르면 빼꼼 → 누른 채 움직이면 손가락 아래 카드로 빼꼼이 옮겨감 → 떼면 그 카드 선택 */}
               <motion.div
                 onClick={!isTouchDevice && canClick ? () => handlePick(index) : undefined}
                 onTouchStart={
                   isTouchDevice && canClick
-                    ? (e) => {
-                        touchStartYRef.current = e.touches[0].clientY
+                    ? () => {
                         setPeekedIndex(index)
                       }
                     : undefined
@@ -436,11 +464,14 @@ export function CardReadingFlow({
                 onTouchMove={
                   isTouchDevice && canClick
                     ? (e) => {
-                        // 스크롤하려는 움직임이면 선택을 취소 (빼꼼 해제)
-                        if (
-                          touchStartYRef.current !== null &&
-                          Math.abs(e.touches[0].clientY - touchStartYRef.current) > 14
-                        ) {
+                        // 손가락 아래에 있는 카드를 찾아 빼꼼을 옮깁니다 (PC 호버와 같은 감각)
+                        const touch = e.touches[0]
+                        const el = document.elementFromPoint(touch.clientX, touch.clientY)
+                        const cardEl = el?.closest("[data-fan-card]") as HTMLElement | null
+                        if (cardEl) {
+                          setPeekedIndex(Number(cardEl.dataset.fanCard))
+                        } else {
+                          // 부채를 벗어나면 빼꼼 해제 → 떼도 아무것도 선택되지 않음
                           setPeekedIndex(null)
                         }
                       }
@@ -449,9 +480,8 @@ export function CardReadingFlow({
                 onTouchEnd={
                   isTouchDevice && canClick
                     ? () => {
-                        if (peekedIndex === index) handlePick(index)
+                        if (peekedIndex !== null) handlePick(peekedIndex)
                         setPeekedIndex(null)
-                        touchStartYRef.current = null
                       }
                     : undefined
                 }
@@ -459,7 +489,7 @@ export function CardReadingFlow({
                 whileHover={!isTouchDevice && canClick ? { y: -16 } : undefined}
                 animate={isTouchDevice && canClick ? { y: isPeeked ? -16 : 0 } : undefined}
                 transition={{ duration: 0.15 }}
-                className={`h-full w-full ${canClick ? "cursor-pointer" : ""}`}
+                className={`h-full w-full ${canClick ? "cursor-pointer touch-none" : ""}`}
               >
                 <CardBack
                   selected={isPicked}
