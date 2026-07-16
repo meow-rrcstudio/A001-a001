@@ -10,7 +10,8 @@ import { CardArchiveBoard } from "@/components/card-archive-board"
 import { getPublishedPosts } from "@/lib/notion"
 import { buildCardArchive } from "@/lib/card-archive"
 
-export const revalidate = 3600
+// 노션에 올린 글이 최대 1분 안에 반영되도록 캐시를 짧게 유지
+export const revalidate = 60
 
 export default async function AstrologyPage() {
   const posts = await getPublishedPosts()
