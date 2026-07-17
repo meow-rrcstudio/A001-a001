@@ -18,13 +18,14 @@ export default async function AstrologyPage() {
   const decks = buildCardArchive(posts)
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // archive-light: 이 페이지에서만 시안(blogpostlist) 실측 색상으로 덮어씀 (globals.css 하단)
+    <div className="archive-light flex min-h-screen flex-col bg-background">
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
         <CardArchiveBoard decks={decks} />
       </main>
 
-      {/* 목록 페이지는 시안(Site design.pdf) 기준 다크 브라운 푸터 */}
-      <Footer variant="dark" />
+      {/* 시안 기준 밝은 푸터 (✳ 모노 URL + 카피라이트) */}
+      <Footer variant="light" />
     </div>
   )
 }

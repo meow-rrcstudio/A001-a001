@@ -9,7 +9,7 @@
 // │ · 패널 바탕        : bg-muted/50 → /70이면 더 진하게
 // │ · 뱃지 색          : badgeColors 배열 — 컬럼 순서대로 번갈아 사용
 // │ · 목록 행 높이     : py-2 (위아래 8px)
-// │ · 번호 색          : text-primary (테라코타)
+// │ · 번호 색          : text-primary/75 (옅은 테라코타 — 시안 #e09278)
 // │ · 좌우 스크롤      : 시안 "오른쪽을 Full로 쓰다" — bleed(화면 끝까지)
 // │                      모드에서는 덱 제목까지 컬럼과 함께 통째로 스크롤
 // └──────────────────────────────────────────────────────────────────
@@ -214,7 +214,8 @@ export function ArchiveDeckSection({
                     href={`/blog/${card.slug}?from=astrology`}
                     className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
                   >
-                    <span className="w-4 shrink-0 font-mono text-xs text-primary">{card.number}</span>
+                    {/* 번호 — 시안 실측 #e09278: 테라코타를 75%로 옅게 */}
+                    <span className="w-4 shrink-0 font-mono text-xs text-primary/75">{card.number}</span>
                     <span className="truncate text-[13px] text-foreground">{card.title}</span>
                   </Link>
                 ))}

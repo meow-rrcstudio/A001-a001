@@ -172,6 +172,23 @@
   --muted-foreground: oklch(0.45 0 0);
   /* ... (기타 상세 색상 유지) */
 }
+
+/* 카드 아카이브(/tarot/astrology) 전용 밝은 테마 — blogpostlist 시안에서 실측한 색상값.
+   사이트 공통 크림 테마는 그대로 두고 이 페이지에서만 덮어씁니다. */
+.archive-light {
+  color-scheme: light;
+  --background: #ffffff;          /* 페이지 배경 — 순백 */
+  --foreground: #4e2c2c;          /* 글자색 — 시안의 다크 레드브라운 */
+  --card: #ffffff;                /* 카드 행·검색창 배경 */
+  --card-foreground: #4e2c2c;
+  --primary: #d97757;             /* 포인트 테라코타 — 선택된 칩, ✳ */
+  --primary-foreground: #ffffff;  /* 선택된 칩의 글자 */
+  --secondary: #f5ede8;           /* 선택 안 된 칩 배경 */
+  --secondary-foreground: #4e2c2c;
+  --muted: #f5f1ef;               /* 패널 바탕 — bg-muted/50으로 흰 배경과 반씩 섞여 시안의 #faf8f7이 됩니다 */
+  --muted-foreground: #666666;    /* 설명 글·아이콘 */
+  --border: #e8e6dc;              /* 행 테두리 */
+}
 /* v0 플로팅 배너 및 관련 요소를 완전히 숨김 */
 [id^="v0-built-with-button-"],
 div[style*="position: fixed"][style*="bottom: 24px"][style*="background: #121212"],
