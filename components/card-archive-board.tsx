@@ -4,11 +4,14 @@
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 대분류 컬럼 폭   : COLUMN_WIDTH = 200 (시안 "200 고정")
+// │ · 컬럼 사이 간격   : gap-2 (8px — 시안 측정치)
 // │ · 처음 보이는 개수 : PAGE_SIZE = 8, "더 불러오기"마다 +8
 // │ · 패널 바탕        : bg-muted/50 → /70이면 더 진하게
 // │ · 뱃지 색          : badgeColors 배열 — 컬럼 순서대로 번갈아 사용
 // │ · 목록 행 높이     : py-2 (위아래 8px)
 // │ · 번호 색          : text-primary (테라코타)
+// │ · 좌우 스크롤      : 시안 "오른쪽을 Full로 쓰다" — bleed(화면 끝까지)
+// │                      모드에서는 덱 제목까지 컬럼과 함께 통째로 스크롤
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
@@ -140,6 +143,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
           <ArchiveDeckSection
             key={deck.key}
             deck={deck}
+            bleed
             // 검색 중에는 개수 제한 없이 결과 전체를 보여줍니다.
             limit={normalizedQuery ? Number.POSITIVE_INFINITY : (visibleCounts[deck.key] ?? PAGE_SIZE)}
             onLoadMore={() =>
@@ -155,57 +159,82 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
   )
 }
 
-/** 덱 한 개 섹션 — 스타일가이드(/design-1859)에서도 같은 컴포넌트를 씁니다. */
+/** 덱 한 개 섹션 — 스타일가이드(/design-1859)에서도 같은 컴포넌트를 씁니다.
+ *
+ * bleed(기본 꺼짐): 아카이브 페이지처럼 페이지 좌우 여백을 뚫고 화면 끝까지
+ * 패널을 펼치는 모드입니다 (시안 "오른쪽을 Full로 쓰다").
+ * 시안대로 덱 제목·뱃지·컬럼이 한 덩어리로 좌우 스크롤되고,
+ * "더 불러오기" 버튼만 화면에 고정됩니다. */
 export function ArchiveDeckSection({
   deck,
   limit = PAGE_SIZE,
   onLoadMore,
+  bleed = false,
 }: {
   deck: ArchiveDeck
   limit?: number
   onLoadMore?: () => void
+  bleed?: boolean
 }) {
   const hasMore = deck.categories.some((category) => category.cards.length > limit)
 
+  // 페이지 본문의 좌우 패딩(px-5, sm:px-8)과 짝을 맞춘 값입니다.
+  // bleed일 때 -mx로 여백을 뚫고 나가고, 안쪽 px로 같은 만큼 되돌려서
+  // 스크롤 시작 위치는 본문과 정렬되고 끝은 화면 모서리에 닿게 합니다.
+  const sectionClass = bleed
+    ? "-mx-5 bg-muted/50 py-4 sm:-mx-8 sm:rounded-2xl"
+    : "rounded-2xl bg-muted/50 py-4"
+  const edgePaddingClass = bleed ? "px-5 sm:px-8" : "px-4 sm:px-5"
+
   return (
-    <section className="rounded-2xl bg-muted/50 p-4 sm:p-5">
-      <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">{deck.label}</h2>
+    <section className={sectionClass}>
+      {/* 제목 + 컬럼이 한 덩어리로 좌우 스크롤 (시안: 스크롤하면 제목도 함께 밀림) */}
+      <div className="overflow-x-auto">
+        <div className={`w-max min-w-full ${edgePaddingClass}`}>
+          <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">
+            {deck.label}
+          </h2>
 
-      {/* 대분류 컬럼 — 좌우 스크롤, 컬럼 폭 200px 고정 (시안 기준) */}
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {deck.categories.map((category, columnIndex) => (
-          <div key={category.key} className="shrink-0 space-y-2" style={{ width: COLUMN_WIDTH }}>
-            <div
-              className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium text-foreground ${
-                badgeColors[columnIndex % badgeColors.length]
-              }`}
-            >
-              {category.label}
-              <span className="ml-1.5 font-mono opacity-60">{category.cards.length}</span>
-            </div>
+          {/* 대분류 컬럼 — 컬럼 폭 200px 고정, 간격 8px (시안 기준) */}
+          <div className="flex gap-2 pb-2">
+            {deck.categories.map((category, columnIndex) => (
+              <div key={category.key} className="shrink-0 space-y-2" style={{ width: COLUMN_WIDTH }}>
+                <div
+                  className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium text-foreground ${
+                    badgeColors[columnIndex % badgeColors.length]
+                  }`}
+                >
+                  {category.label}
+                  <span className="ml-1.5 font-mono opacity-60">{category.cards.length}</span>
+                </div>
 
-            {category.cards.slice(0, limit).map((card) => (
-              <Link
-                key={card.slug}
-                href={`/blog/${card.slug}?from=astrology`}
-                className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
-              >
-                <span className="w-4 shrink-0 font-mono text-xs text-primary">{card.number}</span>
-                <span className="truncate text-[13px] text-foreground">{card.title}</span>
-              </Link>
+                {category.cards.slice(0, limit).map((card) => (
+                  <Link
+                    key={card.slug}
+                    href={`/blog/${card.slug}?from=astrology`}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
+                  >
+                    <span className="w-4 shrink-0 font-mono text-xs text-primary">{card.number}</span>
+                    <span className="truncate text-[13px] text-foreground">{card.title}</span>
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
 
+      {/* 더 불러오기 — 스크롤과 무관하게 화면 안에 고정 폭으로 남습니다 */}
       {hasMore && onLoadMore && (
-        <button
-          type="button"
-          onClick={onLoadMore}
-          className="mt-3 w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
-        >
-          더 불러오기
-        </button>
+        <div className={edgePaddingClass}>
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="mt-1 w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
+          >
+            더 불러오기
+          </button>
+        </div>
       )}
     </section>
   )
