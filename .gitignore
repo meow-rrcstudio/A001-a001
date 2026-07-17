@@ -9,3 +9,5 @@ node_modules
 .env*.local
 .DS_Store
 tsconfig.tsbuildinfo
+# Next.js가 dev/build 때 자동 생성하는 파일
+next-env.d.ts

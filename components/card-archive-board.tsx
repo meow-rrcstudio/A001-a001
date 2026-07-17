@@ -10,8 +10,8 @@
 // │ · 뱃지 색          : badgeColors 배열 — 컬럼 순서대로 번갈아 사용
 // │ · 목록 행 높이     : py-2 (위아래 8px)
 // │ · 번호 색          : text-primary/75 (옅은 테라코타 — 시안 #e09278)
-// │ · 좌우 스크롤      : 시안 "오른쪽을 Full로 쓰다" — bleed(화면 끝까지)
-// │                      모드에서는 덱 제목까지 컬럼과 함께 통째로 스크롤
+// │ · 좌우 스크롤      : 패널 상자(제목·컬럼·버튼)가 통째로 스크롤
+// │                      시작·끝 여백 16px(px-4) + 상자 안 여백 8px(px-2)
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
@@ -161,10 +161,12 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
 
 /** 덱 한 개 섹션 — 스타일가이드(/design-1859)에서도 같은 컴포넌트를 씁니다.
  *
- * bleed(기본 꺼짐): 아카이브 페이지처럼 페이지 좌우 여백을 뚫고 화면 끝까지
- * 패널을 펼치는 모드입니다 (시안 "오른쪽을 Full로 쓰다").
- * 시안대로 덱 제목·뱃지·컬럼이 한 덩어리로 좌우 스크롤되고,
- * "더 불러오기" 버튼만 화면에 고정됩니다. */
+ * 시안 구조: 둥근 패널 상자(제목·컬럼·더 불러오기 전부 포함)가 통째로
+ * 좌우 스크롤됩니다. 스크롤 시작·끝에서 화면 가장자리와 상자 사이 16px,
+ * 상자 안쪽에 8px 여백이 있습니다 (시안의 16/8 표기).
+ *
+ * bleed(기본 꺼짐): 아카이브 페이지처럼 페이지 좌우 여백(px-5, sm:px-8)을
+ * 뚫고 나가 위의 16px 여백만 남기는 모드입니다. */
 export function ArchiveDeckSection({
   deck,
   limit = PAGE_SIZE,
@@ -178,25 +180,19 @@ export function ArchiveDeckSection({
 }) {
   const hasMore = deck.categories.some((category) => category.cards.length > limit)
 
-  // 페이지 본문의 좌우 패딩(px-5, sm:px-8)과 짝을 맞춘 값입니다.
-  // bleed일 때 -mx로 여백을 뚫고 나가고, 안쪽 px로 같은 만큼 되돌려서
-  // 스크롤 시작 위치는 본문과 정렬되고 끝은 화면 모서리에 닿게 합니다.
-  const sectionClass = bleed
-    ? "-mx-5 bg-muted/50 py-4 sm:-mx-8 sm:rounded-2xl"
-    : "rounded-2xl bg-muted/50 py-4"
-  const edgePaddingClass = bleed ? "px-5 sm:px-8" : "px-4 sm:px-5"
-
   return (
-    <section className={sectionClass}>
-      {/* 제목 + 컬럼이 한 덩어리로 좌우 스크롤 (시안: 스크롤하면 제목도 함께 밀림) */}
-      <div className="overflow-x-auto">
-        <div className={`w-max min-w-full ${edgePaddingClass}`}>
+    // 스크롤 영역 — bleed일 때 페이지 여백을 -mx로 뚫고 화면 끝까지
+    <div className={bleed ? "-mx-5 overflow-x-auto sm:-mx-8" : "overflow-x-auto"}>
+      {/* 시작·끝 여백 담당 — px-4가 시안의 "화면 가장자리 ↔ 상자 16px" */}
+      <div className={`flex w-max min-w-full ${bleed ? "px-4" : ""}`}>
+        {/* 패널 상자 — 제목·컬럼·버튼이 상자째로 스크롤. px-2/pt-4/pb-2가 상자 안 여백(시안 8px) */}
+        <section className="grow rounded-2xl bg-muted/50 px-2 pb-2 pt-4">
           <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">
             {deck.label}
           </h2>
 
           {/* 대분류 컬럼 — 컬럼 폭 200px 고정, 간격 8px (시안 기준) */}
-          <div className="flex gap-2 pb-2">
+          <div className="flex gap-2">
             {deck.categories.map((category, columnIndex) => (
               <div key={category.key} className="shrink-0 space-y-2" style={{ width: COLUMN_WIDTH }}>
                 <div
@@ -222,21 +218,19 @@ export function ArchiveDeckSection({
               </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* 더 불러오기 — 스크롤과 무관하게 화면 안에 고정 폭으로 남습니다 */}
-      {hasMore && onLoadMore && (
-        <div className={edgePaddingClass}>
-          <button
-            type="button"
-            onClick={onLoadMore}
-            className="mt-1 w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
-          >
-            더 불러오기
-          </button>
-        </div>
-      )}
-    </section>
+          {/* 더 불러오기 — 시안대로 상자 안에 포함되어 상자 폭만큼 넓어집니다 */}
+          {hasMore && onLoadMore && (
+            <button
+              type="button"
+              onClick={onLoadMore}
+              className="mt-2 w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
+            >
+              더 불러오기
+            </button>
+          )}
+        </section>
+      </div>
+    </div>
   )
 }
