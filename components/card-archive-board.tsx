@@ -10,8 +10,9 @@
 // │ · 뱃지 색          : badgeColors 배열 — 컬럼 순서대로 번갈아 사용
 // │ · 목록 행 높이     : py-2 (위아래 8px)
 // │ · 번호 색          : text-primary/75 (옅은 테라코타 — 시안 #e09278)
-// │ · 좌우 스크롤      : 패널 상자(제목·컬럼·버튼)가 통째로 스크롤
+// │ · 좌우 스크롤      : 패널 상자(제목·컬럼)가 통째로 스크롤
 // │                      시작·끝 여백 16px(px-4) + 상자 안 여백 8px(px-2)
+// │ · 더 불러오기 버튼 : 스크롤 안 따라가고 화면에 고정 (좌우 16+8px)
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
@@ -181,56 +182,64 @@ export function ArchiveDeckSection({
   const hasMore = deck.categories.some((category) => category.cards.length > limit)
 
   return (
-    // 스크롤 영역 — bleed일 때 페이지 여백을 -mx로 뚫고 화면 끝까지
-    <div className={bleed ? "-mx-5 overflow-x-auto sm:-mx-8" : "overflow-x-auto"}>
-      {/* 시작·끝 여백 담당 — px-4가 시안의 "화면 가장자리 ↔ 상자 16px" */}
-      <div className={`flex w-max min-w-full ${bleed ? "px-4" : ""}`}>
-        {/* 패널 상자 — 제목·컬럼·버튼이 상자째로 스크롤. px-2/pt-4/pb-2가 상자 안 여백(시안 8px) */}
-        <section className="grow rounded-2xl bg-muted/50 px-2 pb-2 pt-4">
-          <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">
-            {deck.label}
-          </h2>
+    <div className={`relative ${bleed ? "-mx-5 sm:-mx-8" : ""}`}>
+      {/* 스크롤 영역 — bleed일 때 페이지 여백을 -mx로 뚫고 화면 끝까지 */}
+      <div className="overflow-x-auto">
+        {/* 시작·끝 여백 담당 — px-4가 시안의 "화면 가장자리 ↔ 상자 16px" */}
+        <div className={`flex w-max min-w-full ${bleed ? "px-4" : ""}`}>
+          {/* 패널 상자 — 제목·컬럼이 상자째로 스크롤. px-2/pt-4/pb-2가 상자 안 여백(시안 8px) */}
+          <section className="grow rounded-2xl bg-muted/50 px-2 pb-2 pt-4">
+            <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">
+              {deck.label}
+            </h2>
 
-          {/* 대분류 컬럼 — 컬럼 폭 200px 고정, 간격 8px (시안 기준) */}
-          <div className="flex gap-2">
-            {deck.categories.map((category, columnIndex) => (
-              <div key={category.key} className="shrink-0 space-y-2" style={{ width: COLUMN_WIDTH }}>
-                <div
-                  className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium text-foreground ${
-                    badgeColors[columnIndex % badgeColors.length]
-                  }`}
-                >
-                  {category.label}
-                  <span className="ml-1.5 font-mono opacity-60">{category.cards.length}</span>
-                </div>
-
-                {category.cards.slice(0, limit).map((card) => (
-                  <Link
-                    key={card.slug}
-                    href={`/blog/${card.slug}?from=astrology`}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
+            {/* 대분류 컬럼 — 컬럼 폭 200px 고정, 간격 8px (시안 기준) */}
+            <div className="flex gap-2">
+              {deck.categories.map((category, columnIndex) => (
+                <div key={category.key} className="shrink-0 space-y-2" style={{ width: COLUMN_WIDTH }}>
+                  <div
+                    className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium text-foreground ${
+                      badgeColors[columnIndex % badgeColors.length]
+                    }`}
                   >
-                    {/* 번호 — 시안 실측 #e09278: 테라코타를 75%로 옅게 */}
-                    <span className="w-4 shrink-0 font-mono text-xs text-primary/75">{card.number}</span>
-                    <span className="truncate text-[13px] text-foreground">{card.title}</span>
-                  </Link>
-                ))}
-              </div>
-            ))}
-          </div>
+                    {category.label}
+                    <span className="ml-1.5 font-mono opacity-60">{category.cards.length}</span>
+                  </div>
 
-          {/* 더 불러오기 — 시안대로 상자 안에 포함되어 상자 폭만큼 넓어집니다 */}
-          {hasMore && onLoadMore && (
-            <button
-              type="button"
-              onClick={onLoadMore}
-              className="mt-2 w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
-            >
-              더 불러오기
-            </button>
-          )}
-        </section>
+                  {category.cards.slice(0, limit).map((card) => (
+                    <Link
+                      key={card.slug}
+                      href={`/blog/${card.slug}?from=astrology`}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
+                    >
+                      {/* 번호 — 시안 실측 #e09278: 테라코타를 75%로 옅게 */}
+                      <span className="w-4 shrink-0 font-mono text-xs text-primary/75">{card.number}</span>
+                      <span className="truncate text-[13px] text-foreground">{card.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* 아래 고정 버튼이 앉을 자리 — 상자 배경만 남겨둡니다 (버튼 높이 38px) */}
+            {hasMore && onLoadMore && <div aria-hidden="true" className="mt-2 h-[38px]" />}
+          </section>
+        </div>
       </div>
+
+      {/* 더 불러오기 — 스크롤을 따라가지 않고 화면에 고정.
+          좌우 위치 = 상자 여백 16px + 상자 안 여백 8px = 24px(inset-x-6) */}
+      {hasMore && onLoadMore && (
+        <div className={`absolute bottom-2 ${bleed ? "inset-x-6" : "inset-x-2"}`}>
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="w-full rounded-lg border border-border bg-card py-2.5 text-center text-xs text-foreground transition-colors hover:bg-secondary/60"
+          >
+            더 불러오기
+          </button>
+        </div>
+      )}
     </div>
   )
 }
