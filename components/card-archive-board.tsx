@@ -104,7 +104,8 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
-          className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+          // text-base(16px): 아이폰에서 입력창 탭 시 화면 자동 확대를 막는 최소 글자 크기
+          className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/60"
         />
       </div>
 
