@@ -13,15 +13,15 @@
 // └──────────────────────────────────────────────────────────────────
 import Link from "next/link"
 
-// about·Privacy Statement 링크 — 모든 푸터 버전에 공통으로 들어갑니다 (애드센스 심사 요건)
+// About·Privacy Statement 링크 — 모든 푸터 버전에 공통으로 들어갑니다 (애드센스 심사 요건)
 function PrivacyLink({ className = "" }: { className?: string }) {
   return (
     <span className="inline-flex items-center gap-3">
       <Link
-        href="/about"
+        href="/About"
         className={`text-xs underline underline-offset-4 transition-colors ${className}`}
       >
-        about
+        About
       </Link>
       <Link
         href="/privacy"
