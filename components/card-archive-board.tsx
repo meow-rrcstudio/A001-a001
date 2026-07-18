@@ -16,7 +16,7 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Search } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
@@ -27,11 +27,16 @@ const PAGE_SIZE = 8
 const badgeColors = ["bg-[#e8d8d2]", "bg-[#cadff6]"]
 
 export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
-  const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [activeDeck, setActiveDeck] = useState("all")
   // 덱별로 "더 불러오기"를 누른 횟수만큼 8개씩 더 보여줍니다.
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({})
+
+  // 메뉴(목록)의 검색에서 넘어온 경우: 주소의 ?q=검색어 를 검색창에 채웁니다.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")
+    if (q) setQuery(q)
+  }, [])
 
   // 검색어: 덱 이름, 대분류, 숫자, 글 제목 무엇으로든 걸립니다.
   const normalizedQuery = query.trim().toLowerCase()
@@ -70,13 +75,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
 
   return (
     <>
-      <PageHeader
-        backHref="/tarot"
-        showShare
-        showSearch
-        onSearchClick={() => setSearchOpen((open) => !open)}
-        className="mb-8"
-      />
+      <PageHeader backHref="/tarot" showShare className="mb-8" />
 
       {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
       <div className="mb-8 space-y-4">
@@ -97,20 +96,17 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
         </p>
       </div>
 
-      {/* 검색창 — 헤더 돋보기를 누르면 열립니다 */}
-      {searchOpen && (
-        <div className="mb-4 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
-            autoFocus
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
-          />
-        </div>
-      )}
+      {/* 검색창 — 항상 표시. 메뉴(목록)의 검색에서 넘어오면 검색어가 채워진 채 열립니다 */}
+      <div className="mb-4 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
+          className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+        />
+      </div>
 
       {/* 필터 칩 — 덱 목록에서 자동 생성. 선택된 것은 테라코타 채움 */}
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1">

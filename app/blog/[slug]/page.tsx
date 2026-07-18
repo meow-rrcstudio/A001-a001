@@ -39,13 +39,14 @@ export async function generateMetadata({
       description: post.summary,
       type: "article",
       publishedTime: post.publishedDate ?? undefined,
-      images: post.coverImage ? [{ url: post.coverImage }] : undefined,
+      // 커버 이미지가 없는 글은 사이트 공통 미리보기 이미지를 사용
+      images: [{ url: post.coverImage || "/og-image.png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.summary,
-      images: post.coverImage ? [post.coverImage] : undefined,
+      images: [post.coverImage || "/og-image.png"],
     },
   }
 }
@@ -69,11 +70,30 @@ export default async function BlogPostPage({
     ? await getAISummary(content, post.title, post.id)
     : ({ status: "unavailable" } as const)
 
+  // 구조화 데이터(JSON-LD) — 구글이 글의 제목·날짜·이미지를 정확히 이해하도록 돕는 표식.
+  // 검색 결과에 풍부하게 노출될 확률을 높입니다.
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://soulseoul.xyz"
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.summary || undefined,
+    datePublished: post.publishedDate || undefined,
+    image: post.coverImage || `${baseUrl}/og-image.png`,
+    author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/about` },
+    publisher: { "@type": "Organization", name: "Soul Seoul", url: baseUrl },
+    mainEntityOfPage: `${baseUrl}/blog/${slug}`,
+  }
+
   return (
     <div className="tarot-detail-light flex min-h-screen flex-col bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 sm:px-8">
-        {/* 상단 바: 뒤로가기 + 공유·검색·더보기 (Site design.pdf 본문 헤더) */}
-        <PageHeader backHref={backHref} showShare showSearch showMore className="mb-8" />
+        {/* 상단 바: 뒤로가기 + 공유 + 목록 */}
+        <PageHeader backHref={backHref} showShare className="mb-8" />
 
         <article>
           <header className="mb-8">

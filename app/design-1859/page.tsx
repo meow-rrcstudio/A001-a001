@@ -227,12 +227,11 @@ export default function DesignSystemPage() {
             </p>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ① 페이지 상단 바 — 우측 순서: 공유 → 검색 → 홈 → 더보기(⋯). 홈 아이콘은 기본
-              표시(icon.pdf 시안), 목록은 공유·검색, 블로그 본문은 더보기까지
-              (components/page-header.tsx)
+              ① 페이지 상단 바 — 뒤로가기 + (공유) + 목록(≡)으로 통일. 목록을 누르면
+              사이트맵 + 검색 메뉴가 열립니다 (components/page-header.tsx, site-menu.tsx)
             </p>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 py-3">
-              <PageHeader backHref="#" showShare showSearch showMore />
+              <PageHeader backHref="#" showShare />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
