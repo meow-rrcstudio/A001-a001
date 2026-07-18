@@ -3,7 +3,8 @@
 // Notion 의 게시글 Slug 를 기반으로 URL 목록을 만듭니다.
 import { getAllSlugs } from "@/lib/notion"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+// 환경 변수가 없어도 실제 서비스 주소로 만들어지도록 기본값을 실주소로 둡니다
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://soulseoul.xyz"
 
 // 60초마다 재검증
 export const revalidate = 60
