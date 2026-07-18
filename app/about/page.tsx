@@ -1,5 +1,5 @@
 // app/about/page.tsx
-// 소개(About) 페이지 — 사이트가 어떤 곳인지 알려주는 페이지입니다.
+// About(About) 페이지 — 사이트가 어떤 곳인지 알려주는 페이지입니다.
 // 애드센스 심사와 방문자 신뢰에 도움이 됩니다.
 // 아래 본문 문구는 자유롭게 직접 수정하세요.
 import type { Metadata } from "next"
@@ -7,7 +7,7 @@ import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 
 export const metadata: Metadata = {
-  title: "소개",
+  title: "About",
   description:
     "Soul Seoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",
 }
@@ -25,7 +25,7 @@ export default function AboutPage() {
         <div className="flex items-center gap-3">
           <h1 className="font-serif text-5xl italic leading-tight text-foreground">About─</h1>
           <span aria-hidden="true" className="shrink-0 font-serif text-5xl leading-none text-primary">
-           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkle mt-3 h-8 w-8 shrink-0 text-primary" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkle mt-3 h-8 w-8 shrink-0 text-primary" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></svg>
           </span>
         </div>
 
@@ -33,7 +33,7 @@ export default function AboutPage() {
           Soul Seoul은 서울(Seoul)과 영혼(Soul)을 겹쳐 지은 이름입니다. 타로를 중심으로 명상,
           요가, 신화, 점성술을 기록하고 연결하는 개인적인 아카이브이자, 그 기록을 나누는
           공간입니다.
-          공간과 마음, 타로가 만나 당신의 흐름의 결을 조율하고 다시 설계합니다. 
+          공간과 마음, 타로가 만나 당신의 흐름의 결을 조율하고 다시 설계합니다.
         </p>
 
         <h2 className={h2Class}>이곳에서 만날 수 있는 것</h2>
