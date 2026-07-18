@@ -11,6 +11,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowUpRight, Search, X } from "lucide-react"
@@ -27,13 +28,25 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
   const router = useRouter()
   const [query, setQuery] = useState("")
 
-  // 메뉴가 열려 있는 동안 뒤 페이지 스크롤 잠금
+  // 메뉴가 열려 있는 동안 뒤 페이지 스크롤 잠금.
+  // (아이폰 사파리는 overflow:hidden 잠금을 무시하므로,
+  //  몸통을 통째로 고정하는 방식을 씁니다 — 닫을 때 원래 위치로 복원)
   useEffect(() => {
     if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    const scrollY = window.scrollY
+    const { style } = document.body
+    style.position = "fixed"
+    style.top = `-${scrollY}px`
+    style.left = "0"
+    style.right = "0"
+    style.width = "100%"
     return () => {
-      document.body.style.overflow = prev
+      style.position = ""
+      style.top = ""
+      style.left = ""
+      style.right = ""
+      style.width = ""
+      window.scrollTo(0, scrollY)
     }
   }, [open])
 
@@ -47,8 +60,11 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
     router.push(q ? `/tarot/astrology?q=${encodeURIComponent(q)}` : "/tarot/astrology")
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+  // createPortal: 메뉴를 페이지 구조 밖(문서 최상위)에 그립니다.
+  // 페이지 내부의 층(z-index) 구조에 갇히지 않아 플로팅 버튼 등
+  // 어떤 요소보다도 항상 위에 뜹니다 (z-[100]).
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pt-8 sm:px-8 sm:pt-10">
         {/* 닫기 버튼 */}
         <div className="flex justify-end">
@@ -73,7 +89,6 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
-            autoFocus
             className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         </form>
@@ -109,6 +124,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           </Link>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
