@@ -80,7 +80,7 @@ export default async function BlogPostPage({
     description: post.summary || undefined,
     datePublished: post.publishedDate || undefined,
     image: post.coverImage || `${baseUrl}/og-image.png`,
-    author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/About` },
+    author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/about` },
     publisher: { "@type": "Organization", name: "Soul Seoul", url: baseUrl },
     mainEntityOfPage: `${baseUrl}/blog/${slug}`,
   }

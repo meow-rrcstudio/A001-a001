@@ -20,7 +20,7 @@ const menuItems = [
   { number: "02", label: "Tarot", href: "/tarot" },
   { number: "03", label: "Reading", href: "/tarot/reading" },
   { number: "04", label: "Archive", href: "/tarot/astrology" },
-  { number: "05", label: "About", href: "/About" },
+  { number: "05", label: "about", href: "/about" },
 ]
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
