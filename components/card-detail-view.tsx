@@ -54,7 +54,7 @@ export function CardDetailView({
   publishedDate: string | null
   arcana: string | null
   suit: string | null
-  element: string | null
+  element: string[]
   readMinutes: number
   coverImage: string | null
   backHref: string
@@ -85,8 +85,8 @@ export function CardDetailView({
     }
   }, [hasImage])
 
-  // 상단 칩 = Suit + Element (있는 것만)
-  const chips = [suit, element].filter(Boolean) as string[]
+  // 상단 칩 = Suit + Element(다중) (있는 것만)
+  const chips = [suit, ...element].filter(Boolean) as string[]
 
   const metaParts = [
     publishedDate ? formatDate(publishedDate) : null,
