@@ -12,8 +12,8 @@ export const revalidate = 60
 export async function GET() {
   const slugs = await getAllSlugs()
 
-  // 정적 페이지(홈·목록·소개 등) + 동적 게시글 페이지 URL 목록 구성
-  const staticPaths = ["/", "/tarot", "/tarot/reading", "/tarot/astrology", "/about", "/privacy"]
+  // 정적 페이지(홈·목록·About 등) + 동적 게시글 페이지 URL 목록 구성
+  const staticPaths = ["/", "/tarot", "/tarot/reading", "/tarot/astrology", "/About", "/privacy"]
   const urls = [
     ...staticPaths.map((path) => ({ loc: `${BASE_URL}${path}`, lastmod: new Date().toISOString() })),
     ...slugs
@@ -27,13 +27,13 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
-  .map(
-    (u) => `  <url>
+      .map(
+        (u) => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
   </url>`,
-  )
-  .join("\n")}
+      )
+      .join("\n")}
 </urlset>`
 
   return new Response(xml, {

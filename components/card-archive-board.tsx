@@ -96,19 +96,6 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
         </p>
       </div>
 
-      {/* 검색창 — 항상 표시. 메뉴(목록)의 검색에서 넘어오면 검색어가 채워진 채 열립니다 */}
-      <div className="mb-4 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
-          // text-base(16px): 아이폰에서 입력창 탭 시 화면 자동 확대를 막는 최소 글자 크기
-          className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/60"
-        />
-      </div>
-
       {/* 필터 칩 — 덱 목록에서 자동 생성. 선택된 것은 테라코타 채움 */}
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
         {[{ key: "all", label: "all" }, ...decks.map((d) => ({ key: d.key, label: d.label }))].map(
