@@ -133,7 +133,7 @@ export default function DesignSystemPage() {
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
                   이탤릭 라벨 / 대문자 라벨
                 </p>
-                <p className="font-serif text-sm italic text-primary">The 12th Annual</p>
+                <p className="font-serif text-sm italic text-primary">PERSONAL ARCHIVE</p>
                 <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   Personal Archive
                 </p>
@@ -416,10 +416,10 @@ export default function DesignSystemPage() {
                 </p>
                 {/* gemini 수정: backdrop-blur 클래스 추가 */}
                 <div className="relative h-44 overflow-hidden rounded-xl border border-border">
-                  <PageBackground 
-                    variant="image" 
-                    imageSrc="/placeholder.jpg" 
-                    className="backdrop-blur-sm bg-black/30" 
+                  <PageBackground
+                    variant="image"
+                    imageSrc="/placeholder.jpg"
+                    className="backdrop-blur-sm bg-black/30"
                   />
                 </div>
               </div>

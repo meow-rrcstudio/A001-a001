@@ -20,9 +20,9 @@ export default function HomePage() {
       <PageBackground variant="aurora" />
       <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-20 sm:px-8">
         {/* 시안의 상단 이탤릭 라벨 */}
-        <p className="mb-2 font-serif text-sm italic text-primary">The 12th Annual</p>
-        <p className="mb-6 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          Personal Archive
+        <p className="mb-4 font-serif text-sm italic text-primary"> A Personal Archive of Meaning </p>
+        <p className="mb-4 text-Seeking Meaning font-medium uppercase tracking-[0.1em] text-muted-foreground">
+        Connecting Symbols Across Time
         </p>
 
         <h1 className="flex items-start gap-3 font-serif text-6xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-7xl">
