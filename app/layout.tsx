@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import Script from 'next/script'
 import type { Metadata, Viewport } from 'next'
 // gemini 수정: 잘못된 import 제거 및 실제 사용할 Instrument_Serif import 추가
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
@@ -68,6 +69,14 @@ export default function RootLayout({
       <body className="relative font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* 구글 애드센스 — 사이트 소유 확인 + 광고 스크립트 (모든 페이지 공통).
+            게시자 ID를 바꿀 일이 있으면 아래 client= 값과 public/ads.txt를 함께 수정하세요. */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5017410876251301"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
