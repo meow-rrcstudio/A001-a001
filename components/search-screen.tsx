@@ -151,7 +151,7 @@ export function SearchScreen({ posts }: { posts: SearchPost[] }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="이 블로그 검색"
+            placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
             // text-base(16px): 아이폰에서 입력창 탭 시 화면이 자동 확대되지 않게 하는 최소 크기
             className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/60"
           />

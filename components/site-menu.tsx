@@ -74,7 +74,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           className="mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5"
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="text-base text-muted-foreground/60">이 블로그 검색</span>
+          <span className="text-base text-muted-foreground/60">덱 이름, 대분류, 숫자, 제목으로 검색</span>
         </Link>
 
         {/* 사이트맵 목록 — 홈 화면 메뉴와 같은 스타일 */}
