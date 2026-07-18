@@ -39,6 +39,7 @@ export interface Post {
   coverImage: string | null
   arcana: string | null // "Major Arcana" | "Minor Arcana"
   suit: string | null // "Wands" | "Cups" | "Swords" | "Pentacles" | null(메이저)
+  element: string | null // "Earth" | "Fire" | "Air" | "Water" | null
   number: number | null // 카드 번호 (메이저는 0~21, 마이너는 1~14)
 }
 
@@ -101,9 +102,10 @@ function mapPageToPost(page: any): Post {
       : firstFile.file?.url ?? null
     : null
 
-    // Select 타입 추출 (Arcana, Suit)
+    // Select 타입 추출 (Arcana, Suit, Element)
   const arcana = props["Arcana"]?.select?.name ?? null
   const suit = props["Suit"]?.select?.name ?? null
+  const element = props["Element"]?.select?.name ?? null
 
   // Number 타입 추출
   const number = props["Number"]?.number ?? null
@@ -118,6 +120,7 @@ function mapPageToPost(page: any): Post {
     coverImage,
     arcana,
     suit,
+    element,
     number,
   }
 }
