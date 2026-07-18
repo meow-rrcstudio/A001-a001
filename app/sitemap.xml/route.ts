@@ -11,9 +11,10 @@ export const revalidate = 60
 export async function GET() {
   const slugs = await getAllSlugs()
 
-  // 정적 페이지(홈) + 동적 게시글 페이지 URL 목록 구성
+  // 정적 페이지(홈·목록·소개 등) + 동적 게시글 페이지 URL 목록 구성
+  const staticPaths = ["/", "/tarot", "/tarot/reading", "/tarot/astrology", "/about", "/privacy"]
   const urls = [
-    { loc: `${BASE_URL}/`, lastmod: new Date().toISOString() },
+    ...staticPaths.map((path) => ({ loc: `${BASE_URL}${path}`, lastmod: new Date().toISOString() })),
     ...slugs
       .filter((s) => s.slug)
       .map((s) => ({

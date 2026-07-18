@@ -30,6 +30,17 @@ export const metadata: Metadata = {
   },
   description: '타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브',
   generator: 'v0.app',
+  // 검색엔진 소유 확인 코드 (구글 서치콘솔 / 네이버 서치어드바이저)
+  verification: {
+    google: 'r3J5oHD2mNXTpaYCIVVqMflSE5pY5KLQ92FoKYcMvkU',
+    other: { 'naver-site-verification': '35a3abd98e941de07a67600ae926ed54ff3cd1ae' },
+  },
+  // 링크 공유 시 미리보기 카드 기본값 — 커버 이미지 없는 페이지는 이 이미지가 나갑니다
+  openGraph: {
+    siteName: 'Soul Seoul',
+    type: 'website',
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+  },
   icons: {
     icon: [
       {

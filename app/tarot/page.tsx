@@ -19,7 +19,7 @@ export default async function TarotListPage() {
     <div className="flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
       <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
-        <PageHeader backHref="/tarot/reading" showShare showSearch className="mb-8" />
+        <PageHeader backHref="/tarot/reading" showShare className="mb-8" />
         
         <div className="mb-8">
           <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot</h1>
