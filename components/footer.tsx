@@ -11,6 +11,20 @@
 // │ · URL 글꼴         : font-mono + tracking-[0.15em] (시안의 타자기 느낌)
 // │ · 카피라이트 흐림  : 다크 text-background/60 · 라이트 text-muted-foreground
 // └──────────────────────────────────────────────────────────────────
+import Link from "next/link"
+
+// 개인정보처리방침 링크 — 모든 푸터 버전에 공통으로 들어갑니다 (애드센스 심사 요건)
+function PrivacyLink({ className = "" }: { className?: string }) {
+  return (
+    <Link
+      href="/privacy"
+      className={`text-xs underline underline-offset-4 transition-colors ${className}`}
+    >
+      개인정보처리방침
+    </Link>
+  )
+}
+
 export function Footer({ variant = "dark" }: { variant?: "dark" | "light" | "minimal" }) {
   const year = new Date().getFullYear()
 
@@ -23,6 +37,7 @@ export function Footer({ variant = "dark" }: { variant?: "dark" | "light" | "min
           <p className="font-mono text-xs text-muted-foreground">
             © {year} Shānti Archive. All Rights Reserved.
           </p>
+          <PrivacyLink className="text-muted-foreground/70 hover:text-foreground" />
         </div>
       </footer>
     )
@@ -42,6 +57,7 @@ export function Footer({ variant = "dark" }: { variant?: "dark" | "light" | "min
             <p>© {year} Soul Seoul Shānti Archive</p>
             <p>All Rights Reserved</p>
           </div>
+          <PrivacyLink className="text-muted-foreground/70 hover:text-foreground" />
         </div>
       </footer>
     )
@@ -60,6 +76,7 @@ export function Footer({ variant = "dark" }: { variant?: "dark" | "light" | "min
           <p>© {year} Soul Seoul Shānti Archive</p>
           <p>All Rights Reserved</p>
         </div>
+        <PrivacyLink className="text-background/50 hover:text-background" />
       </div>
     </footer>
   )
