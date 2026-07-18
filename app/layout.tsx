@@ -20,7 +20,7 @@ const main = Instrument_Serif({
   display: 'swap',
 })
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://soulseoul.xyz'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
