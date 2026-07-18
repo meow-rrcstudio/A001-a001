@@ -1,13 +1,13 @@
 // app/privacy/page.tsx
-// Privacy Statement — 애드센스 등 광고 심사에 필요한 필수 안내 페이지입니다.
+// privacy statement — 애드센스 등 광고 심사에 필요한 필수 안내 페이지입니다.
 // 내용을 고치고 싶으면 아래 본문 텍스트를 직접 수정하면 됩니다.
 import type { Metadata } from "next"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 
 export const metadata: Metadata = {
-  title: "Privacy Statement",
-  description: "Soul Seoul의 Privacy Statement입니다.",
+  title: "privacy statement",
+  description: "Soul Seoul의 privacy statement입니다.",
 }
 
 // 본문 단락 공통 스타일
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <PageHeader backHref="/" className="mb-8" />
 
         <h1 className="font-serif text-4xl italic leading-tight text-foreground">
-          Privacy Statement
+          privacy statement
         </h1>
         <p className={`mt-4 ${pClass}`}>
           Soul Seoul(soulseoul.xyz, 이하 &ldquo;본 사이트&rdquo;)은 타로·명상·점성술을 기록하는
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         <h2 className={h2Class}>4. 개인정보의 제3자 제공</h2>
         <p className={`mt-2 ${pClass}`}>
           본 사이트는 방문자의 개인정보를 제3자에게 판매하거나 제공하지 않습니다. 위 광고·통계
-          서비스가 쿠키를 통해 수집하는 정보는 각 사업자의 Privacy Statement을 따릅니다.
+          서비스가 쿠키를 통해 수집하는 정보는 각 사업자의 privacy statement을 따릅니다.
         </p>
 
         <h2 className={h2Class}>5. 문의</h2>

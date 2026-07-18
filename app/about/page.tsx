@@ -1,5 +1,5 @@
-// app/About/page.tsx
-// About(About) 페이지 — 사이트가 어떤 곳인지 알려주는 페이지입니다.
+// app/about/page.tsx
+// about(about) 페이지 — 사이트가 어떤 곳인지 알려주는 페이지입니다.
 // 애드센스 심사와 방문자 신뢰에 도움이 됩니다.
 // 아래 본문 문구는 자유롭게 직접 수정하세요.
 import type { Metadata } from "next"
@@ -7,7 +7,7 @@ import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "about",
   description:
     "Soul Seoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",
 }
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const pClass = "text-[15px] leading-relaxed text-muted-foreground"
 const h2Class = "mt-10 font-serif text-xl font-semibold text-foreground"
 
-export default function AboutPage() {
+export default function aboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
@@ -23,9 +23,9 @@ export default function AboutPage() {
 
         {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크 */}
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-5xl italic leading-tight text-foreground">About─</h1>
+          <h1 className="font-serif text-5xl italic leading-tight text-foreground">about─</h1>
           <span aria-hidden="true" className="shrink-0 font-serif text-5xl leading-none text-primary">
-            ✳
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkle mt-3 h-8 w-8 shrink-0 text-primary" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></svg>
           </span>
         </div>
 
