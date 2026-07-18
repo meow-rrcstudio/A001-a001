@@ -104,7 +104,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
             onClick={onClose}
             className="text-xs text-muted-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
           >
-            Privacy Statement
+            privacy statement
           </Link>
         </div>
       </div>
