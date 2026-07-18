@@ -10,10 +10,9 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { ArrowUpRight, Search, X } from "lucide-react"
 
 const menuItems = [
@@ -25,9 +24,6 @@ const menuItems = [
 ]
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const router = useRouter()
-  const [query, setQuery] = useState("")
-
   // 메뉴가 열려 있는 동안 뒤 페이지 스크롤 잠금.
   // (아이폰 사파리는 overflow:hidden 잠금을 무시하므로,
   //  몸통을 통째로 고정하는 방식을 씁니다 — 닫을 때 원래 위치로 복원)
@@ -52,13 +48,6 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
 
   if (!open) return null
 
-  // 검색하면 카드 아카이브 페이지의 검색으로 연결됩니다 (?q=검색어)
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const q = query.trim()
-    onClose()
-    router.push(q ? `/tarot/astrology?q=${encodeURIComponent(q)}` : "/tarot/astrology")
-  }
 
   // createPortal: 메뉴를 페이지 구조 밖(문서 최상위)에 그립니다.
   // 페이지 내부의 층(z-index) 구조에 갇히지 않아 플로팅 버튼 등
@@ -78,20 +67,15 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           </button>
         </div>
 
-        {/* 검색 — 카드 아카이브의 검색으로 이동 */}
-        <form
-          onSubmit={handleSearch}
+        {/* 검색 — 누르면 전용 검색 화면(/search)으로 이동합니다 */}
+        <Link
+          href="/search"
+          onClick={onClose}
           className="mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5"
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="덱 이름, 대분류, 숫자, 제목으로 검색"
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
-          />
-        </form>
+          <span className="text-base text-muted-foreground/60">이 블로그 검색</span>
+        </Link>
 
         {/* 사이트맵 목록 — 홈 화면 메뉴와 같은 스타일 */}
         <nav className="mt-8 flex flex-col">
