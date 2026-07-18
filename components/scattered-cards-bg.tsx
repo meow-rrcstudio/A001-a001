@@ -37,7 +37,10 @@ export function ScatteredCardsBackground() {
           <Image src={card.imageUrl || "/placeholder.svg"} alt="" fill className="object-cover" />
         </motion.div>
       ))}
-      <div className="absolute inset-0 bg-background/70" />
+      {/* 글씨가 잘 읽히도록 카드 위를 덮는 간유리(블러) 층
+          · 블러 강도: backdrop-blur-sm(약) / md(중) / lg(강)
+          · 덮개 진하기: bg-background/70 — 숫자를 올리면 더 뿌옇게 */}
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-md" />
     </div>
   )
 }
