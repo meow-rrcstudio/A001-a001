@@ -81,7 +81,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
       <div className="mb-8 space-y-4">
         <div className="flex items-center gap-3">
           <h1 className="font-serif text-5xl italic leading-tight text-foreground sm:text-6xl">
-            Astrologyㅡ
+            Astrology─
           </h1>
           <span
             aria-hidden="true"
