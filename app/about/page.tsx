@@ -23,7 +23,7 @@ export default function AboutPage() {
 
         {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크 */}
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-5xl italic leading-tight text-foreground">Aboutㅡ</h1>
+          <h1 className="font-serif text-5xl italic leading-tight text-foreground">About─</h1>
           <span aria-hidden="true" className="shrink-0 font-serif text-5xl leading-none text-primary">
             ✳
           </span>
