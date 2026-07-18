@@ -8,8 +8,15 @@ import { getPostBySlug, getPostContent, getAllSlugs, getAdjacentPosts } from "@/
 import { MarkdownContent } from "@/components/markdown-content"
 import { AdFit } from "@/components/adfit"
 import { CardDetailView, type AdjacentCard } from "@/components/card-detail-view"
+import { allTarotCards } from "@/lib/tarot-cards"
 
 export const revalidate = 60
+
+// 슬러그 → 정적 카드 이미지(위키미디어). 노션 Files가 비어 있을 때 폴백으로 씁니다.
+const cardImageBySlug = new Map(allTarotCards.map((c) => [c.slug, c.imageUrl]))
+function resolveCardImage(slug: string, notionCover: string | null): string | null {
+  return notionCover || cardImageBySlug.get(slug) || null
+}
 
 export async function generateStaticParams() {
   const slugs = await getAllSlugs()
@@ -76,7 +83,13 @@ export default async function BlogPostPage({
   const { prev, next } = await getAdjacentPosts(slug)
   const toAdjacent = (p: typeof prev): AdjacentCard | null =>
     p
-      ? { slug: p.slug, title: p.title, coverImage: p.coverImage, arcana: p.arcana, suit: p.suit }
+      ? {
+          slug: p.slug,
+          title: p.title,
+          coverImage: resolveCardImage(p.slug, p.coverImage),
+          arcana: p.arcana,
+          suit: p.suit,
+        }
       : null
 
   // 구조화 데이터(JSON-LD) — 구글이 글의 제목·날짜·이미지를 정확히 이해하도록 돕는 표식.
@@ -87,7 +100,7 @@ export default async function BlogPostPage({
     headline: post.title,
     description: post.summary || undefined,
     datePublished: post.publishedDate || undefined,
-    image: post.coverImage || `${baseUrl}/og-image.png`,
+    image: resolveCardImage(slug, post.coverImage) || `${baseUrl}/og-image.png`,
     author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/about` },
     publisher: { "@type": "Organization", name: "Soul Seoul", url: baseUrl },
     mainEntityOfPage: `${baseUrl}/blog/${slug}`,
@@ -106,7 +119,7 @@ export default async function BlogPostPage({
         suit={post.suit}
         element={post.element}
         readMinutes={content ? estimateReadMinutes(content) : 1}
-        coverImage={post.coverImage}
+        coverImage={resolveCardImage(slug, post.coverImage)}
         backHref={backHref}
         fromParam={from ?? null}
         prev={toAdjacent(prev)}
