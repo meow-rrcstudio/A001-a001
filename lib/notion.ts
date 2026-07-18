@@ -39,7 +39,7 @@ export interface Post {
   coverImage: string | null
   arcana: string | null // "Major Arcana" | "Minor Arcana"
   suit: string | null // "Wands" | "Cups" | "Swords" | "Pentacles" | null(메이저)
-  element: string | null // "Earth" | "Fire" | "Air" | "Water" | null
+  element: string[] // 다중 선택 — 카드의 원소·상징 키워드들 (예: ["Air","노랑","산"...])
   number: number | null // 카드 번호 (메이저는 0~21, 마이너는 1~14)
 }
 
@@ -105,7 +105,12 @@ function mapPageToPost(page: any): Post {
     // Select 타입 추출 (Arcana, Suit, Element)
   const arcana = props["Arcana"]?.select?.name ?? null
   const suit = props["Suit"]?.select?.name ?? null
-  const element = props["Element"]?.select?.name ?? null
+  // Element는 다중 선택(multi_select)입니다. 예전 단일 선택(select)도 함께 처리합니다.
+  const element: string[] = props["Element"]?.multi_select
+    ? props["Element"].multi_select.map((o: any) => o.name)
+    : props["Element"]?.select?.name
+      ? [props["Element"].select.name]
+      : []
 
   // Number 타입 추출
   const number = props["Number"]?.number ?? null
