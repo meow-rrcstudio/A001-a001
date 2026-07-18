@@ -20,13 +20,13 @@ export default async function TarotListPage() {
       <PageBackground variant="aurora" />
       <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
         <PageHeader backHref="/tarot/reading" showShare className="mb-8" />
-        
+
         <div className="mb-8">
           <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             카드 한 장 한 장의 의미를 깊게 들여다보는 아카이브입니다.
           </p>
-          
+
           <div className="mt-6 flex gap-4">
             <Link
               href="/tarot/astrology"
@@ -67,7 +67,7 @@ export default async function TarotListPage() {
             "h-14 rounded-full px-8 font-serif text-xl italic shadow-lg"
           )}
         >
-          Connect with Shānti-
+          go to a tarot reading
         </Link>
       </div>
 
