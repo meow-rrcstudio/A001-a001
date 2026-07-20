@@ -1,5 +1,7 @@
 /* gemini 수정: 폰트 이름의 공백을 +로 정확히 수정 */
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+/* 본문 한글 기본 폰트 — Pretendard (동적 서브셋: 필요한 글자만 불러와 가벼움) */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -9,7 +11,8 @@
 @theme inline {
   --font-heading: var(--font-serif-main);
   --font-serif: var(--font-serif-main);
-  --font-sans: var(--font-geist-sans), 'Geist Fallback';
+  /* 기본 본문 글꼴 — 한글은 Pretendard, 영문/숫자는 Geist 순으로 사용 (전역 적용) */
+  --font-sans: 'Pretendard Variable', Pretendard, var(--font-geist-sans), 'Geist Fallback', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -123,15 +126,22 @@
 }
 
 @layer components {
-  /* 블로그 포스팅 본문 스타일 */
+  /* 블로그 포스팅 본문 스타일
+     · 글자 17px, 행간 1.7(전보다 촘촘), 자간 -0.015em(한글 또렷하게), 색 /90(덜 흐리게) */
   .prose-blog {
-    @apply text-[17px] leading-[1.8] text-foreground/80;
+    @apply text-[17px] text-foreground/90;
+    line-height: 1.7;
+    letter-spacing: -0.015em;
   }
-  .prose-blog > * + * { @apply mt-6; }
+  .prose-blog > * + * { @apply mt-5; }
 
-  .prose-blog h1, .prose-blog h2, .prose-blog h3, .prose-blog h4 {
-    @apply font-serif font-semibold leading-snug tracking-tight text-foreground mt-10;
-  }
+  /* 소제목 계층 — 크기 차이는 작게, 위 여백은 크고 아래는 작게(다음 글에 붙는 느낌) */
+  .prose-blog h1 { @apply font-serif font-semibold text-[22px] leading-snug tracking-tight text-foreground mt-10 mb-1.5; }
+  .prose-blog h2 { @apply font-serif font-semibold text-[20px] leading-snug tracking-tight text-foreground mt-9 mb-1.5; }
+  .prose-blog h3 { @apply font-serif font-semibold text-[18px] leading-snug tracking-tight text-foreground mt-7 mb-1; }
+  .prose-blog h4 { @apply font-semibold text-[17px] leading-snug tracking-tight text-foreground mt-6 mb-1; }
+  /* 소제목 바로 다음 문단은 소제목에 붙여 그룹처럼 보이게 (위 mt-5보다 우선) */
+  .prose-blog :is(h1, h2, h3, h4) + * { @apply mt-2; }
 
   .prose-blog strong, .prose-blog b { @apply font-bold text-foreground; }
 
