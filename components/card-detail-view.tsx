@@ -25,6 +25,8 @@ import { formatDate } from "@/lib/format-date"
 const IMAGE_VH = 64 //     고정 카드 이미지 영역 높이 (vh)
 const PANEL_TOP_VH = 56 // 설명 패널이 시작하는 위치 (vh)
 const HEADER_H = 56 //     솔리드 헤더 높이 (px) — 헤더 전환 임계값 계산에 사용
+const MAX_SCALE = 0.28 //  스크롤 끝에서 이미지가 얼마나 더 커지는지 (1 + 0.28 = 1.28배)
+const MAX_BLUR = 10 //     스크롤 끝에서 이미지 블러 강도 (px)
 
 export interface AdjacentCard {
   slug: string
@@ -69,12 +71,22 @@ export function CardDetailView({
   // 이미지가 없으면 처음부터 솔리드 헤더(스크롤 완료) 상태로 시작합니다.
   const [scrolled, setScrolled] = useState(!hasImage)
   const panelRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLDivElement>(null) // 스크롤에 따라 확대·블러할 이미지 래퍼
 
   useEffect(() => {
     if (!hasImage) return
     const onScroll = () => {
       const top = panelRef.current?.offsetTop ?? 0
       setScrolled(window.scrollY + HEADER_H >= top)
+
+      // 스크롤 진행도(0~1): 패널이 이미지를 덮기까지의 비율.
+      // 진행할수록 카드 이미지를 확대하고 블러를 걸어 배경처럼 흐려지게 합니다.
+      // (리렌더 없이 요소 스타일을 직접 조작 → 스크롤이 부드러움)
+      if (imageRef.current && top > 0) {
+        const progress = Math.min(Math.max(window.scrollY / top, 0), 1)
+        imageRef.current.style.transform = `scale(${1 + progress * MAX_SCALE})`
+        imageRef.current.style.filter = `blur(${(progress * MAX_BLUR).toFixed(1)}px)`
+      }
     }
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
@@ -96,17 +108,19 @@ export function CardDetailView({
 
   return (
     <div className={`relative min-h-screen ${hasImage ? "" : "bg-background"}`}>
-      {/* 뒤에 고정으로 깔리는 카드 이미지 */}
+      {/* 뒤에 고정으로 깔리는 카드 이미지 (스크롤할수록 확대+블러 — imageRef가 조작) */}
       {hasImage && (
         <div className="fixed inset-x-0 top-0 z-0 overflow-hidden" style={{ height: `${IMAGE_VH}vh` }}>
-          <Image
-            src={coverImage as string}
-            alt={title}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 768px"
-            className="object-cover object-top"
-          />
+          <div ref={imageRef} className="relative h-full w-full will-change-transform">
+            <Image
+              src={coverImage as string}
+              alt={title}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 768px"
+              className="object-cover object-top"
+            />
+          </div>
         </div>
       )}
 
