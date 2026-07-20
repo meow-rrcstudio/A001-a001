@@ -4,6 +4,7 @@
 // 별도의 "use client" 가 없으므로 서버 컴포넌트로 렌더링되어 JS 번들을 늘리지 않습니다.
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkBreaks from "remark-breaks"
 import rehypeRaw from "rehype-raw"
 import rehypeSanitize from "rehype-sanitize"
 
@@ -11,7 +12,8 @@ export function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="prose-blog">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        // remarkBreaks: 노션에서 문단 안에 넣은 줄바꿈(Shift+Enter)을 화면에서도 줄바꿈으로 표시
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         // rehypeRaw 로 Notion 에서 넘어온 원시 HTML 을 파싱하고, rehypeSanitize 로 XSS 위험 요소를 제거합니다.
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         components={{
