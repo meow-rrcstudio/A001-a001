@@ -5,6 +5,7 @@ import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
 import { PageBackground } from "@/components/page-background"
 import { Footer } from "@/components/footer"
+import { AdFit } from "@/components/adfit"
 // gemini 수정: Button 스타일 재사용을 위한 import
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -54,6 +55,10 @@ export default async function TarotListPage() {
               </Link>
             )
           })}
+        </div>
+        {/* 광고(카카오 애드핏) — 목록 하단 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
+        <div className="mt-10 flex justify-center">
+          <AdFit adUnit="DAN-6lnjpC7fNfdnSMWd" width={300} height={250} className="mx-auto" />
         </div>
       </main>
 

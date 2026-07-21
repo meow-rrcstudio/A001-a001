@@ -3,6 +3,7 @@ import { Sparkle } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { MenuList } from "@/components/menu-list"
 import { PageBackground } from "@/components/page-background"
+import { AdFit } from "@/components/adfit"
 
 // 홈 메뉴의 내용(번호·이름·주소)은 여기서 수정합니다.
 // 메뉴의 생김새(글자 크기·간격·색)는 components/menu-list.tsx에서 수정합니다.
@@ -46,6 +47,11 @@ export default function HomePage() {
           <MenuList items={menuItems} />
         </div>
       </main>
+
+      {/* 광고(카카오 애드핏) — 푸터 위 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
+      <div className="relative z-10 mx-auto flex w-full max-w-2xl justify-center px-6 pb-6">
+        <AdFit adUnit="DAN-6lnjpC7fNfdnSMWd" width={300} height={250} className="mx-auto" />
+      </div>
 
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
       <Footer variant="light" />
