@@ -16,8 +16,6 @@ export interface TarotCardInfo {
   imageUrl: string
 }
 
-const WIKI_BASE = "https://commons.wikimedia.org/wiki/Special:FilePath"
-
 // ---------------------------------------------------------------------------
 // 메이저 아르카나 (22장) — RWS_Tarot_NN_Name.jpg 패턴, 확인된 안전한 이름
 // ---------------------------------------------------------------------------
@@ -74,28 +72,21 @@ const rankNames: { number: number; ko: string; en: string }[] = [
   { number: 14, ko: "킹", en: "King" },
 ]
 
-// 확인된 예외 — 발견되는 대로 여기에 계속 추가하면 돼요.
-const minorArcanaExceptions: Record<string, string> = {
-  "Wands-9": "Tarot Nine of Wands.jpg",
-}
-
 function buildMinorArcanaCards(): TarotCardInfo[] {
   const cards: TarotCardInfo[] = []
 
   for (const suit of suits) {
     for (const rank of rankNames) {
-      const exceptionKey = `${suit.key}-${rank.number}`
-      const filename =
-        minorArcanaExceptions[exceptionKey] ?? `${suit.fileKey}${String(rank.number).padStart(2, "0")}.jpg`
-
+      const slug = `universal-${suit.key.toLowerCase()}-${String(rank.number).padStart(2, "0")}`
       cards.push({
-        slug: `universal-${suit.key.toLowerCase()}-${String(rank.number).padStart(2, "0")}`,
+        slug,
         nameKo: `${suit.ko}의 ${rank.ko}`,
         nameEn: `${rank.en} of ${suit.key}`,
         arcana: "Minor Arcana",
         suit: suit.key,
         number: rank.number,
-        imageUrl: `${WIKI_BASE}/${encodeURIComponent(filename)}`,
+        // 위키미디어 핫링크 대신 사이트에 직접 저장한 이미지(public/tarot) 사용
+        imageUrl: `/tarot/${slug}.png`,
       })
     }
   }
@@ -104,15 +95,19 @@ function buildMinorArcanaCards(): TarotCardInfo[] {
 }
 
 function buildMajorArcanaCards(): TarotCardInfo[] {
-  return majorArcanaNames.map((card, index) => ({
-    slug: `universal-major-${String(index).padStart(2, "0")}`,
-    nameKo: card.ko,
-    nameEn: card.en,
-    arcana: "Major Arcana",
-    suit: null,
-    number: index,
-    imageUrl: `${WIKI_BASE}/RWS_Tarot_${String(index).padStart(2, "0")}_${card.file}.jpg`,
-  }))
+  return majorArcanaNames.map((card, index) => {
+    const slug = `universal-major-${String(index).padStart(2, "0")}`
+    return {
+      slug,
+      nameKo: card.ko,
+      nameEn: card.en,
+      arcana: "Major Arcana" as const,
+      suit: null,
+      number: index,
+      // 위키미디어 핫링크 대신 사이트에 직접 저장한 이미지(public/tarot) 사용
+      imageUrl: `/tarot/${slug}.png`,
+    }
+  })
 }
 
 export const allTarotCards: TarotCardInfo[] = [...buildMajorArcanaCards(), ...buildMinorArcanaCards()]
