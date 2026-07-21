@@ -27,7 +27,7 @@ interface AdFitProps {
 export function AdFit({ adUnit, width, height, className }: AdFitProps) {
   // ins 태그를 담을 컨테이너
   const containerRef = useRef<HTMLDivElement>(null)
-  // NO-AD(노출할 광고 없음) 여부 → 빈 박스 숨김 처리
+  // NO-AD(노출할 광고 없음) 여부 → 빈 박스 높이만 접음(요소 자체는 유지)
   const [noAd, setNoAd] = useState(false)
 
   useEffect(() => {
@@ -68,14 +68,16 @@ export function AdFit({ adUnit, width, height, className }: AdFitProps) {
     }
   }, [adUnit, width, height])
 
-  if (noAd) return null
-
+  // NO-AD 라도 <ins class="kakao_ad_area"> 는 DOM 에 그대로 둡니다.
+  // (요소를 제거하면 애드핏 심사 크롤러가 "광고 미설치"로 판단합니다.)
+  // 광고가 없을 때는 높이만 0 으로 접어 빈 박스가 보이지 않게 합니다.
   return (
     <div
       ref={containerRef}
       className={className}
       // 광고 로딩 전 레이아웃 시프트(CLS)를 막기 위해 최대 크기를 확보합니다.
-      style={{ minHeight: height, maxWidth: width, width: "100%" }}
+      // NO-AD 시에는 minHeight 를 0 으로 접습니다.
+      style={{ minHeight: noAd ? 0 : height, maxWidth: width, width: "100%" }}
       aria-label="광고"
     />
   )
