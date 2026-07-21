@@ -50,7 +50,7 @@ export default function HomePage() {
 
       {/* 광고(카카오 애드핏) — 푸터 위 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
       <div className="relative z-10 mx-auto flex w-full max-w-2xl justify-center px-6 pb-6">
-        <AdFit adUnit="DAN-6lnjpC7fNfdnSMWd" width={300} height={250} className="mx-auto" />
+        <AdFit adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} className="mx-auto" />
       </div>
 
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
