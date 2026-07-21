@@ -58,7 +58,7 @@ export default async function TarotListPage() {
         </div>
         {/* 광고(카카오 애드핏) — 목록 하단 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
         <div className="mt-10 flex justify-center">
-          <AdFit adUnit="DAN-6lnjpC7fNfdnSMWd" width={300} height={250} className="mx-auto" />
+          <AdFit adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="mx-auto" />
         </div>
       </main>
 
