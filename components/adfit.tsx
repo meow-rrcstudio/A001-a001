@@ -3,15 +3,18 @@
 // components/adfit.tsx
 // 카카오 애드핏(Kakao AdFit) 광고 컴포넌트
 //
-// 애드핏은 <ins class="kakao_ad_area"> 태그가 DOM 에 먼저 존재한 뒤
-// ba.min.js 스크립트가 실행되어야 정상적으로 광고를 채워줍니다.
-// React/Next.js(SPA)에서는 라우트 전환 시 스크립트가 다시 실행되지 않으면
-// 광고가 노출되지 않으므로, 마운트 시점에 ins + script 를 직접 주입합니다.
+// [중요] 애드핏 심사 크롤러는 페이지의 "원본 HTML"에서
+// <ins class="kakao_ad_area"> 태그가 있는지 확인합니다.
+// 그래서 이 태그는 자바스크립트로 나중에 끼워넣지 않고,
+// 서버 렌더링(SSR) 단계에서 HTML 안에 미리 그려지도록 JSX 로 직접 둡니다.
+// (예전처럼 useEffect 안에서 document.createElement 로 만들면
+//  자바스크립트를 실행하지 않는 크롤러는 광고를 "미설치"로 판정합니다.)
 //
-// 주의: data-ad-unit / data-ad-width / data-ad-height 값은
-// 애드핏 가이드에 따라 절대 임의로 변경하면 안 됩니다.
+// 광고를 실제로 채워주는 스크립트(ba.min.js)만 마운트 시점에 불러옵니다.
+// data-ad-unit / data-ad-width / data-ad-height 값은 애드핏 가이드에 따라
+// 절대 임의로 변경하면 안 됩니다.
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 
 interface AdFitProps {
   /** 애드핏에서 발급받은 광고단위 ID (예: DAN-xxxxxxxx) */
@@ -25,60 +28,50 @@ interface AdFitProps {
 }
 
 export function AdFit({ adUnit, width, height, className }: AdFitProps) {
-  // ins 태그를 담을 컨테이너
-  const containerRef = useRef<HTMLDivElement>(null)
-  // NO-AD(노출할 광고 없음) 여부 → 빈 박스 높이만 접음(요소 자체는 유지)
+  // NO-AD(노출할 광고 없음) 여부 → 빈 박스 높이만 접음(태그 자체는 유지)
   const [noAd, setNoAd] = useState(false)
 
+  // onfail 콜백명을 광고단위별로 고유하게 만들어 충돌 방지
+  const callbackName = `adfitOnFail_${adUnit.replace(/[^a-zA-Z0-9]/g, "")}`
+
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    // 콜백 함수명을 광고단위별로 고유하게 만들어 충돌을 방지합니다.
-    const callbackName = `adfitOnFail_${adUnit.replace(/[^a-zA-Z0-9]/g, "")}`
-
-    // NO-AD 콜백: 광고가 없으면 영역을 숨깁니다.
+    // NO-AD 콜백: 광고가 없으면 영역 높이만 접습니다(요소는 그대로 둠).
     ;(window as unknown as Record<string, unknown>)[callbackName] = () => {
       setNoAd(true)
     }
 
-    // ins 태그 생성
-    const ins = document.createElement("ins")
-    ins.className = "kakao_ad_area"
-    ins.style.display = "none"
-    ins.setAttribute("data-ad-unit", adUnit)
-    ins.setAttribute("data-ad-width", String(width))
-    ins.setAttribute("data-ad-height", String(height))
-    ins.setAttribute("data-ad-onfail", callbackName)
-
-    // 광고 로딩 스크립트 생성 (비동기)
+    // 광고 로딩 스크립트(ba.min.js). 이 스크립트가 페이지의 kakao_ad_area 를 찾아 채웁니다.
     const script = document.createElement("script")
     script.type = "text/javascript"
     script.async = true
     script.charset = "utf-8"
     script.src = "https://t1.kakaocdn.net/kas/static/ba.min.js"
+    document.body.appendChild(script)
 
-    container.appendChild(ins)
-    container.appendChild(script)
-
-    // 언마운트 시 정리 (라우트 전환 시 중복 방지)
     return () => {
-      container.innerHTML = ""
+      script.remove()
       delete (window as unknown as Record<string, unknown>)[callbackName]
     }
-  }, [adUnit, width, height])
+    // adUnit 이 바뀌면(라우트 전환 등) 스크립트를 다시 불러 재실행합니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adUnit])
 
-  // NO-AD 라도 <ins class="kakao_ad_area"> 는 DOM 에 그대로 둡니다.
-  // (요소를 제거하면 애드핏 심사 크롤러가 "광고 미설치"로 판단합니다.)
-  // 광고가 없을 때는 높이만 0 으로 접어 빈 박스가 보이지 않게 합니다.
   return (
     <div
-      ref={containerRef}
       className={className}
-      // 광고 로딩 전 레이아웃 시프트(CLS)를 막기 위해 최대 크기를 확보합니다.
-      // NO-AD 시에는 minHeight 를 0 으로 접습니다.
+      // 광고 로딩 전 레이아웃 시프트(CLS) 방지용 최소 높이. NO-AD 시 0 으로 접음.
       style={{ minHeight: noAd ? 0 : height, maxWidth: width, width: "100%" }}
       aria-label="광고"
-    />
+    >
+      {/* 심사 크롤러가 원본 HTML 에서 바로 감지할 수 있도록 SSR 로 그려지는 광고 태그 */}
+      <ins
+        className="kakao_ad_area"
+        style={{ display: "none", width: "100%" }}
+        data-ad-unit={adUnit}
+        data-ad-width={String(width)}
+        data-ad-height={String(height)}
+        data-ad-onfail={callbackName}
+      />
+    </div>
   )
 }
