@@ -266,11 +266,13 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
         label: "내가 연애 프로그램에 나간다면?",
         layoutKey: "four-diamond",
         readingStyle: "variety_show",
+        // 이 리딩은 카드가 답을 '알려주는' 방식이라, 뭔가를 떠올리며 뽑는 게 아니라
+        // 뽑아서 알아보는 문구를 씁니다. (그래서 g() 대신 직접 문구 지정)
         positions: [
-          { label: "잘 맞는 프로그램", guide: g("나와 잘 맞는 연애 프로그램") },
-          { label: "내 캐릭터", guide: g("그 안에서 내 캐릭터") },
-          { label: "상대 캐릭터", guide: g("그 안에서 만날 상대 캐릭터") },
-          { label: "우리의 서사", guide: g("두 사람에게 펼쳐질 이야기") },
+          { label: "잘 맞는 프로그램", guide: "어떤 연애 프로그램이 어울릴지, 한 장 뽑아보라냥" },
+          { label: "내 캐릭터", guide: "그 안에서 내 캐릭터는 어떨지 뽑아보라냥" },
+          { label: "상대 캐릭터", guide: "내가 만날 상대는 어떤 캐릭터일지 뽑아보라냥" },
+          { label: "우리의 서사", guide: "둘에게 어떤 이야기가 펼쳐질지 뽑아보라냥" },
         ],
       },
     ],
