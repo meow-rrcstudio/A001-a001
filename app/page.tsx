@@ -49,8 +49,8 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 좌우 16px, 위아래 40px */}
-      <div className="relative z-10 mx-auto w-full max-w-2xl px-4 py-10">
+      {/* 광고(카카오 애드핏) — 푸터 위, 본문과 같은 좌우 여백(px-6). 위아래 40px */}
+      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 py-10 sm:px-8">
         <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} />
       </div>
 
