@@ -38,7 +38,7 @@ export function MenuList({ items }: { items: MenuItem[] }) {
         >
           <span className="flex items-baseline gap-4">
             <span className="text-xs text-primary">{item.number}</span>
-            <span className="font-serif text-4xl tracking-tight sm:text-5xl">{item.label}</span>
+            <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">{item.label}</span>
           </span>
           {item.active && (
             <ArrowUpRight className="h-6 w-6 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
