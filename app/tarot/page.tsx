@@ -19,7 +19,8 @@ export default async function TarotListPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
-      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 py-10 pb-28 sm:px-8">
+      {/* 하단 여백은 광고 띠배너 래퍼(py-10)가 담당 — 40px 간격 유지 */}
+      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 pt-10 sm:px-8">
         <PageHeader backHref="/tarot/reading" showShare className="mb-8" />
 
         <div className="mb-8">
@@ -58,8 +59,10 @@ export default async function TarotListPage() {
         </div>
       </main>
 
-      {/* 광고(카카오 애드핏) — 푸터 위 띠배너, 위아래 40px 여백 */}
-      <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="my-10" />
+      {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 본문과 같은 좌우 여백, 위아래 40px */}
+      <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">
+        <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />
+      </div>
 
       {/* gemini 수정: 기존 Floating 버튼 삭제 후 하단 고정 버튼 구현
           (이 버튼 컴포넌트는 asChild를 지원하지 않아, 같은 스타일을 Link에 직접 입힘) */}

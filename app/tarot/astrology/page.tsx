@@ -25,8 +25,10 @@ export default async function AstrologyPage() {
         <CardArchiveBoard decks={decks} />
       </main>
 
-      {/* 광고(카카오 애드핏) — 푸터 위 띠배너, 위아래 40px 여백 */}
-      <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="my-10" />
+      {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 본문과 같은 좌우 여백, 위아래 40px */}
+      <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
+        <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />
+      </div>
 
       {/* 시안 기준 밝은 푸터 (✳ 모노 URL + 카피라이트) */}
       <Footer variant="light" />
