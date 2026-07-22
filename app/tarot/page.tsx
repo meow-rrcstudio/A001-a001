@@ -24,7 +24,7 @@ export default async function TarotListPage() {
         <PageHeader backHref="/tarot/reading" showShare className="mb-8" />
 
         <div className="mb-8">
-          <h1 className="font-serif text-5xl tracking-tight text-foreground">Tarot</h1>
+          <h1 className="font-serif text-5xl italic tracking-tight text-foreground">Tarot</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             카드 한 장 한 장의 의미를 깊게 들여다보는 아카이브입니다.
           </p>

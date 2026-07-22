@@ -74,7 +74,7 @@ export default function DesignSystemPage() {
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 gap-10 px-4 py-12 sm:px-6">
         <main className="min-w-0 max-w-3xl flex-1">
           <p className="mb-2 font-serif text-sm italic text-primary">Private Styleguide</p>
-          <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground">
+          <h1 className="font-serif text-4xl font-medium italic tracking-tight text-foreground">
             Soul Seoul 디자인시스템
           </h1>
           <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
@@ -106,9 +106,9 @@ export default function DesignSystemPage() {
             <div className="mt-5 space-y-6 rounded-xl border border-border bg-card p-6">
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  제목 (세리프 · main)
+                  제목 (세리프 · 이탤릭 · main)
                 </p>
-                <p className="font-serif text-5xl font-medium tracking-tight text-foreground">
+                <p className="font-serif text-5xl font-medium italic tracking-tight text-foreground">
                   SoulSeoul
                 </p>
               </div>
