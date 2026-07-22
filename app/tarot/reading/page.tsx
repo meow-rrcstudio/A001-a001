@@ -33,7 +33,7 @@ export default function TarotReadingPage() {
             >
               <span className="flex items-baseline gap-4">
                 <span className="w-6 text-xs text-muted-foreground">{topic.number}</span>
-                <span className="font-serif text-4xl tracking-tight sm:text-5xl">{topic.enLabel}</span>
+                <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">{topic.enLabel}</span>
               </span>
               <ArrowUpRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>

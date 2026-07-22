@@ -91,7 +91,7 @@ export function ReadingCharacterBubble({
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CharacterAvatar size={44} character={character} />
-            <span className="font-serif text-2xl leading-none text-black">{character.name}</span>
+            <span className="font-serif text-2xl italic leading-none text-black">{character.name}</span>
           </div>
           {promptText && (
             <button
