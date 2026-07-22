@@ -44,13 +44,13 @@ export async function generateMetadata({
       type: "article",
       publishedTime: post.publishedDate ?? undefined,
       // 커버 이미지가 없는 글은 사이트 공통 미리보기 이미지를 사용
-      images: [{ url: post.coverImage || "/og-image.png" }],
+      images: [{ url: post.coverImage || "/og-image.png?v=2" }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.summary,
-      images: [post.coverImage || "/og-image.png"],
+      images: [post.coverImage || "/og-image.png?v=2"],
     },
   }
 }
