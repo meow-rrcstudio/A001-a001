@@ -39,7 +39,8 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: 'Soul Seoul',
     type: 'website',
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    // ?v=2 : 이미지를 바꿀 때 숫자를 올리면 카톡 등이 캐시를 버리고 새로 가져갑니다
+    images: [{ url: '/og-image.png?v=2', width: 1200, height: 630 }],
   },
   icons: {
     icon: [
