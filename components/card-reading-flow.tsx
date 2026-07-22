@@ -171,6 +171,16 @@ export function CardReadingFlow({
     }
   }, [])
 
+  // 진입 시 화면을 맨 위로 고정.
+  // 무대 높이가 나중에 계산되며 바뀌는 동안 브라우저가 이전 스크롤 위치를
+  // 복원하려다 중간 지점에서 시작되는 문제 방지.
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual"
+    }
+    window.scrollTo(0, 0)
+  }, [])
+
   // 무대 폭을 측정 (화면 회전·창 크기 변경에도 대응)
   useEffect(() => {
     const el = stageRef.current
