@@ -86,7 +86,7 @@ function buildMinorArcanaCards(): TarotCardInfo[] {
         suit: suit.key,
         number: rank.number,
         // 위키미디어 핫링크 대신 사이트에 직접 저장한 이미지(public/tarot) 사용
-        imageUrl: `/tarot/${slug}.png`,
+        imageUrl: `/tarot/${slug}.webp`,
       })
     }
   }
@@ -105,7 +105,7 @@ function buildMajorArcanaCards(): TarotCardInfo[] {
       suit: null,
       number: index,
       // 위키미디어 핫링크 대신 사이트에 직접 저장한 이미지(public/tarot) 사용
-      imageUrl: `/tarot/${slug}.png`,
+      imageUrl: `/tarot/${slug}.webp`,
     }
   })
 }
