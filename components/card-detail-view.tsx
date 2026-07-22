@@ -155,7 +155,7 @@ export function CardDetailView({
       <div ref={panelRef} className="relative z-10 rounded-t-3xl bg-background">
 
         <div className="mx-auto w-full max-w-3xl px-6 pt-16 sm:px-8">
-          <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
+          <h1 className="font-serif text-3xl font-bold italic leading-tight tracking-tight text-foreground sm:text-4xl">
             {title}
           </h1>
 

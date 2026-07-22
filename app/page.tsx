@@ -28,7 +28,7 @@ export default function HomePage() {
         Connecting Symbols Across Time
         </p>
         */}
-        <h1 className="flex items-start gap-3 font-serif text-6xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-7xl">
+        <h1 className="flex items-start gap-3 font-serif text-6xl font-medium italic leading-[1.05] tracking-tight text-foreground sm:text-7xl">
           <span>
             Soul
             <br />
