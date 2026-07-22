@@ -47,8 +47,9 @@ export default async function TarotListPage() {
                 key={card.slug}
                 href={`/blog/${card.slug}`}
                 // 비율은 저장된 카드 이미지(300x527)와 동일하게 — 다르면 잘리며 확대되어 보임.
-                // 테두리 3px #F3E6E0 · 라운드 6px · 그림자 0 2px 6px (Figma 시안)
-                className="group relative aspect-[300/527] overflow-hidden rounded-lg border-[3px] border-[#F3E6E0] bg-muted shadow-[0_2px_6px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-1"
+                // 라인은 안쪽 border 가 아니라 바깥쪽 outline 으로 — 그림을 먹지 않음.
+                // 카드 그림의 검정 외곽선에 맞춰 1px 블랙 · 라운드 6px · 그림자 0 2px 6px
+                className="group relative aspect-[300/527] overflow-hidden rounded-lg outline outline-1 outline-black bg-muted shadow-[0_2px_6px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-1"
               >
                 <TarotCardImage
                   src={card.imageUrl}
