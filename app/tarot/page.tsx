@@ -59,8 +59,8 @@ export default async function TarotListPage() {
         </div>
       </main>
 
-      {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 좌우 16px(컨텐츠와 동일), 위아래 40px */}
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
+      {/* 광고(카카오 애드핏) — 푸터 위, 본문(카드 그리드)과 같은 좌우 여백(px-6). 위아래 40px */}
+      <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">
         <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />
       </div>
 
