@@ -3,7 +3,7 @@ import { Sparkle } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { MenuList } from "@/components/menu-list"
 import { PageBackground } from "@/components/page-background"
-import { AdFit } from "@/components/adfit"
+import { AdBand } from "@/components/ad-band"
 
 // 홈 메뉴의 내용(번호·이름·주소)은 여기서 수정합니다.
 // 메뉴의 생김새(글자 크기·간격·색)는 components/menu-list.tsx에서 수정합니다.
@@ -19,7 +19,12 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       {/* 홈은 웜톤 오로라 배경 */}
       <PageBackground variant="aurora" />
-      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-20 sm:px-8">
+
+      {/* 광고(카카오 애드핏) — 최상단 띠배너. 높이 50px 고정, 좌우 남는 공간은 띠 색으로 채움 */}
+      <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} className="relative z-10" />
+
+      {/* 배너 아래 60px 여백(시안), 리스트와 푸터 사이 40px(pb-10) */}
+      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-col px-6 pb-10 pt-[60px] sm:px-8">
         {/* 시안의 상단 이탤릭 라벨 */}
         {/*
         <p className="mb-4 font-serif text-sl italic text-primary "> A Personal Archive of Meaning </p>
@@ -47,11 +52,6 @@ export default function HomePage() {
           <MenuList items={menuItems} />
         </div>
       </main>
-
-      {/* 광고(카카오 애드핏) — 푸터 위 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
-      <div className="relative z-10 mx-auto flex w-full max-w-2xl justify-center px-6 pb-6">
-        <AdFit adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} className="mx-auto" />
-      </div>
 
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
       <Footer variant="light" />

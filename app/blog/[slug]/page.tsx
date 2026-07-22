@@ -6,7 +6,7 @@ import { AISummaryBox } from "@/components/ai-summary-box"
 import { notFound } from "next/navigation"
 import { getPostBySlug, getPostContent, getAllSlugs, getAdjacentPosts } from "@/lib/notion"
 import { MarkdownContent } from "@/components/markdown-content"
-import { AdFit } from "@/components/adfit"
+import { AdBand } from "@/components/ad-band"
 import { CardDetailView, type AdjacentCard } from "@/components/card-detail-view"
 import { allTarotCards } from "@/lib/tarot-cards"
 
@@ -132,7 +132,7 @@ export default async function BlogPostPage({
             <p className="text-muted-foreground">본문 콘텐츠를 불러올 수 없습니다.</p>
           )
         }
-        adNode={<AdFit adUnit="DAN-6lnjpC7fNfdnSMWd" width={300} height={250} />}
+        adNode={<AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />}
       />
     </div>
   )

@@ -6,6 +6,7 @@
 // 덱·대분류 섹션과 필터 칩은 등록된 글에서 자동으로 생성됩니다.
 // (파싱 규칙은 lib/card-archive.ts, 화면은 components/card-archive-board.tsx)
 import { Footer } from "@/components/footer"
+import { AdBand } from "@/components/ad-band"
 import { CardArchiveBoard } from "@/components/card-archive-board"
 import { getPublishedPosts } from "@/lib/notion"
 import { buildCardArchive } from "@/lib/card-archive"
@@ -23,6 +24,9 @@ export default async function AstrologyPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
         <CardArchiveBoard decks={decks} />
       </main>
+
+      {/* 광고(카카오 애드핏) — 푸터 위 띠배너, 위아래 40px 여백 */}
+      <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="my-10" />
 
       {/* 시안 기준 밝은 푸터 (✳ 모노 URL + 카피라이트) */}
       <Footer variant="light" />
