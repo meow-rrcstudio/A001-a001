@@ -5,7 +5,7 @@ import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
 import { PageBackground } from "@/components/page-background"
 import { Footer } from "@/components/footer"
-import { AdFit } from "@/components/adfit"
+import { AdBand } from "@/components/ad-band"
 // gemini 수정: Button 스타일 재사용을 위한 import
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -56,11 +56,10 @@ export default async function TarotListPage() {
             )
           })}
         </div>
-        {/* 광고(카카오 애드핏) — 목록 하단 가운데. 노출할 광고가 없으면 높이 0으로 접힘 */}
-        <div className="mt-10 flex justify-center">
-          <AdFit adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="mx-auto" />
-        </div>
       </main>
+
+      {/* 광고(카카오 애드핏) — 푸터 위 띠배너, 위아래 40px 여백 */}
+      <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} className="my-10" />
 
       {/* gemini 수정: 기존 Floating 버튼 삭제 후 하단 고정 버튼 구현
           (이 버튼 컴포넌트는 asChild를 지원하지 않아, 같은 스타일을 Link에 직접 입힘) */}

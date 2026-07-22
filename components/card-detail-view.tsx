@@ -185,9 +185,6 @@ export function CardDetailView({
           {/* 본문 */}
           <div className="mt-6">{contentNode}</div>
 
-          {/* 카카오 광고 */}
-          <div className="mt-12 flex justify-center border-t border-border pt-8">{adNode}</div>
-
           {/* 앞뒤 카드 이동 — Related Stories */}
           {(prev || next) && (
             <section className="mt-14">
@@ -207,6 +204,9 @@ export function CardDetailView({
             </section>
           )}
         </div>
+
+        {/* 카카오 광고 — 푸터 위 띠배너, 위아래 40px 여백 (adNode에 AdBand가 들어옵니다) */}
+        <div className="my-10">{adNode}</div>
 
         <Footer variant="minimal" />
       </div>
