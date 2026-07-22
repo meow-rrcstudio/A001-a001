@@ -20,11 +20,7 @@ export default function HomePage() {
       {/* 홈은 웜톤 오로라 배경 */}
       <PageBackground variant="aurora" />
 
-      {/* 광고(카카오 애드핏) — 최상단 띠배너. 높이 50px 고정, 좌우 남는 공간은 띠 색으로 채움 */}
-      <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} className="relative z-10" />
-
-      {/* 배너 아래 60px 여백(시안), 리스트와 푸터 사이 40px(pb-10) */}
-      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-col px-6 pb-10 pt-[60px] sm:px-8">
+      <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-col px-6 pt-20 sm:px-8">
         {/* 시안의 상단 이탤릭 라벨 */}
         {/*
         <p className="mb-4 font-serif text-sl italic text-primary "> A Personal Archive of Meaning </p>
@@ -52,6 +48,11 @@ export default function HomePage() {
           <MenuList items={menuItems} />
         </div>
       </main>
+
+      {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 좌우 16px, 위아래 40px */}
+      <div className="relative z-10 mx-auto w-full max-w-2xl px-4 py-10">
+        <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} />
+      </div>
 
       {/* 홈은 시안(Site design.pdf) 기준 라이트 푸터 */}
       <Footer variant="light" />

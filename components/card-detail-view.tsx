@@ -205,8 +205,8 @@ export function CardDetailView({
           )}
         </div>
 
-        {/* 카카오 광고 — 푸터 위 띠배너. 본문과 같은 좌우 여백, 위아래 40px (adNode에 AdBand가 들어옵니다) */}
-        <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">{adNode}</div>
+        {/* 카카오 광고 — 푸터 위 띠배너. 좌우 16px, 위아래 40px (adNode에 AdBand가 들어옵니다) */}
+        <div className="mx-auto w-full max-w-3xl px-4 py-10">{adNode}</div>
 
         <Footer variant="minimal" />
       </div>
