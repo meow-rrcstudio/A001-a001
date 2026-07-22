@@ -19,6 +19,10 @@ export interface ReadingQuestion {
   label: string
   positions: SpreadPosition[]
   layoutKey: LayoutKey
+  // 해석 스타일. 대부분 질문은 비워두면 기본(샨티 심리 리딩)으로 나갑니다.
+  // 특별한 질문만 표시하면 그 질문에서만 전용 프롬프트가 나갑니다.
+  //  · "variety_show" : 카드를 연애 프로그램·캐릭터·방송 서사로 캐스팅하는 재미 리딩
+  readingStyle?: "variety_show"
 }
 
 export interface TopicContent {
@@ -255,6 +259,18 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
           { label: "나의 마음", guide: g("지금 내 마음") },
           { label: "상대의 마음", guide: g("상대의 마음") },
           { label: "관계의 방향", guide: g("관계가 향하는 방향") },
+        ],
+      },
+      {
+        slug: "if-dating-show",
+        label: "내가 연애 프로그램에 나간다면?",
+        layoutKey: "four-diamond",
+        readingStyle: "variety_show",
+        positions: [
+          { label: "잘 맞는 프로그램", guide: g("나와 잘 맞는 연애 프로그램") },
+          { label: "내 캐릭터", guide: g("그 안에서 내 캐릭터") },
+          { label: "상대 캐릭터", guide: g("그 안에서 만날 상대 캐릭터") },
+          { label: "우리의 서사", guide: g("두 사람에게 펼쳐질 이야기") },
         ],
       },
     ],
