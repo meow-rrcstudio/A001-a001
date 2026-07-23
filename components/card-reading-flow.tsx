@@ -289,24 +289,26 @@ export function CardReadingFlow({
   // (±FAN_VISIBLE_HALF)만 화면에 노출합니다. 나머지는 숨어 있다가 좌우로
   // 롤링(fanShift)하면 원호를 따라 굴러 들어옵니다. → 카드를 크게 보면서도
   // 48장 전체를 훑을 수 있음 (진짜 덱을 아치로 펼쳐 손으로 굴리는 느낌).
-  // B(한 방향): 카드를 "왼쪽에서 오른쪽으로" 원호를 따라 한 방향으로 펼칩니다.
-  // 가장 왼쪽 카드가 각도 0°(가장 낮고 세워짐)에서 시작해 오른쪽으로 갈수록
-  // 각도가 커지며(오른쪽 위로 쓸려 올라가며) 기울어짐. 대칭 아님.
-  // 좌우로 드래그하면 이 원호가 통째로 회전(LP판)해 48장 전체를 훑음.
-  const FAN_STEP = 4.2 //          카드 한 장당 각도(°)
-  const FAN_SPAN = 60 //           화면에 보이는 각도 범위(왼쪽 0° → 오른쪽 60°)
-  const FAN_CARD_WIDTH = 78 //     부채 카드 폭
-  const BOARD_WIDTH = 356 //       스프레드 보드 폭
+  // 고리(RING) 모델: 48장이 원 전체에 시계/LP판처럼 둘러져 있고, 화면엔 원의
+  // "아래쪽 호"만 보입니다(나머지는 위로 화면 밖). 좌우로 드래그하면 고리 전체가
+  // 통째로 회전(fanShift)해 카드가 빙 돌아 들어오고 나갑니다. 바닥 카드는 수직,
+  // 좌우로 갈수록 기울어짐(래디얼). 대칭.
+  const FAN_RING_STEP = 360 / shuffledDeck.length // 한 장당 각도(풀 원 = 360/48 = 7.5°)
+  const FAN_VISIBLE = 46 //         화면에 보이는 바닥 호 반각(°). 이 밖의 카드는 숨김
+  const FAN_CARD_WIDTH = 74 //      카드 폭
+  const BOARD_WIDTH = 356 //        스프레드 보드 폭
   const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이
 
-  const fanRadius = Math.min((stageWidth * 0.74) / Math.sin((FAN_SPAN * Math.PI) / 180), 300)
+  const fanVisibleRad = (FAN_VISIBLE * Math.PI) / 180
+  // 보이는 바닥 호가 화면 폭에 맞도록 반지름 결정
+  const fanRadius = Math.min((stageWidth / 2 - 14) / Math.sin(fanVisibleRad), 320)
   const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
-  const fanLeftX = stageWidth * 0.13 // 가장 왼쪽 카드의 x 기준점
-  const fanBottomY = Math.round(fanCardHalfHeight + 14) // 왼쪽(0°) 카드 중심 y(가장 낮음)
-  const fanZoneHeight = Math.round(fanBottomY + fanCardHalfHeight + 6)
-  // 롤링 한계: fanShift 0이면 처음(왼쪽) 카드들, 음수로 갈수록 뒤쪽 카드까지
-  const minFanShift = FAN_SPAN - (shuffledDeck.length - 1) * FAN_STEP
-  const maxFanShift = 0
+  const fanArcDepth = fanRadius * (1 - Math.cos(fanVisibleRad)) // 바닥↔양끝 높이차
+  // 양끝(보이는 한계) 카드 중심 y(위로 살짝 잘림) → 바닥 카드 중심 = 여기 + 깊이
+  const fanEdgeY = Math.round(fanCardHalfHeight * 0.3)
+  const fanBottomCenterY = fanEdgeY + fanArcDepth // 바닥 카드 중심 y(가장 낮음)
+  const fanCircleCenterY = fanBottomCenterY - fanRadius // 원 중심 y(화면 위쪽 밖)
+  const fanZoneHeight = Math.round(fanBottomCenterY + fanCardHalfHeight + 6)
 
   // ── 중단 스프레드 보드 ────────────────────────────────────────────
   // 고를 땐 자리 카드가 "뒷면"이라 모양만 보이면 됨 → 볼륨을 작게(콤팩트).
@@ -330,15 +332,22 @@ export function CardReadingFlow({
   // 보이는 범위(±FAN_VISIBLE_HALF) 밖 카드는 visible=false로 숨깁니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
-    // 한 방향: index가 커질수록 각도가 커짐(왼→오른쪽). fanShift로 롤링.
-    const angle = index * FAN_STEP + fanShift
-    const rad = (angle * Math.PI) / 180
-    const x = fanLeftX + Math.sin(rad) * fanRadius
-    // 각도 0(왼쪽)이 가장 낮고, 오른쪽으로 갈수록 위로 쓸려 올라감
-    const y = fanBottomY - (1 - Math.cos(rad)) * fanRadius
-    // 왼쪽(먼저 나온) 카드가 위에 오도록(자연스러운 겹침)
-    const visible = angle >= -FAN_STEP && angle <= FAN_SPAN + FAN_STEP
-    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 200 - Math.round(angle), visible }
+    // omega: 화면 아래(바닥)를 90°로 두고 링을 따라 배치. fanShift로 고리 전체 회전.
+    const omega = 90 + index * FAN_RING_STEP + fanShift
+    const rad = (omega * Math.PI) / 180
+    const cx = stageWidth / 2
+    const x = cx + Math.cos(rad) * fanRadius
+    const y = fanCircleCenterY + Math.sin(rad) * fanRadius
+    // 바닥(90°) 기준 상대각(-180~180) — 바닥에 가까울수록 보이고 위에 옴
+    const rel = (((omega - 90) % 360) + 540) % 360 - 180
+    const visible = Math.abs(rel) <= FAN_VISIBLE + FAN_RING_STEP
+    return {
+      left: `${x}px`,
+      top: `${y}px`,
+      rotate: omega - 90, // 바닥 카드 수직(0), 좌우로 갈수록 기울어짐(래디얼)
+      zIndex: 200 - Math.round(Math.abs(rel)),
+      visible,
+    }
   }
 
   // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
@@ -441,7 +450,8 @@ export function CardReadingFlow({
                 }
                 if (isRollingRef.current) {
                   setPeekedIndex(null)
-                  setFanShift((s) => Math.max(minFanShift, Math.min(maxFanShift, s + info.delta.x * 0.35)))
+                  // 풀 링이라 한계 없이 계속 회전(LP판). 드래그 방향 = 고리 회전.
+                  setFanShift((s) => s + info.delta.x * 0.3)
                 }
               }
             : undefined
