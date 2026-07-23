@@ -266,10 +266,10 @@ export function CardReadingFlow({
   // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
   // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
   // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
-  const FAN_SPREAD = 110 //        부채가 벌어지는 전체 각도 (좌우 각 55도)
+  const FAN_SPREAD = 130 //        부채가 벌어지는 전체 각도 (좌우 각 65도) — 더 동그란 호
   const FAN_CARD_WIDTH = 64 //     부채 카드 폭
-  const BOARD_WIDTH = 340 //       스프레드 보드 폭 (시안의 모바일 화면 기준, 기기와 무관하게 고정)
-  const BOARD_HEIGHT_REVEAL = 330 // 결과 화면 보드 높이
+  const BOARD_WIDTH = 356 //       스프레드 보드 폭 (카드 키운 만큼 좌우로 살짝 넓힘)
+  const BOARD_HEIGHT_REVEAL = 348 // 결과 화면 보드 높이 (카드 키운 만큼 세로 여유)
 
   // 부채 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서 최대 300px
   const halfSpreadRad = ((FAN_SPREAD / 2) * Math.PI) / 180
@@ -290,8 +290,9 @@ export function CardReadingFlow({
 
   // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
+  // 카드 최소 크기를 키움(44→52, 상한 56→64). 배포본 "카드 작다" 개선.
   const slotWidth =
-    phase === "revealing" ? 56 : Math.round(Math.max(44, Math.min(56, (56 * boardHeightSelect) / 240)))
+    phase === "revealing" ? 64 : Math.round(Math.max(52, Math.min(64, (64 * boardHeightSelect) / 240)))
 
   // ── 부채꼴: 정중앙 기준 좌우 대칭(-55도~+55도)의 "진짜 원호" ──
   // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
