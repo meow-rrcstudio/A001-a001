@@ -105,6 +105,10 @@ export function CardReadingFlow({
   const [bubbleHeight, setBubbleHeight] = useState(160)
   // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
+  // 부채 좌우 롤링 오프셋(°) — 손가락으로 좌우로 쓸면 카드들이 원호를 따라 굴러감
+  const [fanShift, setFanShift] = useState(0)
+  // 지금 롤링(드래그) 중인지 — 롤링 중엔 카드 선택(빼꼼→픽)을 막음
+  const isRollingRef = useRef(false)
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
@@ -266,45 +270,52 @@ export function CardReadingFlow({
   // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
   // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
   // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
-  const FAN_SPREAD = 130 //        부채가 벌어지는 전체 각도 (좌우 각 65도) — 더 동그란 호
-  const FAN_CARD_WIDTH = 72 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
-  const BOARD_WIDTH = 372 //       스프레드 보드 폭 (해석 카드 키운 만큼 좌우 여유)
-  const BOARD_HEIGHT_REVEAL = 380 // 결과(해석) 화면 보드 높이 — 카드 크게 볼 자리
+  // ── 부채(롤링형) ──────────────────────────────────────────────────
+  // 카드를 원호 위에 "한 장당 고정 각도(FAN_STEP)"로 놓고, 보이는 범위
+  // (±FAN_VISIBLE_HALF)만 화면에 노출합니다. 나머지는 숨어 있다가 좌우로
+  // 롤링(fanShift)하면 원호를 따라 굴러 들어옵니다. → 카드를 크게 보면서도
+  // 48장 전체를 훑을 수 있음 (진짜 덱을 아치로 펼쳐 손으로 굴리는 느낌).
+  const FAN_STEP = 4.6 //          카드 한 장당 각도(°). 작을수록 한 화면에 더 많이 보임
+  const FAN_VISIBLE_HALF = 42 //   화면에 보이는 부채 반각(°) — 이 밖은 숨고 롤링으로 불러옴
+  const FAN_CARD_WIDTH = 74 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
+  const BOARD_WIDTH = 356 //       스프레드 보드 폭
+  const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이 — 카드 크게 볼 자리
 
-  // 부채 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서 최대 300px
-  const halfSpreadRad = ((FAN_SPREAD / 2) * Math.PI) / 180
-  const fanRadius = Math.min((stageWidth / 2 - 44) / Math.sin(halfSpreadRad), 300)
-  // 부채 영역 높이 = 부채가 실제로 차지하는 만큼만 (모바일에선 부채가 작아 영역도 작아짐)
+  const visibleHalfRad = (FAN_VISIBLE_HALF * Math.PI) / 180
+  // 얕고 넓은 원호가 되도록 반지름을 화면 폭에 맞춤(넓게 퍼지되 완만하게)
+  const fanRadius = Math.min((stageWidth / 2 - 26) / Math.sin(visibleHalfRad), 520)
   const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
-  const fanZoneHeight = Math.round(12 + fanRadius * (1 - Math.cos(halfSpreadRad)) + fanCardHalfHeight + 6)
+  const fanZoneHeight = Math.round(12 + fanRadius * (1 - Math.cos(visibleHalfRad)) + fanCardHalfHeight + 6)
+  // 롤링 한계: 첫/마지막 카드가 가운데까지 올 수 있는 각도
+  const maxFanShift = ((shuffledDeck.length - 1) / 2) * FAN_STEP
 
-  // 스프레드 보드 높이: 시안 규칙대로 "화면에 남는 공간"에 맞춰 160~280px 사이에서 유동.
-  // 160px보다 좁아지면 160을 지키고 페이지가 스크롤됩니다.
-  const PAGE_CHROME = 130 // 상단 뒤로가기 줄 + 여백의 대략적인 높이
+  // ── 중단 스프레드 보드 ────────────────────────────────────────────
+  // 고를 땐 자리 카드가 "뒷면"이라 모양만 보이면 됨 → 볼륨을 작게(콤팩트).
+  // 해석 화면에서만 크게. (사용자 시안: 중단 볼륨 축소)
+  const PAGE_CHROME = 116 // 상단 뒤로가기 줄 + 여백의 대략적인 높이
   const boardHeightSelect = Math.max(
-    160,
-    Math.min(280, viewportHeight - PAGE_CHROME - fanZoneHeight - bubbleHeight)
+    120,
+    Math.min(208, viewportHeight - PAGE_CHROME - fanZoneHeight - bubbleHeight)
   )
   const stageHeight =
     phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : fanZoneHeight + boardHeightSelect + 6
 
-  // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
-  // 크기 예산 재분배: 고를 땐 자리 카드가 "뒷면"이라 작아도 됨(모양만 보이면 OK),
-  // 해석 화면에서 크게(그림 보고 글 읽는 순간). 부채(고르기)는 위에서 크게.
   const slotWidth =
-    phase === "revealing" ? 74 : Math.round(Math.max(46, Math.min(58, (58 * boardHeightSelect) / 240)))
+    phase === "revealing" ? 74 : Math.round(Math.max(38, Math.min(50, (50 * boardHeightSelect) / 208)))
 
-  // ── 부채꼴: 정중앙 기준 좌우 대칭(-55도~+55도)의 "진짜 원호" ──
-  // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
+  // ── 부채(롤링형): 카드 한 장당 FAN_STEP°, 롤링(fanShift)으로 원호를 따라 굴림 ──
+  // 보이는 범위(±FAN_VISIBLE_HALF) 밖 카드는 visible=false로 숨깁니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
-    const angle = -FAN_SPREAD / 2 + (index / Math.max(1, total - 1)) * FAN_SPREAD
+    const angle = (index - (total - 1) / 2) * FAN_STEP + fanShift
     const rad = (angle * Math.PI) / 180
     const x = stageWidth / 2 + Math.sin(rad) * fanRadius
     const y = 12 + (1 - Math.cos(rad)) * fanRadius
-    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 10 + index }
+    // 가운데에 가까운 카드일수록 위에 오도록 zIndex 부여
+    const visible = Math.abs(angle) <= FAN_VISIBLE_HALF + FAN_STEP
+    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 200 - Math.round(Math.abs(angle)), visible }
   }
 
   // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
@@ -390,10 +401,30 @@ export function CardReadingFlow({
 
       {/* ── 고르기/결과 무대: 부채(위) + 스프레드 슬롯(아래), 겹치지 않게 ── */}
       {!isShuffling && (
-      <div
+      <motion.div
         ref={stageRef}
         className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
-        style={{ height: stageHeight }}
+        style={{ height: stageHeight, touchAction: phase === "selecting" ? "pan-y" : "auto" }}
+        // 좌우로 쓸면 부채가 원호를 따라 굴러갑니다(롤링). 세로 스크롤은 유지.
+        onPan={
+          phase === "selecting"
+            ? (_, info: PanInfo) => {
+                if (Math.abs(info.offset.x) > 6 && Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
+                  isRollingRef.current = true
+                }
+                if (isRollingRef.current) {
+                  setPeekedIndex(null)
+                  setFanShift((s) => Math.max(-maxFanShift, Math.min(maxFanShift, s + info.delta.x * 0.4)))
+                }
+              }
+            : undefined
+        }
+        onPanEnd={() => {
+          // 살짝 늦게 풀어, 롤링 직후 손 뗌이 카드 선택으로 오인되지 않게 함
+          window.setTimeout(() => {
+            isRollingRef.current = false
+          }, 60)
+        }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
@@ -422,7 +453,8 @@ export function CardReadingFlow({
           const isLeftover = phase === "revealing" && !isPicked
           const leftoverOrder = isLeftover ? leftoverCounter++ : -1
 
-          let target: { left: string; top: string; rotate: number; zIndex: number; width: number }
+          let target: { left: string; top: string; rotate: number; zIndex: number; width: number; opacity: number }
+          let fanVisible = true
           if (isPicked) {
             const s = resultSlots[pickedOrder]
             const pos = mapSlot(s)
@@ -433,16 +465,19 @@ export function CardReadingFlow({
               rotate: s.rotate,
               zIndex: 41 + pickedOrder,
               width: slotWidth + 2,
+              opacity: 1,
             }
           } else if (isLeftover) {
             const s = getLeftoverStackStyle(leftoverOrder)
-            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40 }
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40, opacity: 1 }
           } else {
             const s = getFanStyle(index)
-            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: FAN_CARD_WIDTH }
+            fanVisible = s.visible
+            // 보이는 범위 밖 카드는 투명 처리(롤링하면 들어옴)
+            target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: FAN_CARD_WIDTH, opacity: s.visible ? 1 : 0 }
           }
 
-          const canClick = !isPicked && phase === "selecting"
+          const canClick = !isPicked && phase === "selecting" && fanVisible
           const isPeeked = peekedIndex === index
 
           return (
@@ -451,21 +486,23 @@ export function CardReadingFlow({
               data-fan-card={canClick ? index : undefined}
               className="absolute aspect-[1144/1919]"
               initial={false}
+              style={{ pointerEvents: canClick ? "auto" : "none" }}
               animate={{
                 top: target.top,
                 left: target.left,
                 rotate: target.rotate,
                 width: target.width,
+                opacity: target.opacity,
                 x: "-50%",
                 y: "-50%",
                 zIndex: target.zIndex,
               }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               {/* 카드 한 장 — PC는 마우스 오버로 빼꼼 후 클릭,
                   모바일은 누르면 빼꼼 → 누른 채 움직이면 손가락 아래 카드로 빼꼼이 옮겨감 → 떼면 그 카드 선택 */}
               <motion.div
-                onClick={!isTouchDevice && canClick ? () => handlePick(index) : undefined}
+                onClick={!isTouchDevice && canClick ? () => { if (!isRollingRef.current) handlePick(index) } : undefined}
                 onTouchStart={
                   isTouchDevice && canClick
                     ? () => {
@@ -476,15 +513,14 @@ export function CardReadingFlow({
                 onTouchMove={
                   isTouchDevice && canClick
                     ? (e) => {
+                        // 롤링(좌우 드래그) 중이면 빼꼼 이동을 멈춤 — 롤링과 충돌 방지
+                        if (isRollingRef.current) return
                         // 손가락 아래에 있는 카드를 찾아 빼꼼을 옮깁니다 (PC 호버와 같은 감각)
                         const touch = e.touches[0]
                         const el = document.elementFromPoint(touch.clientX, touch.clientY)
                         const cardEl = el?.closest("[data-fan-card]") as HTMLElement | null
                         if (cardEl) {
                           setPeekedIndex(Number(cardEl.dataset.fanCard))
-                        } else {
-                          // 부채를 벗어나면 빼꼼 해제 → 떼도 아무것도 선택되지 않음
-                          setPeekedIndex(null)
                         }
                       }
                     : undefined
@@ -492,7 +528,8 @@ export function CardReadingFlow({
                 onTouchEnd={
                   isTouchDevice && canClick
                     ? () => {
-                        if (peekedIndex !== null) handlePick(peekedIndex)
+                        // 롤링(좌우 드래그) 중 손을 뗀 경우엔 선택하지 않음
+                        if (!isRollingRef.current && peekedIndex !== null) handlePick(peekedIndex)
                         setPeekedIndex(null)
                       }
                     : undefined
@@ -514,7 +551,7 @@ export function CardReadingFlow({
             </motion.div>
           )
         })}
-      </div>
+      </motion.div>
       )}
 
       {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}

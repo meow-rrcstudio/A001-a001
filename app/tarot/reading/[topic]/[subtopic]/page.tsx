@@ -28,8 +28,9 @@ export default async function TarotReadingResultPage({
   return (
     <div className="relative flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
-      <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 sm:px-8">
-        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} className="mb-8" />
+      <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-6 sm:px-8">
+        {/* 리딩 장면은 몰입·공간 확보를 위해 뒤로가기만 (공유·메뉴 숨김) */}
+        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} minimal className="mb-4" />
 
         <CardReadingFlow
           topicLabel={matchedTopic.label}

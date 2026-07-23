@@ -18,10 +18,13 @@ import { SiteMenu } from "@/components/site-menu"
 export function PageHeader({
   backHref,
   showShare = false,
+  minimal = false,
   className = "",
 }: {
   backHref: string
   showShare?: boolean
+  /** 리딩(카드 뽑기)처럼 몰입이 중요한 화면 — 뒤로가기만 남기고 공유·메뉴 숨김 */
+  minimal?: boolean
   className?: string
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -48,6 +51,7 @@ export function PageHeader({
         <ArrowLeft className="h-7 w-7" />
       </Link>
 
+      {!minimal && (
       <div className="flex items-center gap-4">
         {showShare && (
           <button
@@ -69,8 +73,9 @@ export function PageHeader({
           <Menu className="h-7 w-7" />
         </button>
       </div>
+      )}
 
-      <SiteMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      {!minimal && <SiteMenu open={menuOpen} onClose={() => setMenuOpen(false)} />}
     </div>
   )
 }
