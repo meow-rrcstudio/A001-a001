@@ -275,17 +275,24 @@ export function CardReadingFlow({
   // (±FAN_VISIBLE_HALF)만 화면에 노출합니다. 나머지는 숨어 있다가 좌우로
   // 롤링(fanShift)하면 원호를 따라 굴러 들어옵니다. → 카드를 크게 보면서도
   // 48장 전체를 훑을 수 있음 (진짜 덱을 아치로 펼쳐 손으로 굴리는 느낌).
+  // 시안: 카드가 "화면 위쪽 밖의 한 점"에서 아래로 늘어뜨려진 모양(가운데가 가장
+  // 낮게 처지는 ∪). 위쪽은 화면 밖으로 잘림. 좌우로 굴리면(fanShift) 원호를 따라 롤링.
   const FAN_STEP = 4.6 //          카드 한 장당 각도(°). 작을수록 한 화면에 더 많이 보임
   const FAN_VISIBLE_HALF = 42 //   화면에 보이는 부채 반각(°) — 이 밖은 숨고 롤링으로 불러옴
-  const FAN_CARD_WIDTH = 74 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
+  const FAN_CARD_WIDTH = 82 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
   const BOARD_WIDTH = 356 //       스프레드 보드 폭
   const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이 — 카드 크게 볼 자리
 
   const visibleHalfRad = (FAN_VISIBLE_HALF * Math.PI) / 180
   // 얕고 넓은 원호가 되도록 반지름을 화면 폭에 맞춤(넓게 퍼지되 완만하게)
-  const fanRadius = Math.min((stageWidth / 2 - 26) / Math.sin(visibleHalfRad), 520)
+  const fanRadius = Math.min((stageWidth / 2 - 22) / Math.sin(visibleHalfRad), 520)
   const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
-  const fanZoneHeight = Math.round(12 + fanRadius * (1 - Math.cos(visibleHalfRad)) + fanCardHalfHeight + 6)
+  // 원호의 세로 깊이(가운데 처짐 ↔ 양끝 올라감)
+  const fanArcDepth = fanRadius * (1 - Math.cos(visibleHalfRad))
+  // 양끝 카드 중심 y(위쪽으로 살짝 잘리게) → 가운데 카드 중심 y = 여기 + 깊이
+  const fanEdgeCenterY = Math.round(fanCardHalfHeight * 0.35)
+  const fanCenterBottomY = fanEdgeCenterY + fanArcDepth // 가운데 카드 중심 y(가장 낮음)
+  const fanZoneHeight = Math.round(fanCenterBottomY + fanCardHalfHeight + 6)
   // 롤링 한계: 첫/마지막 카드가 가운데까지 올 수 있는 각도
   const maxFanShift = ((shuffledDeck.length - 1) / 2) * FAN_STEP
 
@@ -301,8 +308,11 @@ export function CardReadingFlow({
     phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : fanZoneHeight + boardHeightSelect + 6
 
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
-  const slotWidth =
-    phase === "revealing" ? 74 : Math.round(Math.max(38, Math.min(50, (50 * boardHeightSelect) / 208)))
+  // 카드 크기는 스프레드 장수에 따라(적으면 크게, 많으면 작게) — 시안처럼.
+  // 고를 땐 뒷면이라 살짝 작게, 해석 땐 크게.
+  const spreadCount = question.positions.length
+  const revealSlot = spreadCount <= 2 ? 92 : spreadCount <= 4 ? 78 : spreadCount <= 6 ? 66 : 54
+  const slotWidth = phase === "revealing" ? revealSlot : Math.round(revealSlot * 0.84)
 
   // ── 부채(롤링형): 카드 한 장당 FAN_STEP°, 롤링(fanShift)으로 원호를 따라 굴림 ──
   // 보이는 범위(±FAN_VISIBLE_HALF) 밖 카드는 visible=false로 숨깁니다.
@@ -312,7 +322,8 @@ export function CardReadingFlow({
     const angle = (index - (total - 1) / 2) * FAN_STEP + fanShift
     const rad = (angle * Math.PI) / 180
     const x = stageWidth / 2 + Math.sin(rad) * fanRadius
-    const y = 12 + (1 - Math.cos(rad)) * fanRadius
+    // 위쪽 한 점에서 늘어뜨린 ∪ — 가운데(각도 0)가 가장 낮고 양끝이 올라감
+    const y = fanCenterBottomY - (1 - Math.cos(rad)) * fanRadius
     // 가운데에 가까운 카드일수록 위에 오도록 zIndex 부여
     const visible = Math.abs(angle) <= FAN_VISIBLE_HALF + FAN_STEP
     return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 200 - Math.round(Math.abs(angle)), visible }
