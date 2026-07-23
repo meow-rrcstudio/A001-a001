@@ -29,7 +29,12 @@ export function CardBack({
   const showOrientationBadge = selected && flipped
 
   return (
-    <div className="relative h-full w-full" style={{ perspective: 800 }}>
+    // select-none + touch-callout none: 카드를 길게 눌러도 브라우저의 이미지 미리보기/
+    // 저장 팝업(카드 상세로 넘어가는 듯한 동작)이 뜨지 않게 막습니다.
+    <div
+      className="relative h-full w-full select-none [-webkit-touch-callout:none] [-webkit-user-select:none]"
+      style={{ perspective: 800 }}
+    >
       <motion.div
         className="relative h-full w-full"
         style={{ transformStyle: "preserve-3d" }}
@@ -47,7 +52,8 @@ export function CardBack({
             src={CARD_BACK_IMAGE || "/placeholder.svg"}
             alt="타로 카드 뒷면"
             fill
-            className="object-cover"
+            draggable={false}
+            className="pointer-events-none object-cover [-webkit-user-drag:none]"
             sizes="200px"
           />
         </div>
@@ -65,7 +71,8 @@ export function CardBack({
               src={faceImageUrl || "/placeholder.svg"}
               alt={faceAlt ?? ""}
               fill
-              className="object-cover"
+              draggable={false}
+              className="pointer-events-none object-cover [-webkit-user-drag:none]"
               sizes="200px"
               onError={() => setFaceFailed(true)}
             />

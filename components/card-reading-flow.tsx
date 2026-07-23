@@ -185,6 +185,20 @@ export function CardReadingFlow({
     window.scrollTo(0, 0)
   }, [])
 
+  // 카드를 고르는 동안엔 페이지 자체를 고정(스크롤 잠금) → 부채를 드래그해도
+  // 화면이 움직이지 않고 카드만 롤링됨. 해석(revealing) 단계에선 다시 스크롤 허용.
+  useEffect(() => {
+    if (phase !== "selecting") return
+    const prevOverflow = document.body.style.overflow
+    const prevOverscroll = document.body.style.overscrollBehavior
+    document.body.style.overflow = "hidden"
+    document.body.style.overscrollBehavior = "none"
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.body.style.overscrollBehavior = prevOverscroll
+    }
+  }, [phase])
+
   // 무대 폭을 측정 (화면 회전·창 크기 변경에도 대응)
   useEffect(() => {
     const el = stageRef.current
@@ -277,8 +291,8 @@ export function CardReadingFlow({
   // 48장 전체를 훑을 수 있음 (진짜 덱을 아치로 펼쳐 손으로 굴리는 느낌).
   // 시안: 카드가 "화면 위쪽 밖의 한 점"에서 아래로 늘어뜨려진 모양(가운데가 가장
   // 낮게 처지는 ∪). 위쪽은 화면 밖으로 잘림. 좌우로 굴리면(fanShift) 원호를 따라 롤링.
-  const FAN_STEP = 4.6 //          카드 한 장당 각도(°). 작을수록 한 화면에 더 많이 보임
-  const FAN_VISIBLE_HALF = 42 //   화면에 보이는 부채 반각(°) — 이 밖은 숨고 롤링으로 불러옴
+  const FAN_STEP = 4.2 //          카드 한 장당 각도(°). 작을수록 한 화면에 더 많이 보임
+  const FAN_VISIBLE_HALF = 38 //   화면에 보이는 부채 반각(°) — 이 밖은 숨고 롤링으로 불러옴
   const FAN_CARD_WIDTH = 82 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
   const BOARD_WIDTH = 356 //       스프레드 보드 폭
   const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이 — 카드 크게 볼 자리
@@ -415,7 +429,11 @@ export function CardReadingFlow({
       <motion.div
         ref={stageRef}
         className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
-        style={{ height: stageHeight, touchAction: phase === "selecting" ? "pan-y" : "auto" }}
+        style={{
+          height: stageHeight,
+          // 고르는 중엔 이 영역 터치로 페이지가 스크롤되지 않게 잠금 → 드래그는 오직 부채 롤링에만
+          touchAction: phase === "selecting" ? "none" : "auto",
+        }}
         // 좌우로 쓸면 부채가 원호를 따라 굴러갑니다(롤링). 세로 스크롤은 유지.
         onPan={
           phase === "selecting"
