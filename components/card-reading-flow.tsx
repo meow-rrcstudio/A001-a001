@@ -289,26 +289,24 @@ export function CardReadingFlow({
   // (±FAN_VISIBLE_HALF)만 화면에 노출합니다. 나머지는 숨어 있다가 좌우로
   // 롤링(fanShift)하면 원호를 따라 굴러 들어옵니다. → 카드를 크게 보면서도
   // 48장 전체를 훑을 수 있음 (진짜 덱을 아치로 펼쳐 손으로 굴리는 느낌).
-  // 시안: 카드가 "화면 위쪽 밖의 한 점"에서 아래로 늘어뜨려진 모양(가운데가 가장
-  // 낮게 처지는 ∪). 위쪽은 화면 밖으로 잘림. 좌우로 굴리면(fanShift) 원호를 따라 롤링.
-  const FAN_STEP = 4.2 //          카드 한 장당 각도(°). 작을수록 한 화면에 더 많이 보임
-  const FAN_VISIBLE_HALF = 38 //   화면에 보이는 부채 반각(°) — 이 밖은 숨고 롤링으로 불러옴
-  const FAN_CARD_WIDTH = 82 //     부채 카드 폭 — 고르는 순간이 주인공이라 크게(몰입)
+  // B(한 방향): 카드를 "왼쪽에서 오른쪽으로" 원호를 따라 한 방향으로 펼칩니다.
+  // 가장 왼쪽 카드가 각도 0°(가장 낮고 세워짐)에서 시작해 오른쪽으로 갈수록
+  // 각도가 커지며(오른쪽 위로 쓸려 올라가며) 기울어짐. 대칭 아님.
+  // 좌우로 드래그하면 이 원호가 통째로 회전(LP판)해 48장 전체를 훑음.
+  const FAN_STEP = 4.2 //          카드 한 장당 각도(°)
+  const FAN_SPAN = 60 //           화면에 보이는 각도 범위(왼쪽 0° → 오른쪽 60°)
+  const FAN_CARD_WIDTH = 78 //     부채 카드 폭
   const BOARD_WIDTH = 356 //       스프레드 보드 폭
-  const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이 — 카드 크게 볼 자리
+  const BOARD_HEIGHT_REVEAL = 384 // 결과(해석) 화면 보드 높이
 
-  const visibleHalfRad = (FAN_VISIBLE_HALF * Math.PI) / 180
-  // 얕고 넓은 원호가 되도록 반지름을 화면 폭에 맞춤(넓게 퍼지되 완만하게)
-  const fanRadius = Math.min((stageWidth / 2 - 22) / Math.sin(visibleHalfRad), 520)
+  const fanRadius = Math.min((stageWidth * 0.74) / Math.sin((FAN_SPAN * Math.PI) / 180), 300)
   const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
-  // 원호의 세로 깊이(가운데 처짐 ↔ 양끝 올라감)
-  const fanArcDepth = fanRadius * (1 - Math.cos(visibleHalfRad))
-  // 양끝 카드 중심 y(위쪽으로 살짝 잘리게) → 가운데 카드 중심 y = 여기 + 깊이
-  const fanEdgeCenterY = Math.round(fanCardHalfHeight * 0.35)
-  const fanCenterBottomY = fanEdgeCenterY + fanArcDepth // 가운데 카드 중심 y(가장 낮음)
-  const fanZoneHeight = Math.round(fanCenterBottomY + fanCardHalfHeight + 6)
-  // 롤링 한계: 첫/마지막 카드가 가운데까지 올 수 있는 각도
-  const maxFanShift = ((shuffledDeck.length - 1) / 2) * FAN_STEP
+  const fanLeftX = stageWidth * 0.13 // 가장 왼쪽 카드의 x 기준점
+  const fanBottomY = Math.round(fanCardHalfHeight + 14) // 왼쪽(0°) 카드 중심 y(가장 낮음)
+  const fanZoneHeight = Math.round(fanBottomY + fanCardHalfHeight + 6)
+  // 롤링 한계: fanShift 0이면 처음(왼쪽) 카드들, 음수로 갈수록 뒤쪽 카드까지
+  const minFanShift = FAN_SPAN - (shuffledDeck.length - 1) * FAN_STEP
+  const maxFanShift = 0
 
   // ── 중단 스프레드 보드 ────────────────────────────────────────────
   // 고를 땐 자리 카드가 "뒷면"이라 모양만 보이면 됨 → 볼륨을 작게(콤팩트).
@@ -332,15 +330,15 @@ export function CardReadingFlow({
   // 보이는 범위(±FAN_VISIBLE_HALF) 밖 카드는 visible=false로 숨깁니다.
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
-    const total = shuffledDeck.length
-    const angle = (index - (total - 1) / 2) * FAN_STEP + fanShift
+    // 한 방향: index가 커질수록 각도가 커짐(왼→오른쪽). fanShift로 롤링.
+    const angle = index * FAN_STEP + fanShift
     const rad = (angle * Math.PI) / 180
-    const x = stageWidth / 2 + Math.sin(rad) * fanRadius
-    // 위쪽 한 점에서 늘어뜨린 ∪ — 가운데(각도 0)가 가장 낮고 양끝이 올라감
-    const y = fanCenterBottomY - (1 - Math.cos(rad)) * fanRadius
-    // 가운데에 가까운 카드일수록 위에 오도록 zIndex 부여
-    const visible = Math.abs(angle) <= FAN_VISIBLE_HALF + FAN_STEP
-    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 200 - Math.round(Math.abs(angle)), visible }
+    const x = fanLeftX + Math.sin(rad) * fanRadius
+    // 각도 0(왼쪽)이 가장 낮고, 오른쪽으로 갈수록 위로 쓸려 올라감
+    const y = fanBottomY - (1 - Math.cos(rad)) * fanRadius
+    // 왼쪽(먼저 나온) 카드가 위에 오도록(자연스러운 겹침)
+    const visible = angle >= -FAN_STEP && angle <= FAN_SPAN + FAN_STEP
+    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 200 - Math.round(angle), visible }
   }
 
   // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
@@ -443,7 +441,7 @@ export function CardReadingFlow({
                 }
                 if (isRollingRef.current) {
                   setPeekedIndex(null)
-                  setFanShift((s) => Math.max(-maxFanShift, Math.min(maxFanShift, s + info.delta.x * 0.4)))
+                  setFanShift((s) => Math.max(minFanShift, Math.min(maxFanShift, s + info.delta.x * 0.35)))
                 }
               }
             : undefined
