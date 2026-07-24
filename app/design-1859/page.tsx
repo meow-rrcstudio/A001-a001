@@ -231,7 +231,7 @@ export default function DesignSystemPage() {
               사이트맵 + 검색 메뉴가 열립니다 (components/page-header.tsx, site-menu.tsx)
             </p>
             <div className="mt-2 rounded-xl border border-border bg-background px-4 py-3">
-              <PageHeader backHref="#" showShare />
+              <PageHeader backHref="#" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">

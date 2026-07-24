@@ -144,7 +144,7 @@ export function CardDetailView({
         }`}
       >
         <div className="mx-auto w-full max-w-3xl px-6 py-3 sm:px-8">
-          <PageHeader backHref={backHref} showShare />
+          <PageHeader backHref={backHref} />
         </div>
       </div>
 

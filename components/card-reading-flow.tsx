@@ -317,40 +317,27 @@ export function CardReadingFlow({
     } catch {}
   }
 
+  // 부채는 "빼꼼(프레스)·선택(떼기)"만 담당. 롤링은 아래 컨트롤러가 담당(시안 96:1152).
   function onFanPointerMove(e: React.PointerEvent) {
     const g = gestureRef.current
     if (!g.active || e.pointerId !== g.pointerId) return
-    const dx = e.clientX - g.startX
-    const dy = e.clientY - g.startY
-    if (g.mode === "pending") {
-      if (Math.hypot(dx, dy) > ROLL_THRESHOLD) {
-        // 드래그로 확정 → 롤링, 빼꼼 취소
-        g.mode = "roll"
-        setPeekedIndex(null)
-      } else {
-        // 아직 프레스 상태 — 손가락 아래 카드로 빼꼼 옮김(드르륵)
-        const idx = cardIndexAt(e.clientX, e.clientY)
-        if (idx !== null) {
-          g.cardIndex = idx
-          setPeekedIndex(idx)
-        }
-      }
+    // 프레스한 채 움직이면 손가락 아래 카드로 빼꼼 옮김(드르륵)
+    const idx = cardIndexAt(e.clientX, e.clientY)
+    if (idx !== null) {
+      g.cardIndex = idx
+      setPeekedIndex(idx)
+    } else {
+      g.cardIndex = null
+      setPeekedIndex(null)
     }
-    if (g.mode === "roll") {
-      // 풀 링이라 한계 없이 계속 회전(LP판)
-      setFanShift((s) => s + (e.clientX - g.lastX) * 0.3)
-    }
-    g.lastX = e.clientX
   }
 
   function onFanPointerUp(e: React.PointerEvent) {
     const g = gestureRef.current
     if (!g.active || e.pointerId !== g.pointerId) return
-    // 롤링이 아니었고(=프레스) 카드 위였다면 선택
-    if (g.mode === "pending" && g.cardIndex !== null) handlePick(g.cardIndex)
+    if (g.cardIndex !== null) handlePick(g.cardIndex) // 떼면 그 카드 선택
     setPeekedIndex(null)
     g.active = false
-    g.mode = "pending"
     try {
       ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {}
@@ -358,8 +345,36 @@ export function CardReadingFlow({
 
   function onFanPointerCancel() {
     gestureRef.current.active = false
-    gestureRef.current.mode = "pending"
     setPeekedIndex(null)
+  }
+
+  // ── 컨트롤러(손잡이) 드래그 = 부채 고리 회전(롤링) ──
+  const controllerRef = useRef<{ active: boolean; lastX: number; pointerId: number }>({
+    active: false,
+    lastX: 0,
+    pointerId: -1,
+  })
+  function onCtrlPointerDown(e: React.PointerEvent) {
+    e.stopPropagation() // 부채(무대) 핸들러로 전파 막기
+    controllerRef.current = { active: true, lastX: e.clientX, pointerId: e.pointerId }
+    setPeekedIndex(null)
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
+  }
+  function onCtrlPointerMove(e: React.PointerEvent) {
+    const c = controllerRef.current
+    if (!c.active || e.pointerId !== c.pointerId) return
+    e.stopPropagation()
+    setFanShift((s) => s + (e.clientX - c.lastX) * 0.5) // 컨트롤러가 작아 조금 더 민감하게
+    c.lastX = e.clientX
+  }
+  function onCtrlPointerUp(e: React.PointerEvent) {
+    e.stopPropagation()
+    controllerRef.current.active = false
+    try {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch {}
   }
 
   // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
@@ -394,13 +409,17 @@ export function CardReadingFlow({
   // ── 중단 스프레드 보드 ────────────────────────────────────────────
   // 고를 땐 자리 카드가 "뒷면"이라 모양만 보이면 됨 → 볼륨을 작게(콤팩트).
   // 해석 화면에서만 크게. (사용자 시안: 중단 볼륨 축소)
+  const CONTROLLER_H = 48 // 부채와 스프레드 사이 컨트롤러(손잡이) 영역 높이
   const PAGE_CHROME = 116 // 상단 뒤로가기 줄 + 여백의 대략적인 높이
+  // 시안: 스프레드는 반응형(최소 200 · 최대 400). 남는 공간에 맞추되 이 범위로 클램프.
   const boardHeightSelect = Math.max(
-    120,
-    Math.min(208, viewportHeight - PAGE_CHROME - fanZoneHeight - bubbleHeight)
+    200,
+    Math.min(400, viewportHeight - PAGE_CHROME - fanZoneHeight - CONTROLLER_H - bubbleHeight)
   )
   const stageHeight =
-    phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : fanZoneHeight + boardHeightSelect + 6
+    phase === "revealing"
+      ? BOARD_HEIGHT_REVEAL + 40
+      : fanZoneHeight + CONTROLLER_H + boardHeightSelect + 6
 
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
   // 카드 크기는 스프레드 장수에 따라(적으면 크게, 많으면 작게) — 시안처럼.
@@ -444,7 +463,7 @@ export function CardReadingFlow({
   // ── 스프레드 슬롯: 340px 고정 보드의 정중앙 정렬 ──
   // 카드 사이 간격이 픽셀로 고정되어 기기 폭이 달라져도 시안과 같은 간격입니다.
   function mapSlot(slot: { left: string; top: string }) {
-    const boardTop = phase === "revealing" ? 20 : fanZoneHeight + 3
+    const boardTop = phase === "revealing" ? 20 : fanZoneHeight + CONTROLLER_H
     const left = stageWidth / 2 + ((parseFloat(slot.left) - 50) / 100) * BOARD_WIDTH
     const top = boardTop + (parseFloat(slot.top) / 100) * boardHeightNow
     return { left: `${left}px`, top: `${top}px` }
@@ -528,6 +547,28 @@ export function CardReadingFlow({
         onPointerUp={onFanPointerUp}
         onPointerCancel={onFanPointerCancel}
       >
+        {/* ── 컨트롤러(손잡이): 좌우로 끌면 위 부채가 회전(롤링) — 시안 96:1152 ── */}
+        {phase === "selecting" && (
+          <div
+            className="absolute left-1/2 z-[45] flex -translate-x-1/2 items-center justify-center"
+            style={{ top: fanZoneHeight, width: 240, height: CONTROLLER_H, touchAction: "none" }}
+            onPointerDown={onCtrlPointerDown}
+            onPointerMove={onCtrlPointerMove}
+            onPointerUp={onCtrlPointerUp}
+            onPointerCancel={onCtrlPointerUp}
+            role="slider"
+            aria-label="카드 배열 좌우로 돌리기"
+            aria-valuenow={Math.round(fanShift)}
+          >
+            {/* 곡선 트랙 */}
+            <svg width="216" height="28" viewBox="0 0 216 28" className="pointer-events-none absolute">
+              <path d="M6 8 Q108 26 210 8" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-border" strokeLinecap="round" />
+            </svg>
+            {/* 알약 손잡이 */}
+            <div className="relative h-3.5 w-12 cursor-grab rounded-full bg-foreground shadow-md active:cursor-grabbing" />
+          </div>
+        )}
+
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
           const filled = selected.length > i

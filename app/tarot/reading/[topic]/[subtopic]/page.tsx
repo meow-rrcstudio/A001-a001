@@ -30,7 +30,7 @@ export default async function TarotReadingResultPage({
       <PageBackground variant="aurora" />
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-6 sm:px-8">
         {/* 리딩 장면은 몰입·공간 확보를 위해 뒤로가기만 (공유·메뉴 숨김) */}
-        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} minimal className="mb-4" />
+        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} className="mb-4" />
 
         <CardReadingFlow
           topicLabel={matchedTopic.label}

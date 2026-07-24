@@ -75,7 +75,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
 
   return (
     <>
-      <PageHeader backHref="/tarot" showShare className="mb-8" />
+      <PageHeader backHref="/tarot" className="mb-8" />
 
       {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
       <div className="mb-8 space-y-4">
