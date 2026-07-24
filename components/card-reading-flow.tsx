@@ -107,8 +107,6 @@ export function CardReadingFlow({
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
   // 부채 좌우 롤링 오프셋(°) — 손가락으로 좌우로 쓸면 카드들이 원호를 따라 굴러감
   const [fanShift, setFanShift] = useState(0)
-  // 지금 롤링(드래그) 중인지 — 롤링 중엔 카드 선택(빼꼼→픽)을 막음
-  const isRollingRef = useRef(false)
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
@@ -281,6 +279,89 @@ export function CardReadingFlow({
     }
   }
 
+  // ── 통합 포인터 제스처: 롤링(드래그) vs 빼꼼/선택(프레스)을 확실히 구분 ──
+  // iOS·안드로이드 공통(Pointer Events). 손을 대면 일단 빼꼼 후보 → 10px 이상
+  // 움직이면 드래그(롤링)로 확정하고 빼꼼 취소 → 거의 안 움직이고 떼면 선택.
+  const ROLL_THRESHOLD = 10 // px. 이 이상 움직이면 "드래그(롤링)"로 봄
+  const gestureRef = useRef<{
+    active: boolean
+    startX: number
+    lastX: number
+    startY: number
+    mode: "pending" | "roll"
+    cardIndex: number | null
+    pointerId: number
+  }>({ active: false, startX: 0, lastX: 0, startY: 0, mode: "pending", cardIndex: null, pointerId: -1 })
+
+  function cardIndexAt(clientX: number, clientY: number): number | null {
+    const el = document.elementFromPoint(clientX, clientY)
+    const cardEl = el?.closest("[data-fan-card]") as HTMLElement | null
+    return cardEl && cardEl.dataset.fanCard !== undefined ? Number(cardEl.dataset.fanCard) : null
+  }
+
+  function onFanPointerDown(e: React.PointerEvent) {
+    if (phase !== "selecting") return
+    const idx = cardIndexAt(e.clientX, e.clientY)
+    gestureRef.current = {
+      active: true,
+      startX: e.clientX,
+      lastX: e.clientX,
+      startY: e.clientY,
+      mode: "pending",
+      cardIndex: idx,
+      pointerId: e.pointerId,
+    }
+    if (idx !== null) setPeekedIndex(idx) // 누른 순간 빼꼼
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  function onFanPointerMove(e: React.PointerEvent) {
+    const g = gestureRef.current
+    if (!g.active || e.pointerId !== g.pointerId) return
+    const dx = e.clientX - g.startX
+    const dy = e.clientY - g.startY
+    if (g.mode === "pending") {
+      if (Math.hypot(dx, dy) > ROLL_THRESHOLD) {
+        // 드래그로 확정 → 롤링, 빼꼼 취소
+        g.mode = "roll"
+        setPeekedIndex(null)
+      } else {
+        // 아직 프레스 상태 — 손가락 아래 카드로 빼꼼 옮김(드르륵)
+        const idx = cardIndexAt(e.clientX, e.clientY)
+        if (idx !== null) {
+          g.cardIndex = idx
+          setPeekedIndex(idx)
+        }
+      }
+    }
+    if (g.mode === "roll") {
+      // 풀 링이라 한계 없이 계속 회전(LP판)
+      setFanShift((s) => s + (e.clientX - g.lastX) * 0.3)
+    }
+    g.lastX = e.clientX
+  }
+
+  function onFanPointerUp(e: React.PointerEvent) {
+    const g = gestureRef.current
+    if (!g.active || e.pointerId !== g.pointerId) return
+    // 롤링이 아니었고(=프레스) 카드 위였다면 선택
+    if (g.mode === "pending" && g.cardIndex !== null) handlePick(g.cardIndex)
+    setPeekedIndex(null)
+    g.active = false
+    g.mode = "pending"
+    try {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  function onFanPointerCancel() {
+    gestureRef.current.active = false
+    gestureRef.current.mode = "pending"
+    setPeekedIndex(null)
+  }
+
   // ═══ 무대 좌표 — 전부 픽셀(px) 기준 ═══
   // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
   // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
@@ -441,27 +522,11 @@ export function CardReadingFlow({
           // 고르는 중엔 이 영역 터치로 페이지가 스크롤되지 않게 잠금 → 드래그는 오직 부채 롤링에만
           touchAction: phase === "selecting" ? "none" : "auto",
         }}
-        // 좌우로 쓸면 부채가 원호를 따라 굴러갑니다(롤링). 세로 스크롤은 유지.
-        onPan={
-          phase === "selecting"
-            ? (_, info: PanInfo) => {
-                if (Math.abs(info.offset.x) > 6 && Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
-                  isRollingRef.current = true
-                }
-                if (isRollingRef.current) {
-                  setPeekedIndex(null)
-                  // 풀 링이라 한계 없이 계속 회전(LP판). 드래그 방향 = 고리 회전.
-                  setFanShift((s) => s + info.delta.x * 0.3)
-                }
-              }
-            : undefined
-        }
-        onPanEnd={() => {
-          // 살짝 늦게 풀어, 롤링 직후 손 뗌이 카드 선택으로 오인되지 않게 함
-          window.setTimeout(() => {
-            isRollingRef.current = false
-          }, 60)
-        }}
+        // 통합 포인터 제스처: 드래그=고리 롤링, 프레스=빼꼼→선택 (iOS·안드로이드 공통)
+        onPointerDown={onFanPointerDown}
+        onPointerMove={onFanPointerMove}
+        onPointerUp={onFanPointerUp}
+        onPointerCancel={onFanPointerCancel}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
@@ -536,44 +601,10 @@ export function CardReadingFlow({
               }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
-              {/* 카드 한 장 — PC는 마우스 오버로 빼꼼 후 클릭,
-                  모바일은 누르면 빼꼼 → 누른 채 움직이면 손가락 아래 카드로 빼꼼이 옮겨감 → 떼면 그 카드 선택 */}
+              {/* 카드 한 장 — 제스처(빼꼼/롤링/선택)는 무대의 통합 포인터 핸들러가
+                  처리합니다. 여기선 빼꼼 애니메이션만: 눌린 카드는 살짝 위로 뜸. */}
               <motion.div
-                onClick={!isTouchDevice && canClick ? () => { if (!isRollingRef.current) handlePick(index) } : undefined}
-                onTouchStart={
-                  isTouchDevice && canClick
-                    ? () => {
-                        setPeekedIndex(index)
-                      }
-                    : undefined
-                }
-                onTouchMove={
-                  isTouchDevice && canClick
-                    ? (e) => {
-                        // 롤링(좌우 드래그) 중이면 빼꼼 이동을 멈춤 — 롤링과 충돌 방지
-                        if (isRollingRef.current) return
-                        // 손가락 아래에 있는 카드를 찾아 빼꼼을 옮깁니다 (PC 호버와 같은 감각)
-                        const touch = e.touches[0]
-                        const el = document.elementFromPoint(touch.clientX, touch.clientY)
-                        const cardEl = el?.closest("[data-fan-card]") as HTMLElement | null
-                        if (cardEl) {
-                          setPeekedIndex(Number(cardEl.dataset.fanCard))
-                        }
-                      }
-                    : undefined
-                }
-                onTouchEnd={
-                  isTouchDevice && canClick
-                    ? () => {
-                        // 롤링(좌우 드래그) 중 손을 뗀 경우엔 선택하지 않음
-                        if (!isRollingRef.current && peekedIndex !== null) handlePick(peekedIndex)
-                        setPeekedIndex(null)
-                      }
-                    : undefined
-                }
-                onTouchCancel={isTouchDevice ? () => setPeekedIndex(null) : undefined}
-                whileHover={!isTouchDevice && canClick ? { y: -16 } : undefined}
-                animate={isTouchDevice && canClick ? { y: isPeeked ? -16 : 0 } : undefined}
+                animate={{ y: canClick && isPeeked ? -16 : 0 }}
                 transition={{ duration: 0.15 }}
                 className={`h-full w-full ${canClick ? "cursor-pointer touch-none" : ""}`}
               >
