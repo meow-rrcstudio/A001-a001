@@ -14,11 +14,12 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { X } from "lucide-react"
 import { RowList, type RowItem } from "@/components/ui/row-list"
+import { getEntitlement } from "@/lib/reading-entitlement"
 
 // 마지막 줄은 로그인 여부에 따라 Login ↔ My 로 바뀝니다.
 const baseItems: RowItem[] = [
@@ -32,8 +33,8 @@ export function SiteMenu({
   onClose,
   /** 패널이 화면 위에서 떨어지는 거리(px). 여는 버튼 위치에 맞춥니다. */
   anchorTop = 80,
-  /** 로그인 상태. 인증을 붙이면 실제 세션 값을 넘겨주세요. */
-  isLoggedIn = false,
+  /** 로그인 상태를 바깥에서 지정하고 싶을 때. 없으면 저장된 상태를 읽습니다. */
+  isLoggedIn,
   /** 홈으로 가는 줄(00. Home) 표시 여부. 홈 화면에서만 false 로 둡니다. */
   showHome = true,
 }: {
@@ -43,6 +44,12 @@ export function SiteMenu({
   isLoggedIn?: boolean
   showHome?: boolean
 }) {
+  // 메뉴를 열 때마다 로그인 상태를 확인해 마지막 줄을 Login ↔ My 로 바꿉니다
+  const [loggedIn, setLoggedIn] = useState(false)
+  useEffect(() => {
+    if (open) setLoggedIn(isLoggedIn ?? getEntitlement().isLoggedIn)
+  }, [open, isLoggedIn])
+
   // 메뉴가 열려 있는 동안 뒤 페이지 스크롤 잠금.
   // (아이폰 사파리는 overflow:hidden 잠금을 무시하므로,
   //  몸통을 통째로 고정하는 방식을 씁니다 — 닫을 때 원래 위치로 복원)
@@ -80,7 +87,7 @@ export function SiteMenu({
   const items: RowItem[] = [
     ...(showHome ? [{ number: "00", label: "Home", href: "/" }] : []),
     ...baseItems,
-    isLoggedIn
+    loggedIn
       ? { number: "04", label: "My", href: "/my" }
       : { number: "04", label: "Login", href: "/login" },
     { number: "05", label: "Search", href: "/search" },

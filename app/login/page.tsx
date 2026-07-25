@@ -17,6 +17,7 @@ import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
+import { TestLoginForm } from "@/components/test-login-form"
 import { SITE, copyrightLine } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -72,9 +73,8 @@ export default function LoginPage() {
           <Button variant="solid" size="pill" className="w-full">
             Apple로 계속하기
           </Button>
-          <Button variant="soft" size="pill" className="w-full">
-            이메일로 계속하기
-          </Button>
+          {/* ⚠️ 검토용 테스트 로그인 — 오픈 전 TestLoginForm 을 실제 이메일 로그인으로 교체 */}
+          <TestLoginForm />
         </div>
       </main>
 

@@ -58,17 +58,78 @@ export function getEntitlement(): Entitlement {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// ⚠️ 테스트 계정 — 오픈 전에 반드시 지울 코드입니다.
+//
+// 실제 인증이 아닙니다. 브라우저에 상태를 저장할 뿐이라, 아이디·비밀번호가
+// 코드에 그대로 보이고 누구나 열어볼 수 있습니다.
+// 지금은 "유료 화면이 어떻게 보이는지" 확인하기 위한 검토용입니다.
+//
+// 인증을 붙일 때: 이 블록(TEST_ACCOUNTS · signInWithTestAccount)을 삭제하고
+// 로그인 화면에서 실제 공급자 호출로 교체하세요.
+// ═══════════════════════════════════════════════════════════════════
+
+export interface TestAccount {
+  id: string
+  password: string
+  label: string
+  entitlement: Entitlement
+}
+
+export const TEST_ACCOUNTS: TestAccount[] = [
+  {
+    id: "paid@soulseoul.xyz",
+    password: "soulseoul",
+    label: "유료 회원",
+    entitlement: { isLoggedIn: true, isPaid: true, trialsLeft: 0 },
+  },
+  {
+    id: "trial@soulseoul.xyz",
+    password: "soulseoul",
+    label: "체험 3회 남은 회원",
+    entitlement: { isLoggedIn: true, isPaid: false, trialsLeft: 3 },
+  },
+  {
+    id: "free@soulseoul.xyz",
+    password: "soulseoul",
+    label: "체험을 다 쓴 회원",
+    entitlement: { isLoggedIn: true, isPaid: false, trialsLeft: 0 },
+  },
+]
+
+/** 테스트 계정으로 로그인. 맞으면 true, 틀리면 false */
+export function signInWithTestAccount(id: string, password: string): boolean {
+  const found = TEST_ACCOUNTS.find(
+    (a) => a.id.toLowerCase() === id.trim().toLowerCase() && a.password === password
+  )
+  if (!found) return false
+  saveEntitlement(found.entitlement)
+  return true
+}
+
+/** 로그아웃 — 저장된 상태를 지웁니다 */
+export function signOut() {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // 무시
+  }
+}
+
+function saveEntitlement(e: Entitlement) {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(e))
+  } catch {
+    // 저장이 막힌 환경 — 무시
+  }
+}
+
 /** 체험 1회 차감. 유료 회원은 차감하지 않습니다. */
 export function consumeTrial() {
   if (typeof window === "undefined") return
   const e = getEntitlement()
   if (e.isPaid || e.trialsLeft <= 0) return
-  try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ ...e, trialsLeft: e.trialsLeft - 1 })
-    )
-  } catch {
-    // 저장이 막힌 환경 — 무시
-  }
+  saveEntitlement({ ...e, trialsLeft: e.trialsLeft - 1 })
 }

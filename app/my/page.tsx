@@ -1,53 +1,30 @@
 // app/my/page.tsx
 // MY — 로그인한 사람의 홈입니다. (시안의 "꼼마님" 화면)
 //
-// ⚠️ 지금은 인증이 없어서 항상 "로그인 필요" 상태로 보입니다.
-//    인증을 붙이면 아래 session 을 실제 세션으로 바꾸기만 하면 됩니다.
-//    (스탯 3종과 메뉴는 그대로 살아납니다)
-//
-// 시안 기준 구성:
-//   · 인사 + 이메일
-//   · 스탯 3종 — 내 타로 기록 / 저장한 배열 / 행운 조각(리딩 크레딧)
-//   · 메뉴 섹션 — 기록 조회, 회원권 등
+// 로그인 여부·유료 여부는 lib/reading-entitlement.ts 한 곳에서 판단합니다.
+// 인증을 붙이면 그 파일의 getEntitlement() 안만 바꾸면 이 화면은 그대로 동작합니다.
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 상단 라임 영역 : bg-brand-lime — 홈과 같은 크롬
 // │ · 스탯 상자      : grid-cols-3 — 항목을 늘리면 숫자만 바꾸면 됩니다
 // │ · 포인트 표기    : 시안의 "행운 조각". 리딩 크레딧 단위입니다.
 // └──────────────────────────────────────────────────────────────────
-import type { Metadata } from "next"
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { LogIn } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { LogIn, LogOut } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { RowList, type RowItem } from "@/components/ui/row-list"
-
-export const metadata: Metadata = {
-  title: "MY",
-  // 개인 화면이라 검색 색인 대상이 아닙니다
-  robots: { index: false, follow: false },
-}
-
-// 인증 연결 전까지의 자리표시자. 로그인이 붙으면 이 함수 안을 실제 세션 조회로 바꾸세요.
-//
-// ※ 지금은 로그인 기능이 없어서 항상 비로그인입니다. 그래서 로그인 후 화면을
-//    확인할 방법이 없어, 주소에 ?preview=1 을 붙이면 예시 데이터로 볼 수 있게 해뒀습니다.
-//    (예: /my?preview=1) 인증을 붙일 때 이 preview 분기는 지우면 됩니다.
-type Session = { name: string; email: string; readings: string; spreads: string; points: string }
-
-const previewSession: Session = {
-  name: "꼼마님",
-  email: "shanti.oracle@soulseoul.com",
-  readings: "32회",
-  spreads: "14개",
-  points: "750P",
-}
-
-function getSession(isPreview: boolean): Session | null {
-  if (isPreview) return previewSession
-  return null // ← 인증 연결 시 실제 세션 반환
-}
+import {
+  DEFAULT_ENTITLEMENT,
+  getEntitlement,
+  signOut,
+  type Entitlement,
+} from "@/lib/reading-entitlement"
 
 // 로그인 후 보일 메뉴 — 실제 페이지가 생기면 href 를 채워주세요.
 const myMenu: RowItem[] = [
@@ -56,17 +33,21 @@ const myMenu: RowItem[] = [
   { label: "회원권 · 행운 조각", desc: "리딩 크레딧 확인과 충전", href: "#" },
 ]
 
-export default async function MyPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ preview?: string }>
-}) {
-  const { preview } = await searchParams
-  const session = getSession(preview === "1")
+export default function MyPage() {
+  const router = useRouter()
+  const [entitlement, setEntitlement] = useState<Entitlement>(DEFAULT_ENTITLEMENT)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    setEntitlement(getEntitlement())
+    setReady(true)
+  }, [])
+
+  if (!ready) return <div className="min-h-screen bg-background" />
 
   // ── 비로그인 ─────────────────────────────────────────────────────
   // 리딩 자체는 막지 않습니다. 여기(개인 기록)만 로그인 뒤에 둡니다.
-  if (!session) {
+  if (!entitlement.isLoggedIn) {
     return (
       <div className="flex min-h-screen flex-col">
         <header className="bg-brand-lime">
@@ -85,25 +66,6 @@ export default async function MyPage({
             <LogIn className="h-4 w-4" aria-hidden="true" />
             로그인하기
           </Button>
-
-          <Link
-            href="/tarot/reading"
-            className="mt-6 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            로그인 없이 리딩 먼저 해보기 →
-          </Link>
-
-          {/* 검토용 안내 — 인증을 붙이면 이 블록은 지웁니다 */}
-          <Link
-            href="/my?preview=1"
-            className="mt-12 rounded-lg border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground transition-colors hover:bg-muted/50"
-          >
-            로그인 기능이 아직 없어 이 화면까지만 보입니다.
-            <br />
-            <span className="font-medium underline underline-offset-4">
-              로그인 후 화면 미리보기 →
-            </span>
-          </Link>
         </main>
 
         <Footer variant="lime" />
@@ -112,30 +74,28 @@ export default async function MyPage({
   }
 
   // ── 로그인 ───────────────────────────────────────────────────────
+  const plan = entitlement.isPaid ? "유료 회원" : `체험 ${entitlement.trialsLeft}회 남음`
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-brand-lime">
         <div className="mx-auto w-full max-w-2xl px-6 pb-10 sm:px-8">
           <PageHeader backHref="/" />
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-brand-ink">
-            {session.name}
-          </h1>
-          <p className="mt-1 text-sm text-brand-ink/70">{session.email}</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-brand-ink">꼼마님</h1>
+          <p className="mt-1 text-sm text-brand-ink/70">{plan}</p>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 sm:px-8">
-        {/* 검토용 표시 — 인증을 붙이면 이 배너와 preview 분기를 함께 지웁니다 */}
-        <p className="-mt-6 mb-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground">
-          미리보기 화면입니다 — 숫자는 예시값이고, 실제 로그인은 아직 연결되지 않았습니다.
-        </p>
-
         {/* 스탯 3종 — 시안의 "내 타로 기록 / 저장한 배열 / 행운 조각" */}
-        <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="-mt-6 grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card">
           {[
-            { label: "내 타로 기록", value: session.readings },
-            { label: "저장한 배열", value: session.spreads },
-            { label: "행운 조각", value: session.points },
+            { label: "내 타로 기록", value: "0회" },
+            { label: "저장한 배열", value: "0개" },
+            {
+              label: "행운 조각",
+              value: entitlement.isPaid ? "무제한" : `${entitlement.trialsLeft}회`,
+            },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -150,6 +110,20 @@ export default async function MyPage({
         <div className="mt-10">
           <RowList items={myMenu} variant="plain" />
         </div>
+
+        {/* ⚠️ 검토용 — 실제 인증을 붙이면 문구만 "로그아웃"으로 두고 그대로 쓰면 됩니다 */}
+        <button
+          type="button"
+          onClick={() => {
+            signOut()
+            router.push("/")
+            router.refresh()
+          }}
+          className="mt-8 inline-flex items-center gap-2 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          로그아웃
+        </button>
       </main>
 
       <Footer variant="lime" />
