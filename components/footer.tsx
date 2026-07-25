@@ -52,11 +52,18 @@ export function Footer({
             www.soulseoul.xyz
             <span aria-hidden="true">✳</span>
           </p>
-          <div className="text-sm leading-relaxed text-brand-ink/70">
-            <p>© {year} Meow RRC Studio. Soul Seoul Archive.</p>
-            <p>All Rights Reserved</p>
-          </div>
-          <PrivacyLink className="text-brand-ink/70 hover:text-brand-ink" />
+          <p className="text-xs leading-relaxed text-brand-ink/70">
+            ©{year} Meow RRC Studio. Soulseoul Archive. All Rights Reserved.
+          </p>
+          <p className="text-xs text-brand-ink/70">
+            <Link href="/about" className="underline underline-offset-4 hover:text-brand-ink">
+              About
+            </Link>
+            <span className="px-1">and</span>
+            <Link href="/privacy" className="underline underline-offset-4 hover:text-brand-ink">
+              Privacy Policy
+            </Link>
+          </p>
         </div>
       </footer>
     )
