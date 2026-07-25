@@ -37,11 +37,11 @@ export default function HomePage() {
         {/* 돌 사진 — 흰 카드 */}
         <div className="mt-2 overflow-hidden bg-white">
           <Image
-            src="/menu-stone.jpg"
+            src="/menu-stone.webp"
             alt=""
             aria-hidden="true"
-            width={900}
-            height={1181}
+            width={760}
+            height={1052}
             priority
             className="h-auto w-full"
           />

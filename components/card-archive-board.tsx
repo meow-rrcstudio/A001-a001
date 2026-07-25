@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Search } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { FilterChips } from "@/components/ui/filter-chips"
 import type { ArchiveDeck } from "@/lib/card-archive"
 
 const COLUMN_WIDTH = 200
@@ -96,25 +97,17 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
         </p>
       </div>
 
-      {/* 필터 칩 — 덱 목록에서 자동 생성. 선택된 것은 테라코타 채움 */}
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
-        {[{ key: "all", label: "all" }, ...decks.map((d) => ({ key: d.key, label: d.label }))].map(
-          (chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              onClick={() => setActiveDeck(chip.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
-                activeDeck === chip.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/70"
-              }`}
-            >
-              {chip.label}
-            </button>
-          )
-        )}
-      </div>
+      {/* 필터 칩 — 덱 목록에서 자동 생성. 모양은 공용 FilterChips 가 담당합니다 */}
+      <FilterChips
+        ariaLabel="덱 필터"
+        className="mb-6"
+        value={activeDeck}
+        onChange={setActiveDeck}
+        chips={[
+          { key: "all", label: "all" },
+          ...decks.map((d) => ({ key: d.key, label: d.label })),
+        ]}
+      />
 
       {/* 덱 섹션들 */}
       <div className="space-y-6 pb-8">
