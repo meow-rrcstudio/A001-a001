@@ -88,11 +88,21 @@ export function CardReadingFlow({
   topicSlug,
   question,
   introMessage,
+  mode = "prompt",
+  onComplete,
 }: {
   topicLabel: string
   topicSlug: ReadingTopicKey
   question: ReadingQuestion
   introMessage: string
+  /**
+   * 카드를 다 뒤집은 뒤에 무엇을 보여줄지.
+   * · "prompt" (기본) — 외부 AI 에 붙여넣을 프롬프트를 말풍선에 띄웁니다 (비회원 흐름)
+   * · "inline"        — "해석 보기" 버튼을 띄우고 onComplete 로 넘깁니다 (사이트 내 해석)
+   */
+  mode?: "prompt" | "inline"
+  /** mode="inline" 에서 해석 보기를 눌렀을 때. 뽑은 카드 이름과 정/역방향을 넘깁니다. */
+  onComplete?: (picked: { name: string; reversed: boolean; imageUrl: string }[]) => void
 }) {
   const requiredPicks = question.positions.length
   const resultSlots = spreadLayouts[question.layoutKey]
@@ -516,6 +526,26 @@ export function CardReadingFlow({
       </div>
       )}
 
+      {/* 해석 보기 — 사이트 내 해석 모드에서 카드를 다 뒤집었을 때 */}
+      {mode === "inline" && phase === "revealing" && flippedIndices.length >= requiredPicks && (
+        <button
+          type="button"
+          onClick={() =>
+            onComplete?.(
+              selected.map((cardIndex) => ({
+                name: shuffledDeck[cardIndex]?.nameKo ?? "",
+                reversed: cardOrientations[cardIndex] === "역방향",
+                imageUrl: shuffledDeck[cardIndex]?.imageUrl ?? "",
+              }))
+            )
+          }
+          className="fixed inset-x-6 z-[70] rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] sm:inset-x-8"
+          style={{ bottom: bubbleHeight + 24 }}
+        >
+          샨티의 해석 보기
+        </button>
+      )}
+
       {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}
       {isShuffling && shuffleStep >= 1 && (
         <button
@@ -535,10 +565,16 @@ export function CardReadingFlow({
             : phase === "selecting"
               ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
               : flippedIndices.length >= requiredPicks
-                ? `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
+                ? mode === "inline"
+                  ? `카드 ${requiredPicks}장이 모였어냥. 내가 읽어줄게, 아래를 눌러보라냥!`
+                  : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
                 : "카드를 하나씩 뒤집어보는 중이야냥..."
         }
-        promptText={phase === "revealing" && flippedIndices.length >= requiredPicks ? buildPrompt() : undefined}
+        promptText={
+          mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
+            ? buildPrompt()
+            : undefined
+        }
         onHeightChange={setBubbleHeight}
       />
     </div>
