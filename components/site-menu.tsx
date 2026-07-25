@@ -1,29 +1,33 @@
 // components/site-menu.tsx
-// 헤더의 "목록" 버튼을 누르면 열리는 전체 화면 메뉴입니다.
-// 사이트맵(페이지 목록) + 검색을 한곳에 모았습니다.
+// 상단바의 ⋯(또는 홈의 ≡)를 누르면 열리는 메뉴입니다.
+//
+// 시안(Main_메뉴) 기준: 화면 전체를 덮는 게 아니라, 페이지 위에 얹히는
+// "흰 패널" 하나입니다. 패널 오른쪽 위에 검정 사각 닫기 버튼이 붙어 있고,
+// 뒤 배경(라임·돌 사진)은 그대로 비칩니다.
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
-// │ · 메뉴 항목        : 아래 menuItems 배열 — 한 줄 추가하면 메뉴도 추가
-// │ · 항목 글자 크기   : text-3xl (모바일) / sm:text-4xl (PC)
-// │ · 배경             : bg-brand-lime (시안의 Main_메뉴 라임 전체화면)
-// │ · 검색 이동 위치   : Archive(/archive)의 검색으로 연결
+// │ · 메뉴 항목   : 아래 menuItems 배열 — 한 줄 추가하면 메뉴도 추가됩니다.
+// │                 검색·로그인도 별도 컴포넌트가 아니라 같은 형식의 한 줄입니다.
+// │ · 패널 위치   : top-24 (상단에서 96px) · right-4 · 폭 74%
+// │ · 패널 테두리 : border-foreground (시안의 얇은 검정 선)
+// │ · 행 높이     : py-3.5 · 이름 크기 text-2xl
+// │ · 닫기 버튼   : h-14 w-14 bg-foreground (검정 사각)
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
-import Image from "next/image"
-import { ArrowUpRight, LogIn, Search, User, X } from "lucide-react"
-import { Wordmark } from "@/components/brand-mark"
+import { ArrowUpRight, X } from "lucide-react"
 
-// 사이트맵 — 시안 기준 2축 구조입니다.
-//   Reading = 체험(타로 리딩) · Archive = 읽을거리(카드 해설·리뷰)
-// 새 메뉴를 추가할 때는 "실제로 만든 것"만 넣어주세요.
-// (비어 있는 항목이 보이면 사이트가 미완성으로 읽힙니다)
+// 메뉴 항목 — 검색·MY·로그인도 Reading·Archive 와 같은 한 줄로 통일했습니다.
 const menuItems = [
-  { number: "01", label: "Reading", href: "/tarot/reading" },
-  { number: "02", label: "Archive", href: "/archive" },
+  { number: "01", label: "Home", href: "/" },
+  { number: "02", label: "Reading", href: "/tarot/reading" },
+  { number: "03", label: "Archive", href: "/archive" },
+  { number: "04", label: "Search", href: "/search" },
+  { number: "05", label: "My", href: "/my" },
+  { number: "06", label: "Login", href: "/login" },
 ]
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -49,119 +53,63 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
     }
   }, [open])
 
+  // Esc 로 닫기 (키보드 사용자)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [open, onClose])
+
   if (!open) return null
 
-
   // createPortal: 메뉴를 페이지 구조 밖(문서 최상위)에 그립니다.
-  // 페이지 내부의 층(z-index) 구조에 갇히지 않아 플로팅 버튼 등
-  // 어떤 요소보다도 항상 위에 뜹니다 (z-[100]).
+  // 페이지 내부의 층(z-index) 구조에 갇히지 않아 어떤 요소보다도 위에 뜹니다.
   return createPortal(
-    // 시안(Main_메뉴) 기준 — 라임 전체화면 + 흰 카드 행
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-brand-lime">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-8">
-        {/* 닫기 — 시안의 검정 사각 버튼 */}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="메뉴 닫기"
-            className="inline-flex h-10 w-10 items-center justify-center bg-brand-ink text-white transition-opacity hover:opacity-80"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[100]">
+      {/* 바깥을 누르면 닫힘 — 시안처럼 뒤 배경을 가리지 않고 그대로 비춥니다 */}
+      <button
+        type="button"
+        aria-label="메뉴 닫기"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default"
+      />
 
-        {/* 워드마크 + 소개 */}
-        <div className="mt-2 text-center">
-          <Wordmark className="mx-auto h-11" />
-          <p className="mx-auto mt-5 max-w-xs text-pretty text-sm leading-relaxed text-brand-ink/80">
-            타로를 중심으로 마음과 몸, 여러가지 일상의 경험을 기록하고 연결하는 개인
-            아카이브입니다.
-          </p>
-        </div>
-
-        {/* 시안의 돌 사진 — 흰 카드 안에 넣어 라임 위에 얹습니다 */}
-        <div className="mt-6 overflow-hidden rounded-xl bg-white">
-          <Image
-            src="/menu-stone.jpg"
-            alt=""
-            aria-hidden="true"
-            width={900}
-            height={1181}
-            className="h-auto w-full"
-          />
-        </div>
-
-        {/* 검색 — Archive(카드 해설·리뷰) 안에서만 찾습니다. 리딩은 검색 대상이 아닙니다. */}
-        <Link
-          href="/search"
-          onClick={onClose}
-          className="mt-3 flex items-center gap-2 rounded-full bg-background/80 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-background"
-        >
-          <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Archive에서 검색 — 덱, 대분류, 숫자, 제목
-        </Link>
-
-        {/* 사이트맵 — 시안의 흰 카드 행 (번호 + 이름 + ↗) */}
-        <nav className="mt-3 overflow-hidden rounded-xl bg-background">
-          {menuItems.map((item, i) => (
-            <Link
-              key={item.label}
-              href={item.href}
+      <div className="pointer-events-none absolute inset-0 mx-auto max-w-md">
+        <div className="pointer-events-auto absolute right-4 top-24 w-[74%] max-w-[300px]">
+          {/* 닫기 — 패널 오른쪽 위에 얹힌 검정 사각 */}
+          <div className="flex justify-end">
+            <button
+              type="button"
               onClick={onClose}
-              className={`group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/60 ${
-                i > 0 ? "border-t border-border" : ""
-              }`}
+              aria-label="메뉴 닫기"
+              className="inline-flex h-14 w-14 items-center justify-center bg-foreground text-white transition-opacity hover:opacity-80"
             >
-              <span className="w-5 shrink-0 text-xs text-muted-foreground">{item.number}</span>
-              <span className="flex-1 text-lg text-foreground">{item.label}</span>
-              <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
-          ))}
-        </nav>
-
-        {/* MY · 로그인 — 사이트맵과 구분되는 "계정" 영역입니다.
-            ※ 지금은 로그인 기능이 없어서 항상 비로그인으로 보입니다. */}
-        <div className="mt-3 flex items-center gap-2">
-          <Link
-            href="/my"
-            onClick={onClose}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-background/80 py-3 text-sm font-medium text-foreground transition-colors hover:bg-background"
-          >
-            <User className="h-4 w-4" aria-hidden="true" />
-            MY
-          </Link>
-          <Link
-            href="/login"
-            onClick={onClose}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-ink py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
-            <LogIn className="h-4 w-4" aria-hidden="true" />
-            로그인
-          </Link>
-        </div>
-
-        {/* 하단 — 시안 푸터와 같은 ✳ URL ✳ + 링크 */}
-        <div className="mt-auto pt-10 text-center">
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.15em] text-brand-ink/80">
-            ✳ www.soulseoul.xyz ✳
-          </p>
-          <div className="mt-3 flex items-center justify-center gap-4">
-            <Link
-              href="/about"
-              onClick={onClose}
-              className="text-xs text-brand-ink/70 underline underline-offset-4 transition-opacity hover:opacity-70"
-            >
-              about
-            </Link>
-            <Link
-              href="/privacy"
-              onClick={onClose}
-              className="text-xs text-brand-ink/70 underline underline-offset-4 transition-opacity hover:opacity-70"
-            >
-              privacy statement
-            </Link>
+              <X className="h-6 w-6" />
+            </button>
           </div>
+
+          {/* 메뉴 패널 — 흰 바탕 + 얇은 검정 테두리 (시안) */}
+          <nav className="border border-foreground bg-card">
+            {menuItems.map((item, i) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={onClose}
+                className={`group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-muted/60 ${
+                  i > 0 ? "border-t border-foreground" : ""
+                }`}
+              >
+                <span className="shrink-0 font-mono text-sm text-muted-foreground">
+                  {item.number}
+                </span>
+                <span className="flex-1 text-2xl text-foreground">{item.label}</span>
+                <ArrowUpRight className="h-5 w-5 shrink-0 text-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </div>,

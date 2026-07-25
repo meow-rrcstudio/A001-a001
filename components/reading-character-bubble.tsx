@@ -14,11 +14,19 @@ export function ReadingCharacterBubble({
   character = ACTIVE_CHARACTER,
   promptText,
   onHeightChange,
+  placement = "bottom",
 }: {
   message: string
   character?: CharacterProfile
   promptText?: string
   onHeightChange?: (height: number) => void
+  /**
+   * 말풍선 위치.
+   * · "bottom" (기본) — 화면 하단 고정. 카드 뽑기 화면처럼 아래에 붙어 있어야 할 때
+   * · "top"           — 상단바 바로 아래에 놓이는 흰 말풍선 (시안의 리딩 화면 구성).
+   *                      아바타·이름 없이 글만 들어갑니다.
+   */
+  placement?: "top" | "bottom"
 }) {
   const [copied, setCopied] = useState(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
@@ -80,6 +88,17 @@ export function ReadingCharacterBubble({
     } catch (error) {
       console.error("Copy failed:", error)
     }
+  }
+
+  // 상단 배치 — 시안의 리딩 화면. 흰 말풍선에 글만 들어갑니다.
+  if (placement === "top") {
+    return (
+      <div ref={bubbleRef} className="rounded-2xl bg-card px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <p className="min-h-[1.5em] text-[15px] leading-relaxed text-foreground">
+          <TypewriterText text={message} />
+        </p>
+      </div>
+    )
   }
 
   return (
