@@ -75,13 +75,13 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
 
   return (
     <>
-      <PageHeader backHref="/tarot" showShare className="mb-8" />
+      <PageHeader backHref="/" showShare className="mb-8" />
 
       {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
       <div className="mb-8 space-y-4">
         <div className="flex items-center gap-3">
           <h1 className="font-serif text-5xl italic leading-tight text-foreground sm:text-6xl">
-            Astrology─
+            Archive─
           </h1>
           <span
             aria-hidden="true"
@@ -91,8 +91,8 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
           </span>
         </div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          명상, 요가, 신화, 점성술, 그리고 타로를 통해 기록하고 연결하는 개인적인
-          아카이브입니다. 당신의 영적 여정에 영감을 더하는 이야기들을 만나보세요.
+          타로 카드 한 장 한 장의 의미, 그리고 명상·요가·신화·점성술을 함께 기록하고
+          연결하는 개인 아카이브입니다.
         </p>
       </div>
 

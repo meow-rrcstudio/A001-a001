@@ -69,7 +69,7 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params
   const { from } = await searchParams
-  const backHref = from === "astrology" ? "/tarot/astrology" : "/tarot"
+  const backHref = from === "astrology" ? "/archive" : "/tarot"
 
   const post = await getPostBySlug(slug)
   if (!post) notFound()

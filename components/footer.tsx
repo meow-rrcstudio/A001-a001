@@ -33,8 +33,33 @@ function PrivacyLink({ className = "" }: { className?: string }) {
   )
 }
 
-export function Footer({ variant = "dark" }: { variant?: "dark" | "light" | "minimal" }) {
+export function Footer({
+  variant = "dark",
+}: {
+  variant?: "dark" | "light" | "minimal" | "lime"
+}) {
   const year = new Date().getFullYear()
+
+  // 라임 밴드 — 시안(Site Redesign)의 기본 푸터입니다.
+  // 글자는 --brand-ink(#333)로 둡니다. 라임 위 회색 글자는 대비가 부족해요.
+  if (variant === "lime") {
+    return (
+      <footer className="mt-16 bg-brand-lime text-brand-ink">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-2.5 px-4 py-10 text-center sm:px-6">
+          <p className="inline-flex items-center gap-2.5 font-mono text-xs font-medium uppercase tracking-[0.15em]">
+            <span aria-hidden="true">✳</span>
+            www.soulseoul.xyz
+            <span aria-hidden="true">✳</span>
+          </p>
+          <div className="text-sm leading-relaxed text-brand-ink/70">
+            <p>© {year} Meow RRC Studio. Soul Seoul Archive.</p>
+            <p>All Rights Reserved</p>
+          </div>
+          <PrivacyLink className="text-brand-ink/70 hover:text-brand-ink" />
+        </div>
+      </footer>
+    )
+  }
 
   // 블로그 본문용 — 세리프 로고 + 한 줄 카피라이트
   if (variant === "minimal") {

@@ -6,21 +6,22 @@
 // │ · 메뉴 항목        : 아래 menuItems 배열 — 한 줄 추가하면 메뉴도 추가
 // │ · 항목 글자 크기   : text-3xl (모바일) / sm:text-4xl (PC)
 // │ · 배경             : bg-background (크림) — /95로 살짝 비치게 가능
-// │ · 검색 이동 위치   : 카드 아카이브(/tarot/astrology)의 검색으로 연결
+// │ · 검색 이동 위치   : Archive(/archive)의 검색으로 연결
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
-import { ArrowUpRight, Search, X } from "lucide-react"
+import { ArrowUpRight, LogIn, Search, User, X } from "lucide-react"
 
+// 사이트맵 — 시안 기준 2축 구조입니다.
+//   Reading = 체험(타로 리딩) · Archive = 읽을거리(카드 해설·리뷰)
+// 새 메뉴를 추가할 때는 "실제로 만든 것"만 넣어주세요.
+// (비어 있는 항목이 보이면 사이트가 미완성으로 읽힙니다)
 const menuItems = [
-  { number: "01", label: "Home", href: "/" },
-  { number: "02", label: "Tarot", href: "/tarot" },
-  { number: "03", label: "Reading", href: "/tarot/reading" },
-  { number: "04", label: "Archive", href: "/tarot/astrology" },
-  { number: "05", label: "about", href: "/about" },
+  { number: "01", label: "Reading", href: "/tarot/reading" },
+  { number: "02", label: "Archive", href: "/archive" },
 ]
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -67,14 +68,14 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           </button>
         </div>
 
-        {/* 검색 — 누르면 전용 검색 화면(/search)으로 이동합니다 */}
+        {/* 검색 — Archive(카드 해설·리뷰) 안에서만 찾습니다. 리딩은 검색 대상이 아닙니다. */}
         <Link
           href="/search"
           onClick={onClose}
           className="mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5"
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="text-base text-muted-foreground/60">덱 이름, 대분류, 숫자, 제목으로 검색</span>
+          <span className="text-base text-muted-foreground/60">Archive에서 검색 — 덱, 대분류, 숫자, 제목</span>
         </Link>
 
         {/* 사이트맵 목록 — 홈 화면 메뉴와 같은 스타일 */}
@@ -97,8 +98,37 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           ))}
         </nav>
 
+        {/* MY · 로그인 — 사이트맵과 구분되는 "계정" 영역입니다.
+            ※ 지금은 로그인 기능이 없어서 항상 비로그인으로 보입니다.
+               인증을 붙이면 isLoggedIn 만 실제 세션 값으로 바꿔주세요. */}
+        <div className="mt-8 flex items-center gap-2">
+          <Link
+            href="/my"
+            onClick={onClose}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <User className="h-4 w-4" aria-hidden="true" />
+            MY
+          </Link>
+          <Link
+            href="/login"
+            onClick={onClose}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-ink py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <LogIn className="h-4 w-4" aria-hidden="true" />
+            로그인
+          </Link>
+        </div>
+
         {/* 하단 작은 링크 */}
-        <div className="mt-auto pb-10 pt-8">
+        <div className="mt-auto flex items-center gap-4 pb-10 pt-8">
+          <Link
+            href="/about"
+            onClick={onClose}
+            className="text-xs text-muted-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            about
+          </Link>
           <Link
             href="/privacy"
             onClick={onClose}

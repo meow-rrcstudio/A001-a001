@@ -1,19 +1,25 @@
 // components/page-header.tsx
-// 콘텐츠 페이지 상단 바 — 왼쪽 뒤로가기, 오른쪽 (공유) + 목록으로 통일했습니다.
-// 목록(≡) 버튼을 누르면 사이트맵 + 검색 메뉴(components/site-menu.tsx)가 열립니다.
+// 콘텐츠 페이지 상단 바 — 시안(Site Redesign) 기준으로 다시 만들었습니다.
+// 왼쪽 뒤로가기, 오른쪽 (공유) + 더보기(⋯). ⋯ 를 누르면 메뉴가 열립니다.
 // (사이트 로고 헤더는 components/header.tsx)
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
-// │ · 아이콘 크기 : h-7 w-7 (28px)
-// │ · 아이콘 색   : text-muted-foreground → 올리면 text-foreground
-// │ · 공유 버튼   : showShare 로 켜고 끕니다 (목록 버튼은 항상 표시)
+// │ · 라임 스크림 높이 : h-24 (96px — 시안 실측). 버튼 뒤에 깔리는 라임 그라데이션
+// │ · 버튼 크기        : h-11 w-11 (44px — 손가락 최소 터치 크기)
+// │ · 버튼 배경        : bg-background/70 — 라임 위에 뜨는 밝은 원
+// │ · 아이콘 크기      : h-5 w-5 (20px)
+// │ · 스티키 끄기      : 아래 sticky top-0 z-40 을 지우면 함께 스크롤됩니다
+// │ · 라임 끄기        : globals.css 의 --brand-lime 을 바꾸면 전체가 함께 바뀜
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Share, Menu } from "lucide-react"
+import { ArrowLeft, Share, MoreHorizontal } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
+
+const buttonClass =
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"
 
 export function PageHeader({
   backHref,
@@ -39,35 +45,37 @@ export function PageHeader({
   }
 
   return (
-    <div className={`flex items-center justify-between ${className}`}>
-      <Link
-        href={backHref}
-        className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-        aria-label="뒤로"
-      >
-        <ArrowLeft className="h-7 w-7" />
-      </Link>
+    <div className={`sticky top-0 z-40 ${className}`}>
+      {/* 라임 스크림 — 버튼 뒤에 깔려 위에서 아래로 투명해집니다 (시안의 96px 그라데이션).
+          fixed 로 두는 이유: 페이지마다 좌우 여백(px-5/px-6/px-8)이 달라서,
+          음수 마진으로 뚫으면 어떤 페이지에선 화면 밖으로 넘쳐 가로 스크롤이 생깁니다.
+          fixed + inset-x-0 은 항상 화면 폭에 정확히 맞습니다. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent"
+      />
 
-      <div className="flex items-center gap-4">
-        {showShare && (
+      <div className="relative flex items-center justify-between py-3">
+        <Link href={backHref} className={buttonClass} aria-label="뒤로">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+
+        <div className="flex items-center gap-2">
+          {showShare && (
+            <button type="button" onClick={handleShare} className={buttonClass} aria-label="공유">
+              <Share className="h-5 w-5" />
+            </button>
+          )}
+          {/* 더보기(⋯) — 메뉴 + 검색 + MY + 로그인 */}
           <button
             type="button"
-            onClick={handleShare}
-            className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="공유"
+            onClick={() => setMenuOpen(true)}
+            className={buttonClass}
+            aria-label="메뉴 열기"
           >
-            <Share className="h-7 w-7" />
+            <MoreHorizontal className="h-5 w-5" />
           </button>
-        )}
-        {/* 목록 — 사이트맵 + 검색 메뉴 열기 */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className="inline-flex w-fit shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="메뉴 열기"
-        >
-          <Menu className="h-7 w-7" />
-        </button>
+        </div>
       </div>
 
       <SiteMenu open={menuOpen} onClose={() => setMenuOpen(false)} />

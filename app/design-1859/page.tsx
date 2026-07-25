@@ -268,7 +268,7 @@ export default function DesignSystemPage() {
           <section id="board" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>8. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              /tarot/astrology 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
+              /archive 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
               노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
               대분류 컬럼은 좌우로 스크롤됩니다 (컬럼 폭 200px 고정).
             </p>

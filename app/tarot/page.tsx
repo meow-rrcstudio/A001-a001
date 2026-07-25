@@ -21,7 +21,7 @@ export default async function TarotListPage() {
       <PageBackground variant="aurora" />
       {/* 하단 여백은 광고 띠배너 래퍼(py-10)가 담당 — 40px 간격 유지 */}
       <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 pt-10 sm:px-8">
-        <PageHeader backHref="/tarot/reading" showShare className="mb-8" />
+        <PageHeader backHref="/archive" showShare className="mb-8" />
 
         <div className="mb-8">
           <h1 className="font-serif text-5xl italic tracking-tight text-foreground">Tarot</h1>
@@ -31,10 +31,10 @@ export default async function TarotListPage() {
 
           <div className="mt-6 flex gap-4">
             <Link
-              href="/tarot/astrology"
+              href="/archive"
               className="rounded-lg bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
             >
-              → Astrology
+              → 글 목록으로 보기
             </Link>
           </div>
         </div>
@@ -81,7 +81,7 @@ export default async function TarotListPage() {
         </Link>
       </div>
 
-      <Footer variant="light" />
+      <Footer variant="lime" />
     </div>
   )
 }
