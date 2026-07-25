@@ -49,6 +49,13 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
         // 제니마니 수정: 다크 브라운 배경(foreground)과 화이트 텍스트를 가진 원형 연결 버튼 스타일 추가
         connect: 'bg-foreground text-white hover:opacity-90 rounded-full shadow-xl transition-all duration-300 font-script',
+        // ── 시안(Site Redesign)의 알약 버튼 3종 ───────────────────────────
+        // solid : 검정 채움 — 로그인·주요 액션
+        // soft  : 연한 라임 채움 — 보조 액션 (이메일로 계속하기 등)
+        // hollow: 테두리만 — 배경 위에 얹는 보조 액션
+        solid: 'rounded-full bg-brand-ink text-white hover:opacity-90',
+        soft: 'rounded-full border border-brand-ink/25 bg-brand-lime-soft text-brand-ink hover:opacity-90',
+        hollow: 'rounded-full border border-border bg-transparent text-foreground hover:bg-muted',
       },
       size: {
         default:
@@ -56,6 +63,8 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: 'h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
+        // 알약 버튼 — 시안 실측 높이 48px. 가로 꽉 채우려면 w-full 을 함께 주세요.
+        pill: 'h-12 gap-2.5 px-8 text-sm',
         icon: 'size-8',
         'icon-xs':
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",

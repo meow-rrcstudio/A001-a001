@@ -17,9 +17,11 @@
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowUpRight, LogIn } from "lucide-react"
+import { LogIn } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Footer } from "@/components/footer"
+import { Button } from "@/components/ui/button"
+import { RowList, type RowItem } from "@/components/ui/row-list"
 
 export const metadata: Metadata = {
   title: "MY",
@@ -48,7 +50,7 @@ function getSession(isPreview: boolean): Session | null {
 }
 
 // 로그인 후 보일 메뉴 — 실제 페이지가 생기면 href 를 채워주세요.
-const myMenu = [
+const myMenu: RowItem[] = [
   { label: "내 타로 리딩 기록", desc: "지금까지 해석한 카드 내역 조회", href: "#" },
   { label: "저장한 배열", desc: "다시 보고 싶어 저장해둔 스프레드", href: "#" },
   { label: "회원권 · 행운 조각", desc: "리딩 크레딧 확인과 충전", href: "#" },
@@ -79,13 +81,10 @@ export default async function MyPage({
             내 리딩 기록과 저장한 배열은 로그인 후에 볼 수 있어요.
           </p>
 
-          <Link
-            href="/login"
-            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-ink px-8 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
+          <Button variant="solid" size="pill" className="mt-8" render={<Link href="/login" />}>
             <LogIn className="h-4 w-4" aria-hidden="true" />
             로그인하기
-          </Link>
+          </Button>
 
           <Link
             href="/tarot/reading"
@@ -148,21 +147,9 @@ export default async function MyPage({
           ))}
         </div>
 
-        <nav className="mt-10 flex flex-col">
-          {myMenu.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="group flex items-center justify-between border-t border-border py-4 last:border-b"
-            >
-              <span className="flex flex-col">
-                <span className="text-base font-medium text-foreground">{item.label}</span>
-                <span className="mt-0.5 text-sm text-muted-foreground">{item.desc}</span>
-              </span>
-              <ArrowUpRight className="h-5 w-5 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
-          ))}
-        </nav>
+        <div className="mt-10">
+          <RowList items={myMenu} variant="plain" />
+        </div>
       </main>
 
       <Footer variant="lime" />

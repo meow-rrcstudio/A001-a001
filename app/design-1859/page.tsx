@@ -11,7 +11,8 @@ import { Sparkle, Copy } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { MenuList } from "@/components/menu-list"
+import { RowList } from "@/components/ui/row-list"
+import { SITE, copyrightLine } from "@/lib/site"
 import { Wordmark } from "@/components/brand-mark"
 import { PixelSprite, BlinkingShanti } from "@/components/pixel-sprite"
 import { SHANTI_BASE, SHANTI_BLINK } from "@/lib/pixel-sprites"
@@ -63,7 +64,7 @@ const tocGroups: TocGroup[] = [
     label: "컴포넌트",
     items: [
       { id: "buttons", label: "5. 버튼 · 링크" },
-      { id: "menu", label: "6. 메뉴 리스트" },
+      { id: "menu", label: "6. 목록 행" },
       { id: "prose", label: "7. 블로그 본문" },
       { id: "chrome", label: "8. 헤더 · 푸터" },
       { id: "board", label: "9. 카드 아카이브" },
@@ -152,6 +153,18 @@ export default function DesignSystemPage() {
               상단바 스크림 — 라임에서 아래로 투명해집니다 (높이 96px)
             </p>
             <div className="mt-2 h-24 rounded-xl border border-border bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent" />
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              사이트 문구 — lib/site.ts 한 곳에서 관리합니다 (푸터·홈·메타데이터 공용)
+            </p>
+            <div className="mt-2 space-y-1 rounded-xl border border-border bg-card p-4 text-sm">
+              <p className="font-mono text-xs text-muted-foreground">SITE.displayUrl</p>
+              <p className="text-foreground">{SITE.star} {SITE.displayUrl} {SITE.star}</p>
+              <p className="pt-2 font-mono text-xs text-muted-foreground">SITE.tagline</p>
+              <p className="text-foreground">{SITE.tagline}</p>
+              <p className="pt-2 font-mono text-xs text-muted-foreground">copyrightLine()</p>
+              <p className="text-foreground">{copyrightLine()}</p>
+            </div>
 
             <p className="mt-4 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               라임을 끄고 예전 크림 룩으로 되돌리려면{" "}
@@ -263,7 +276,24 @@ export default function DesignSystemPage() {
           {/* ── 4. 버튼 & 링크 ────────────────────── */}
           <section id="buttons" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>5. 버튼 · 링크</h2>
-            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-6">
+            <p className="mt-1 text-sm text-muted-foreground">
+              모든 버튼은 components/ui/button.tsx 한 곳에서 정의됩니다. 페이지에서 직접
+              className 으로 버튼을 만들지 말고 여기 variant 를 쓰세요.
+            </p>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              시안의 알약 버튼 — variant=&quot;solid&quot; / &quot;soft&quot; / &quot;hollow&quot;, size=&quot;pill&quot;
+            </p>
+            <div className="mt-2 space-y-3 rounded-xl border border-border bg-brand-lime p-6">
+              <Button variant="solid" size="pill" className="w-full">Google로 계속하기</Button>
+              <Button variant="soft" size="pill" className="w-full">이메일로 계속하기</Button>
+              <Button variant="hollow" size="pill" className="w-full bg-card">78장 카드 그림으로 보기</Button>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              기본 버튼 모음 (폼·관리 화면용)
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-6">
               <Button>기본 버튼</Button>
               <Button variant="secondary">보조 버튼</Button>
               <Button variant="outline">테두리 버튼</Button>
@@ -287,38 +317,44 @@ export default function DesignSystemPage() {
 
           {/* ── 5. 메뉴 리스트 (홈 화면 스타일) ────── */}
           <section id="menu" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>6. 메뉴 리스트</h2>
+            <h2 className={h2Class}>6. 목록 행</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              홈 화면과 같은 공용 컴포넌트(components/menu-list.tsx)를 그대로 렌더링합니다. 그
-              파일을 고치면 홈과 여기가 함께 바뀝니다. desc(한 줄 설명)는 선택 항목이며,
-              active: false 로 두면 흐리게 표시되고 클릭이 막힙니다.
+              번호 + 이름(+설명·꼬리표) + 화살표 한 줄. 메뉴 패널과 MY 메뉴가 같은 공용
+              컴포넌트(components/ui/row-list.tsx)를 씁니다. 여기를 고치면 모든 목록이
+              함께 바뀝니다.
             </p>
-            <div className="mt-5">
-              <MenuList
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              variant=&quot;panel&quot; — 메뉴 오버레이용. ready:false 는 &quot;준비중&quot;으로 흐려집니다
+            </p>
+            <div className="mt-2 rounded-xl bg-brand-lime p-6">
+              <div className="mx-auto max-w-[260px]">
+                <RowList
+                  variant="panel"
+                  items={[
+                    { number: "00", label: "Home", href: "#" },
+                    { number: "01", label: "Mind", href: "#" },
+                    { number: "02", label: "Body", href: "#", ready: false },
+                    { number: "03", label: "Archiving", href: "#" },
+                    { number: "04", label: "Login", href: "#" },
+                    { number: "05", label: "Search", href: "#" },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              variant=&quot;plain&quot; — 본문 안 목록(MY 메뉴 등). 설명 줄을 붙일 수 있습니다
+            </p>
+            <div className="mt-2 rounded-xl border border-border bg-card px-6 py-2">
+              <RowList
+                variant="plain"
                 items={[
-                  {
-                    number: "01",
-                    label: "Reading",
-                    href: "#",
-                    desc: "카드를 뽑고 지금 상황을 읽어보기",
-                    active: true,
-                  },
-                  {
-                    number: "02",
-                    label: "Archive",
-                    href: "#",
-                    desc: "카드 한 장 한 장의 의미와 기록",
-                    active: true,
-                  },
-                  { number: "03", label: "준비 중인 메뉴", href: "#", active: false },
+                  { label: "내 타로 리딩 기록", desc: "지금까지 해석한 카드 내역 조회", href: "#" },
+                  { label: "회원권 · 행운 조각", desc: "리딩 크레딧 확인과 충전", href: "#" },
                 ]}
               />
             </div>
-            <p className="mt-3 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-              메뉴는 <strong className="font-semibold">실제로 만든 것만</strong> 넣습니다. 비어 있는
-              항목이 첫 화면에 보이면 사이트가 미완성으로 읽혀서, 예전의 Meditation·Yoga 항목은
-              콘텐츠가 생길 때까지 뺐습니다.
-            </p>
           </section>
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}

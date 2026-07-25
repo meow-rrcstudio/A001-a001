@@ -12,6 +12,7 @@
 import Image from "next/image"
 import { Footer } from "@/components/footer"
 import { Wordmark } from "@/components/brand-mark"
+import { SITE } from "@/lib/site"
 import { HomeMenuButton } from "@/components/home-menu-button"
 import { AdBand } from "@/components/ad-band"
 
@@ -25,8 +26,7 @@ export default function HomePage() {
         </h1>
 
         <p className="mx-auto mt-5 max-w-xs text-pretty text-center text-[15px] leading-relaxed text-brand-ink/80">
-          타로를 중심으로 마음과 몸, 여러가지 일상의 경험을 기록하고 연결하는 개인
-          아카이브입니다.
+{SITE.tagline}
         </p>
 
         {/* 햄버거 — 시안처럼 소개 아래 오른쪽 */}

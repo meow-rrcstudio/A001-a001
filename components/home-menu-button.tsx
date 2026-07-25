@@ -30,7 +30,7 @@ export function HomeMenuButton() {
       >
         <Menu className="h-7 w-7" />
       </button>
-      <SiteMenu open={open} onClose={() => setOpen(false)} anchorTop={anchorTop} />
+      <SiteMenu open={open} onClose={() => setOpen(false)} anchorTop={anchorTop} showHome={false} />
     </>
   )
 }
