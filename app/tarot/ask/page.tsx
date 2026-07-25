@@ -12,7 +12,8 @@
 //    연동할 때 그 파일의 두 함수만 실제 호출로 바꾸면 됩니다.
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
 import { SUGGESTED_QUESTIONS, buildMockReading, type ReadingResult } from "@/lib/mock-reading"
 import type { ReadingQuestion } from "@/lib/reading-content"
+import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
 
 // 자유 질문용 스프레드 — 시안의 6장 십자 배열
 const FREE_QUESTION: ReadingQuestion = {
@@ -39,17 +41,34 @@ const FREE_QUESTION: ReadingQuestion = {
 type Step = "ask" | "draw" | "result"
 
 export default function AskPage() {
+  const router = useRouter()
+  const [allowed, setAllowed] = useState(false)
   const [step, setStep] = useState<Step>("ask")
   const [question, setQuestion] = useState("")
   const [result, setResult] = useState<ReadingResult | null>(null)
   const [cards, setCards] = useState<PickedCard[]>([])
 
+  // 권한 확인 — 유료 회원이거나 체험이 남은 회원만 이 화면을 씁니다
+  useEffect(() => {
+    if (canUseInsiteReading(getEntitlement())) {
+      setAllowed(true)
+      return
+    }
+    const as = new URLSearchParams(window.location.search).get("as")
+    router.replace(as ? `/tarot/reading?as=${as}` : "/tarot/reading")
+  }, [router])
+
   function submit(text: string) {
     const q = text.trim()
     if (!q) return
     setQuestion(q)
+    // 체험으로 보는 경우 여기서 1회 차감합니다 (유료 회원은 차감 안 함)
+    consumeTrial()
     setStep("draw")
   }
+
+  // 권한 확인 전에는 빈 화면 (무료 화면으로 되돌아가는 중일 수 있음)
+  if (!allowed) return <div className="min-h-screen bg-background" />
 
   // ── 2) 카드 섞기 · 뽑기 ────────────────────────────────────────
   if (step === "draw") {

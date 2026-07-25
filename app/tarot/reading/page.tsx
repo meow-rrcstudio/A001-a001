@@ -10,18 +10,35 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowUpRight } from "lucide-react"
 import { readingTopics } from "@/lib/reading-topics"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { resetReadingDeck } from "@/lib/reading-session"
 import { PageHeader } from "@/components/page-header"
+import { canUseInsiteReading, getEntitlement } from "@/lib/reading-entitlement"
 
 export default function TarotReadingPage() {
+  const router = useRouter()
+  // 권한 확인 전에는 화면을 그리지 않습니다 (무료 화면이 잠깐 스쳤다 바뀌는 걸 방지)
+  const [checked, setChecked] = useState(false)
+
   useEffect(() => {
     resetReadingDeck()
-  }, [])
+
+    // 유료 회원이거나 체험이 남았으면 사이트 안에서 바로 해석하는 화면으로 보냅니다.
+    // 그 외(비회원 포함)는 이 화면 — 주제를 고르고 프롬프트를 받아가는 무료 흐름.
+    if (canUseInsiteReading(getEntitlement())) {
+      const as = new URLSearchParams(window.location.search).get("as")
+      router.replace(as ? `/tarot/ask?as=${as}` : "/tarot/ask")
+      return
+    }
+    setChecked(true)
+  }, [router])
+
+  if (!checked) return <div className="min-h-screen bg-background" />
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

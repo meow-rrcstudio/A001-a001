@@ -22,7 +22,7 @@ import { RowList, type RowItem } from "@/components/ui/row-list"
 
 // 마지막 줄은 로그인 여부에 따라 Login ↔ My 로 바뀝니다.
 const baseItems: RowItem[] = [
-  { number: "01", label: "Mind", href: "/tarot/ask" },
+  { number: "01", label: "Mind", href: "/tarot/reading" },
   { number: "02", label: "Body", href: "#", ready: false },
   { number: "03", label: "Archiving", href: "/archive" },
 ]
