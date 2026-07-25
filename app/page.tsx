@@ -13,6 +13,7 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { Footer } from "@/components/footer"
+import { Wordmark } from "@/components/brand-mark"
 import { MenuList, type MenuItem } from "@/components/menu-list"
 import { AdBand } from "@/components/ad-band"
 import { readingTopics } from "@/lib/reading-topics"
@@ -41,19 +42,17 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       {/* ── 1) 라임 히어로 ─────────────────────────────────────────
           배경색은 globals.css 의 --brand-lime 하나로 조절합니다. */}
+      {/* 시안(Main_메뉴)과 같은 구성 — 워드마크 가운데, 그 아래 소개 두 줄 */}
       <header className="bg-brand-lime">
-        <div className="mx-auto w-full max-w-2xl px-6 pb-14 pt-16 sm:px-8">
-          {/* TODO(자산): 시안의 손글씨 워드마크 이미지가 준비되면 이 h1 을 <Image> 로 교체 */}
-          <h1 className="font-serif text-6xl font-medium italic leading-[1.05] tracking-tight text-brand-ink sm:text-7xl">
-            Soul
-            <br />
-            Seoul
-            <br />
-            <span className="border-b-2 border-brand-ink/40">—Shanti</span>
+        <div className="mx-auto w-full max-w-2xl px-6 pb-14 pt-14 text-center sm:px-8">
+          <h1>
+            <Wordmark className="mx-auto h-12 sm:h-14" priority />
+            <span className="sr-only">Soul Seoul</span>
           </h1>
 
-          <p className="mt-7 max-w-md text-pretty leading-relaxed text-brand-ink/75">
-            타로를 중심으로 마음과 몸, 여러가지 일상의 경험을 기록하고 연결하는 개인 아카이브입니다.
+          <p className="mx-auto mt-6 max-w-sm text-pretty text-[15px] leading-relaxed text-brand-ink/80">
+            타로를 중심으로 마음과 몸, 여러가지 일상의 경험을
+            <br className="hidden sm:block" /> 기록하고 연결하는 개인 아카이브입니다.
           </p>
         </div>
       </header>

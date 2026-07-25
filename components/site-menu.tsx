@@ -5,7 +5,7 @@
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 메뉴 항목        : 아래 menuItems 배열 — 한 줄 추가하면 메뉴도 추가
 // │ · 항목 글자 크기   : text-3xl (모바일) / sm:text-4xl (PC)
-// │ · 배경             : bg-background (크림) — /95로 살짝 비치게 가능
+// │ · 배경             : bg-brand-lime (시안의 Main_메뉴 라임 전체화면)
 // │ · 검색 이동 위치   : Archive(/archive)의 검색으로 연결
 // └──────────────────────────────────────────────────────────────────
 "use client"
@@ -14,6 +14,7 @@ import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { ArrowUpRight, LogIn, Search, User, X } from "lucide-react"
+import { Wordmark } from "@/components/brand-mark"
 
 // 사이트맵 — 시안 기준 2축 구조입니다.
 //   Reading = 체험(타로 리딩) · Archive = 읽을거리(카드 해설·리뷰)
@@ -54,58 +55,65 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
   // 페이지 내부의 층(z-index) 구조에 갇히지 않아 플로팅 버튼 등
   // 어떤 요소보다도 항상 위에 뜹니다 (z-[100]).
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pt-8 sm:px-8 sm:pt-10">
-        {/* 닫기 버튼 */}
+    // 시안(Main_메뉴) 기준 — 라임 전체화면 + 흰 카드 행
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-brand-lime">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-8">
+        {/* 닫기 — 시안의 검정 사각 버튼 */}
         <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
             aria-label="메뉴 닫기"
-            className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex h-10 w-10 items-center justify-center bg-brand-ink text-white transition-opacity hover:opacity-80"
           >
-            <X className="h-7 w-7" />
+            <X className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* 워드마크 + 소개 */}
+        <div className="mt-2 text-center">
+          <Wordmark className="mx-auto h-11" />
+          <p className="mx-auto mt-5 max-w-xs text-pretty text-sm leading-relaxed text-brand-ink/80">
+            타로를 중심으로 마음과 몸, 여러가지 일상의 경험을 기록하고 연결하는 개인
+            아카이브입니다.
+          </p>
         </div>
 
         {/* 검색 — Archive(카드 해설·리뷰) 안에서만 찾습니다. 리딩은 검색 대상이 아닙니다. */}
         <Link
           href="/search"
           onClick={onClose}
-          className="mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5"
+          className="mt-8 flex items-center gap-2 rounded-full bg-background/80 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-background"
         >
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="text-base text-muted-foreground/60">Archive에서 검색 — 덱, 대분류, 숫자, 제목</span>
+          <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Archive에서 검색 — 덱, 대분류, 숫자, 제목
         </Link>
 
-        {/* 사이트맵 목록 — 홈 화면 메뉴와 같은 스타일 */}
-        <nav className="mt-8 flex flex-col">
-          {menuItems.map((item) => (
+        {/* 사이트맵 — 시안의 흰 카드 행 (번호 + 이름 + ↗) */}
+        <nav className="mt-3 overflow-hidden rounded-xl bg-background">
+          {menuItems.map((item, i) => (
             <Link
               key={item.label}
               href={item.href}
               onClick={onClose}
-              className="group flex items-center justify-between border-t border-border py-4 last:border-b"
+              className={`group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/60 ${
+                i > 0 ? "border-t border-border" : ""
+              }`}
             >
-              <span className="flex items-baseline gap-4">
-                <span className="text-xs text-primary">{item.number}</span>
-                <span className="font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
-                  {item.label}
-                </span>
-              </span>
-              <ArrowUpRight className="h-5 w-5 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <span className="w-5 shrink-0 text-xs text-muted-foreground">{item.number}</span>
+              <span className="flex-1 text-lg text-foreground">{item.label}</span>
+              <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           ))}
         </nav>
 
         {/* MY · 로그인 — 사이트맵과 구분되는 "계정" 영역입니다.
-            ※ 지금은 로그인 기능이 없어서 항상 비로그인으로 보입니다.
-               인증을 붙이면 isLoggedIn 만 실제 세션 값으로 바꿔주세요. */}
-        <div className="mt-8 flex items-center gap-2">
+            ※ 지금은 로그인 기능이 없어서 항상 비로그인으로 보입니다. */}
+        <div className="mt-3 flex items-center gap-2">
           <Link
             href="/my"
             onClick={onClose}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-background/80 py-3 text-sm font-medium text-foreground transition-colors hover:bg-background"
           >
             <User className="h-4 w-4" aria-hidden="true" />
             MY
@@ -120,22 +128,27 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           </Link>
         </div>
 
-        {/* 하단 작은 링크 */}
-        <div className="mt-auto flex items-center gap-4 pb-10 pt-8">
-          <Link
-            href="/about"
-            onClick={onClose}
-            className="text-xs text-muted-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            about
-          </Link>
-          <Link
-            href="/privacy"
-            onClick={onClose}
-            className="text-xs text-muted-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            privacy statement
-          </Link>
+        {/* 하단 — 시안 푸터와 같은 ✳ URL ✳ + 링크 */}
+        <div className="mt-auto pt-10 text-center">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.15em] text-brand-ink/80">
+            ✳ www.soulseoul.xyz ✳
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-4">
+            <Link
+              href="/about"
+              onClick={onClose}
+              className="text-xs text-brand-ink/70 underline underline-offset-4 transition-opacity hover:opacity-70"
+            >
+              about
+            </Link>
+            <Link
+              href="/privacy"
+              onClick={onClose}
+              className="text-xs text-brand-ink/70 underline underline-offset-4 transition-opacity hover:opacity-70"
+            >
+              privacy statement
+            </Link>
+          </div>
         </div>
       </div>
     </div>,

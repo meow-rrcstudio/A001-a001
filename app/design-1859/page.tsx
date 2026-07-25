@@ -12,6 +12,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { MenuList } from "@/components/menu-list"
+import { Wordmark, ShantiMark } from "@/components/brand-mark"
 import { PageHeader } from "@/components/page-header"
 import { ArchiveDeckSection } from "@/components/card-archive-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
@@ -122,6 +123,26 @@ export default function DesignSystemPage() {
               {brandTokens.map((t) => (
                 <TokenSwatch key={t.varName} {...t} />
               ))}
+            </div>
+
+            {/* 브랜드 마크 — 시안 PDF에서 벡터를 추출해 만든 이미지 자산 */}
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              브랜드 마크 (components/brand-mark.tsx) — 시안 PDF에서 추출한 검정 단색 이미지라
+              라임 위·크림 위 어디든 그대로 얹힙니다. 크기는 높이(h-*)만 주면 가로가 따라옵니다.
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-brand-lime p-6">
+                <Wordmark className="h-10" />
+                <span className="font-mono text-[11px] text-brand-ink/60">
+                  &lt;Wordmark /&gt; · /wordmark.png
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
+                <ShantiMark className="h-10" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;ShantiMark /&gt; · /shanti-mark.png
+                </span>
+              </div>
             </div>
 
             {/* 상단바 스크림 견본 — 실제로 페이지 위에 깔리는 그라데이션 */}

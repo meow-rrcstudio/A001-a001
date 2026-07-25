@@ -17,6 +17,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { Wordmark } from "@/components/brand-mark"
 
 export const metadata: Metadata = {
   title: "로그인",
@@ -42,11 +43,12 @@ export default function LoginPage() {
       </div>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
-        {/* TODO(자산): 시안의 손글씨 워드마크 + UFO·고양이 일러스트가 준비되면 교체 */}
-        <h1 className="text-center font-serif text-5xl font-medium italic tracking-tight">
-          Soul Seoul
+        {/* TODO(자산): 시안의 UFO·고양이 일러스트는 아직 미적용 (워드마크만 반영) */}
+        <h1>
+          <Wordmark className="mx-auto h-12" priority />
+          <span className="sr-only">Soul Seoul</span>
         </h1>
-        <p className="mt-4 text-center text-sm leading-relaxed text-brand-ink/75">
+        <p className="mt-6 text-center text-sm leading-relaxed text-brand-ink/75">
           리딩 기록을 저장하고 샨티와 이어서 이야기하려면
           <br />
           로그인이 필요해요.

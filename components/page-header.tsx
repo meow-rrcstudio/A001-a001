@@ -17,6 +17,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Share, MoreHorizontal } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
+import { ShantiMark } from "@/components/brand-mark"
 
 const buttonClass =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"
@@ -65,6 +66,11 @@ export function PageHeader({
       <div className="relative flex items-center justify-between py-3">
         <Link href={backHref} className={buttonClass} aria-label="뒤로">
           <ArrowLeft className="h-5 w-5" />
+        </Link>
+
+        {/* 가운데 샨티 마크 — 시안의 상단바 구성 (뒤로 · 마크 · 더보기) */}
+        <Link href="/" aria-label="홈으로" className="transition-opacity hover:opacity-70">
+          <ShantiMark className="h-5" />
         </Link>
 
         <div className="flex items-center gap-2">
