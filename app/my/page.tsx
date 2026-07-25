@@ -159,7 +159,7 @@ export default async function MyPage({
                 <span className="text-base font-medium text-foreground">{item.label}</span>
                 <span className="mt-0.5 text-sm text-muted-foreground">{item.desc}</span>
               </span>
-              <ArrowUpRight className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-5 w-5 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           ))}
         </nav>

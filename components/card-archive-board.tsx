@@ -9,7 +9,7 @@
 // │ · 패널 바탕        : bg-muted/50 → /70이면 더 진하게
 // │ · 뱃지 색          : badgeColors 배열 — 컬럼 순서대로 번갈아 사용
 // │ · 목록 행 높이     : py-2 (위아래 8px)
-// │ · 번호 색          : text-primary/75 (옅은 테라코타 — 시안 #e09278)
+// │ · 번호 색          : text-muted-foreground (옅은 테라코타 — 시안 #e09278)
 // │ · 좌우 스크롤      : 패널 상자(제목·컬럼)가 통째로 스크롤
 // │                      시작·끝 여백 16px(px-4) + 상자 안 여백 8px(px-2)
 // │ · 더 불러오기 버튼 : 스크롤 안 따라가고 화면에 고정 (좌우 16+8px)
@@ -107,7 +107,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
               className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                 activeDeck === chip.key
                   ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-primary hover:bg-secondary/70"
+                  : "bg-secondary text-foreground hover:bg-secondary/70"
               }`}
             >
               {chip.label}
@@ -197,7 +197,7 @@ export function ArchiveDeckSection({
                       className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 transition-colors hover:bg-secondary/60"
                     >
                       {/* 번호 — 시안 실측 #e09278: 테라코타를 75%로 옅게 */}
-                      <span className="w-4 shrink-0 font-mono text-xs text-primary/75">{card.number}</span>
+                      <span className="w-4 shrink-0 font-mono text-xs text-muted-foreground">{card.number}</span>
                       <span className="truncate text-[13px] text-foreground">{card.title}</span>
                     </Link>
                   ))}

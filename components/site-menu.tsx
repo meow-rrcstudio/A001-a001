@@ -13,6 +13,7 @@
 import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowUpRight, LogIn, Search, User, X } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
 
@@ -79,11 +80,23 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           </p>
         </div>
 
+        {/* 시안의 돌 사진 — 흰 카드 안에 넣어 라임 위에 얹습니다 */}
+        <div className="mt-6 overflow-hidden rounded-xl bg-white">
+          <Image
+            src="/menu-stone.jpg"
+            alt=""
+            aria-hidden="true"
+            width={900}
+            height={1181}
+            className="h-auto w-full"
+          />
+        </div>
+
         {/* 검색 — Archive(카드 해설·리뷰) 안에서만 찾습니다. 리딩은 검색 대상이 아닙니다. */}
         <Link
           href="/search"
           onClick={onClose}
-          className="mt-8 flex items-center gap-2 rounded-full bg-background/80 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-background"
+          className="mt-3 flex items-center gap-2 rounded-full bg-background/80 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-background"
         >
           <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
           Archive에서 검색 — 덱, 대분류, 숫자, 제목

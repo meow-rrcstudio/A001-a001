@@ -35,7 +35,7 @@ export default function TarotReadingPage() {
                 <span className="w-6 text-xs text-muted-foreground">{topic.number}</span>
                 <span className="font-script text-5xl leading-none sm:text-6xl">{topic.enLabel}</span>
               </span>
-              <ArrowUpRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-6 w-6 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           ))}
         </nav>

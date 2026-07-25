@@ -70,47 +70,51 @@
    여기 값을 바꾸면 사이트의 모든 페이지에 동시에 적용됩니다.
    견본 확인: /design-1859 (비공개 스타일가이드 페이지)
 
-   ─ 색상 값 읽는 법: oklch(밝기 채도 색상각)
-     · 밝기   : 0(검정) ~ 1(흰색).  숫자를 키우면 밝아짐
-     · 채도   : 0(무채색) ~ 0.3쯤(쨍함).  숫자를 키우면 선명해짐
-     · 색상각 : 색상환 각도. 38≈테라코타 주황, 55≈브라운, 92≈크림 베이지
+   아래 값은 전부 리디자인 시안(Soul Seoul – Site Redesign)에서 픽셀 단위로
+   실측한 색입니다. 시안과 대조하기 쉽도록 HEX 로 적어두었습니다.
 
-   ─ 자주 하는 조절 예시
-     · 포인트색을 연하게  : --primary 의 0.56 → 0.62 (밝기만 올리기)
-     · 포인트색을 차분하게: --primary 의 0.17 → 0.12 (채도만 내리기)
-     · 배경을 더 하얗게   : --background 의 0.958 → 0.98
-     · 전체 모서리 둥글게 : --radius 0.375rem → 0.75rem (버튼·카드 전부 적용)
+   ─ 색을 바꾸고 싶을 때
+     · 시그니처를 다른 색으로 : --brand-lime 을 바꾸면 상단바·푸터·메뉴가 함께 바뀜
+     · 강조(화살표·링크)      : --accent
+     · 채움 버튼·선택된 칩    : --primary
+     · 배경을 더 하얗게       : --background 를 #ffffff 로
+     · 전체 모서리 둥글게     : --radius 를 키우면 버튼·카드 전부 적용
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* Soul Seoul 시안 기반 라이트(크림) 테마 — Site design.pdf 참조 */
   color-scheme: light;
-  --background: oklch(0.958 0.012 92);          /* 사이트 전체 배경 — 크림/아이보리 종이 */
-  --foreground: oklch(0.31 0.03 55);            /* 기본 글자색 — 다크 브라운 잉크 */
-  --card: oklch(0.975 0.009 92);                /* 카드·상자 배경 — 배경보다 살짝 밝음 */
-  --card-foreground: oklch(0.31 0.03 55);       /* 카드 안 글자색 */
-  --popover: oklch(0.975 0.009 92);             /* 팝업·드롭다운 배경 */
-  --popover-foreground: oklch(0.31 0.03 55);    /* 팝업 안 글자색 */
-  --primary: oklch(0.56 0.17 38);               /* ★ 포인트색 — 테라코타 오렌지. 버튼·링크·강조 전부 */
-  --primary-foreground: oklch(0.975 0.009 92);  /* 포인트색 버튼 위의 글자색 (밝은 크림) */
-  --secondary: oklch(0.92 0.015 90);            /* 보조 버튼 배경 — 연한 베이지 */
-  --secondary-foreground: oklch(0.31 0.03 55);  /* 보조 버튼 글자색 */
-  --muted: oklch(0.92 0.015 90);                /* 옅은 배경 — 인용문·코드블록 바탕 */
-  --muted-foreground: oklch(0.5 0.025 60);      /* 보조 글자색 — 설명·날짜 등 (웜 그레이 브라운) */
-  --accent: oklch(0.56 0.17 38);                /* 호버 강조색 — 포인트와 같은 테라코타로 통일 */
-  --accent-foreground: oklch(0.975 0.009 92);   /* 강조 위 글자색 */
-  --destructive: oklch(0.55 0.19 25);           /* 경고·삭제 — 붉은 톤 */
-  --border: oklch(0.31 0.03 55 / 14%);          /* 구분선 — 글자색의 14% 투명도. %를 올리면 선이 진해짐 */
-  --input: oklch(0.31 0.03 55 / 16%);           /* 입력창 테두리 */
-  --ring: oklch(0.56 0.17 38 / 60%);            /* 키보드 포커스 테두리 (접근성) */
-  --radius: 0.375rem;                           /* ★ 모서리 둥글기 기준값 (6px, 기존 12px의 절반). 버튼·카드 전체에 적용 */
 
-  /* ── 브랜드 크롬 색 (Soul Seoul 리디자인 시안 실측값) ──────────────
-     "크롬"은 상단바·푸터·로그인처럼 콘텐츠를 감싸는 틀을 말합니다.
-     본문(글·카드)은 위의 크림 팔레트를 그대로 쓰고, 틀만 라임으로 칠합니다.
-     → 라임을 끄고 싶으면 --brand-lime 을 var(--background) 로 바꾸면 됩니다. */
-  --brand-lime: #c7fe74;        /* ★ 시그니처 라임 — 상단바·푸터·로그인 배경 */
-  --brand-lime-soft: #eefed5;   /* 라임이 흰색으로 흐려지는 중간색 (그라데이션용) */
-  --brand-ink: #333333;         /* 라임 위 글자색 — 검정보다 살짝 부드러움 */
+  /* ── 바탕과 글자 ────────────────────────────────────────────── */
+  --background: #faf9f5;        /* 사이트 전체 배경 — 아주 옅은 웜 화이트 */
+  --foreground: #1c1c1e;        /* 기본 글자색 — 애플 시스템 잉크(순검정보다 부드러움) */
+  --card: #ffffff;              /* 카드·패널 배경 — 순백 (배경 위에 떠 보이게) */
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --muted: #f1f0ec;             /* 옅은 바탕 — 인용문·코드블록·비활성 영역 */
+  --muted-foreground: #666666;  /* 보조 글자색 — 설명·날짜 (중립 회색) */
+
+  /* ── 강조 ──────────────────────────────────────────────────── */
+  --primary: #1c1c1e;           /* ★ 채움 버튼·선택된 칩 — 시안의 검정 알약 버튼 */
+  --primary-foreground: #ffffff;
+  --accent: #3acc00;            /* ★ 강조 — 화살표(↗)·링크. 시안의 비비드 그린 */
+  --accent-foreground: #ffffff;
+  --secondary: #eeffd5;         /* 보조 배경 — 연한 라임 (선택 안 된 칩 등) */
+  --secondary-foreground: #1c1c1e;
+  --destructive: #d92d20;       /* 경고·삭제 */
+
+  /* ── 선과 테두리 ───────────────────────────────────────────── */
+  --border: #ededed;            /* 구분선·카드 테두리 */
+  --input: #dfdfdf;             /* 입력창 테두리 (구분선보다 살짝 진하게) */
+  --ring: #3acc00;              /* 키보드 포커스 테두리 (접근성) */
+
+  --radius: 0.75rem;            /* ★ 모서리 둥글기 기준값 (12px) — 시안의 둥근 카드·칩 */
+
+  /* ── 브랜드 크롬 ───────────────────────────────────────────────
+     "크롬"은 상단바·푸터·로그인처럼 콘텐츠를 감싸는 틀입니다.
+     → 라임을 끄고 싶으면 --brand-lime 을 var(--background) 로 바꾸세요. */
+  --brand-lime: #c7fe74;        /* ★ 시그니처 라임 */
+  --brand-lime-soft: #eeffd5;   /* 라임이 흰색으로 흐려지는 중간색 (그라데이션용) */
+  --brand-ink: #1c1c1e;         /* 라임 위 글자색 */
 }
 
 .dark {
@@ -184,7 +188,7 @@
   .prose-blog strong, .prose-blog b { @apply font-bold text-foreground; }
 
   .prose-blog a {
-    @apply font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/80;
+    @apply font-medium text-accent underline underline-offset-4 transition-colors hover:text-accent/80;
   }
 
   /* 이미지 선명도 강제 설정 */
@@ -195,7 +199,7 @@
   }
 
   .prose-blog blockquote {
-    @apply border-l-4 border-primary/50 pl-4 italic text-muted-foreground bg-muted/30 py-2;
+    @apply border-l-4 border-accent/50 pl-4 italic text-muted-foreground bg-muted/30 py-2;
   }
 
   .prose-blog code {
@@ -212,31 +216,11 @@
 @keyframes drift-b { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-50px, -40px) scale(1.15); } }
 @keyframes drift-c { 0%, 100% { transform: translate(0, 0) scale(1); } 40% { transform: translate(30px, -50px) scale(1.05); } 70% { transform: translate(-20px, 30px) scale(0.9); } }
 
-.tarot-detail-light {
-  color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0 0);
-  --primary: oklch(0.55 0.13 88);
-  --muted-foreground: oklch(0.45 0 0);
-  /* ... (기타 상세 색상 유지) */
-}
+/* 페이지별 색 오버라이드는 더 이상 없습니다.
+   예전에는 /archive 와 글 상세가 각자 다른 팔레트를 덮어쓰고 있었는데,
+   위의 :root 가 시안 실측값으로 바뀌면서 필요가 없어져 삭제했습니다.
+   특정 페이지만 다른 색을 쓰고 싶다면 여기 클래스를 만들어 변수만 덮어쓰세요. */
 
-/* 카드 아카이브(/tarot/astrology) 전용 밝은 테마 — blogpostlist 시안에서 실측한 색상값.
-   사이트 공통 크림 테마는 그대로 두고 이 페이지에서만 덮어씁니다. */
-.archive-light {
-  color-scheme: light;
-  --background: #ffffff;          /* 페이지 배경 — 순백 */
-  --foreground: #4e2c2c;          /* 글자색 — 시안의 다크 레드브라운 */
-  --card: #ffffff;                /* 카드 행·검색창 배경 */
-  --card-foreground: #4e2c2c;
-  --primary: #d97757;             /* 포인트 테라코타 — 선택된 칩, ✳ */
-  --primary-foreground: #ffffff;  /* 선택된 칩의 글자 */
-  --secondary: #f5ede8;           /* 선택 안 된 칩 배경 */
-  --secondary-foreground: #4e2c2c;
-  --muted: #f5f1ef;               /* 패널 바탕 — bg-muted/50으로 흰 배경과 반씩 섞여 시안의 #faf8f7이 됩니다 */
-  --muted-foreground: #666666;    /* 설명 글·아이콘 */
-  --border: #e8e6dc;              /* 행 테두리 */
-}
 /* v0 플로팅 배너 및 관련 요소를 완전히 숨김 */
 [id^="v0-built-with-button-"],
 div[style*="position: fixed"][style*="bottom: 24px"][style*="background: #121212"],

@@ -38,14 +38,14 @@ export function MenuList({ items }: { items: MenuItem[] }) {
             }`}
         >
           <span className="flex items-baseline gap-4">
-            <span className="text-xs text-primary">{item.number}</span>
+            <span className="text-xs text-muted-foreground">{item.number}</span>
             <span className="flex flex-col">
               <span className="text-4xl font-bold tracking-tight sm:text-5xl">{item.label}</span>
               {item.desc && <span className="mt-1 text-sm text-muted-foreground">{item.desc}</span>}
             </span>
           </span>
           {item.active && (
-            <ArrowUpRight className="h-6 w-6 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            <ArrowUpRight className="h-6 w-6 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           )}
         </Link>
       ))}

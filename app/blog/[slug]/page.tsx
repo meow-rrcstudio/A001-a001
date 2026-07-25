@@ -107,7 +107,7 @@ export default async function BlogPostPage({
   }
 
   return (
-    <div className="tarot-detail-light">
+    <div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

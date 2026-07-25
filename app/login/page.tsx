@@ -16,6 +16,7 @@
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
 
@@ -42,19 +43,31 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
-        {/* TODO(자산): 시안의 UFO·고양이 일러스트는 아직 미적용 (워드마크만 반영) */}
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-6">
         <h1>
           <Wordmark className="mx-auto h-12" priority />
           <span className="sr-only">Soul Seoul</span>
         </h1>
-        <p className="mt-6 text-center text-sm leading-relaxed text-brand-ink/75">
+
+        {/* 시안의 UFO·고양이 일러스트. 배경이 라임으로 이미 칠해져 있어
+            이 화면(라임 배경)에 그대로 얹힙니다. */}
+        <Image
+          src="/login-cat.webp"
+          alt=""
+          aria-hidden="true"
+          width={720}
+          height={1560}
+          priority
+          className="mx-auto mt-2 h-auto w-[62%] max-w-[240px]"
+        />
+
+        <p className="mt-2 text-center text-sm leading-relaxed text-brand-ink/75">
           리딩 기록을 저장하고 샨티와 이어서 이야기하려면
           <br />
           로그인이 필요해요.
         </p>
 
-        <div className="mt-12 space-y-3">
+        <div className="mt-8 space-y-3">
           {/* ⚠️ 아직 동작하지 않는 버튼입니다 — 인증 연결 전까지 안내만 표시합니다 */}
           <button type="button" disabled className={`${buttonBase} bg-brand-ink text-white opacity-60`}>
             Google로 계속하기
@@ -76,7 +89,7 @@ export default function LoginPage() {
 
         <Link
           href="/tarot/reading"
-          className="mt-10 text-center text-sm underline underline-offset-4 transition-opacity hover:opacity-70"
+          className="mt-8 text-center text-sm underline underline-offset-4 transition-opacity hover:opacity-70"
         >
           로그인 없이 리딩 먼저 해보기 →
         </Link>

@@ -73,7 +73,7 @@ export default function HomePage() {
               <Link
                 key={topic.slug}
                 href={`/tarot/reading/${topic.slug}`}
-                className="group flex items-center justify-between rounded-xl border border-border px-4 py-3.5 transition-colors hover:border-primary/40 hover:bg-muted/60"
+                className="group flex items-center justify-between rounded-xl border border-border px-4 py-3.5 transition-colors hover:border-accent/50 hover:bg-muted/60"
               >
                 <span className="flex flex-col">
                   <span className="font-script text-2xl leading-none text-foreground">
@@ -81,7 +81,7 @@ export default function HomePage() {
                   </span>
                   <span className="text-xs text-muted-foreground">{topic.label}</span>
                 </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
             ))}
           </div>

@@ -31,8 +31,7 @@ export default async function ArchivePage() {
   const decks = buildCardArchive(posts)
 
   return (
-    // archive-light: 이 페이지에서만 시안(blogpostlist) 실측 색상으로 덮어씀 (globals.css 하단)
-    <div className="archive-light flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
         <CardArchiveBoard decks={decks} />
 
