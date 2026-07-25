@@ -49,16 +49,16 @@ export default function LoginPage() {
           <span className="sr-only">Soul Seoul</span>
         </h1>
 
-        {/* 시안의 UFO·고양이 일러스트. 배경이 라임으로 이미 칠해져 있어
-            이 화면(라임 배경)에 그대로 얹힙니다. */}
+        {/* UFO·고양이 일러스트 (전달받은 원본 PNG 기반).
+            배경이 투명해서 라임 위에 그대로 얹힙니다. */}
         <Image
           src="/login-cat.webp"
           alt=""
           aria-hidden="true"
-          width={720}
-          height={1560}
+          width={560}
+          height={793}
           priority
-          className="mx-auto mt-2 h-auto w-[62%] max-w-[240px]"
+          className="mx-auto mt-3 h-auto w-[68%] max-w-[260px]"
         />
 
         <p className="mt-2 text-center text-sm leading-relaxed text-brand-ink/75">
@@ -99,14 +99,18 @@ export default function LoginPage() {
         <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-ink/70">
           ✳ www.soulseoul.xyz ✳
         </p>
-        <div className="mt-3 flex items-center justify-center gap-4">
-          <Link href="/about" className="text-xs text-brand-ink/70 underline underline-offset-4">
-            about
+        <p className="mt-2 text-xs text-brand-ink/70">
+          ©{new Date().getFullYear()} Meow RRC Studio. Soulseoul Archive. All Rights Reserved.
+        </p>
+        <p className="mt-1.5 text-xs text-brand-ink/70">
+          <Link href="/about" className="underline underline-offset-4 hover:text-brand-ink">
+            About
           </Link>
-          <Link href="/privacy" className="text-xs text-brand-ink/70 underline underline-offset-4">
-            privacy statement
+          <span className="px-1">and</span>
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-brand-ink">
+            Privacy Policy
           </Link>
-        </div>
+        </p>
       </footer>
     </div>
   )

@@ -86,6 +86,7 @@ export function SiteMenu({
     isLoggedIn
       ? { number: "04", label: "My", href: "/my" }
       : { number: "04", label: "Login", href: "/login" },
+    { number: "05", label: "Search", href: "/search" },
   ]
 
   // createPortal: 메뉴를 페이지 구조 밖(문서 최상위)에 그립니다.
