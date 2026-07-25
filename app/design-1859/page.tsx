@@ -4,7 +4,7 @@
 // 여기 보이는 모든 색·글꼴·모양은 app/globals.css 의 변수를 그대로 쓰므로,
 // globals.css 를 수정하면 실제 사이트와 이 페이지가 함께 바뀝니다.
 //
-// 구성: 파운데이션(1~3) → 컴포넌트(4~10). 오른쪽 목차(toc.tsx)로 점프할 수 있습니다.
+// 구성: 파운데이션(1~4) → 컴포넌트(5~12). 오른쪽 목차(toc.tsx)로 점프할 수 있습니다.
 // 섹션을 추가할 때: <section id="..."> 를 만들고 아래 tocGroups 에도 같은 id를 추가하세요.
 import type { Metadata } from "next"
 import { Sparkle, Copy } from "lucide-react"
@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 }
 
+// 본문 색 — 글·카드처럼 "읽는 영역"에 쓰는 색입니다.
 const colorTokens = [
   { varName: "--background", label: "배경", description: "사이트 전체 바탕. 크림/아이보리 종이 느낌." },
   { varName: "--foreground", label: "글자색", description: "본문 기본 글자. 다크 브라운 잉크." },
@@ -36,27 +37,36 @@ const colorTokens = [
   { varName: "--destructive", label: "경고색", description: "삭제·오류 등 위험 동작." },
 ]
 
+// 크롬 색 — 상단바·푸터·로그인처럼 "콘텐츠를 감싸는 틀"에만 쓰는 색입니다.
+// 본문 색과 분리해 둔 이유: 라임을 켜고 꺼도 글 읽는 화면은 그대로 유지하기 위해서입니다.
+const brandTokens = [
+  { varName: "--brand-lime", label: "시그니처 라임", description: "상단바·푸터·로그인 배경. 리디자인 시안 실측값." },
+  { varName: "--brand-lime-soft", label: "라임 흐림", description: "라임이 흰색으로 옅어지는 중간색. 그라데이션용." },
+  { varName: "--brand-ink", label: "크롬 글자색", description: "라임 위 글자. 순검정보다 살짝 부드럽습니다." },
+]
+
 // 오른쪽 목차 — 섹션 id와 짝을 이룹니다.
 const tocGroups: TocGroup[] = [
   {
     label: "파운데이션",
     items: [
       { id: "colors", label: "1. 색상" },
-      { id: "typography", label: "2. 타이포그래피" },
-      { id: "radius", label: "3. 모서리 둥글기" },
+      { id: "brand", label: "2. 브랜드 크롬" },
+      { id: "typography", label: "3. 타이포그래피" },
+      { id: "radius", label: "4. 모서리 둥글기" },
     ],
   },
   {
     label: "컴포넌트",
     items: [
-      { id: "buttons", label: "4. 버튼 · 링크" },
-      { id: "menu", label: "5. 메뉴 리스트" },
-      { id: "prose", label: "6. 블로그 본문" },
-      { id: "chrome", label: "7. 헤더 · 푸터" },
-      { id: "board", label: "8. 카드 아카이브" },
-      { id: "cards", label: "9. 타로 카드" },
-      { id: "spreads", label: "10. 카드 스프레드" },
-      { id: "backgrounds", label: "11. 배경" },
+      { id: "buttons", label: "5. 버튼 · 링크" },
+      { id: "menu", label: "6. 메뉴 리스트" },
+      { id: "prose", label: "7. 블로그 본문" },
+      { id: "chrome", label: "8. 헤더 · 푸터" },
+      { id: "board", label: "9. 카드 아카이브" },
+      { id: "cards", label: "10. 타로 카드" },
+      { id: "spreads", label: "11. 카드 스프레드" },
+      { id: "backgrounds", label: "12. 배경" },
     ],
   },
 ]
@@ -100,16 +110,54 @@ export default function DesignSystemPage() {
             </div>
           </section>
 
-          {/* ── 2. 타이포그래피 ───────────────────── */}
+          {/* ── 2. 브랜드 크롬 ─────────────────────── */}
+          <section id="brand" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>2. 브랜드 크롬</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              &ldquo;크롬&rdquo;은 상단바·푸터·로그인처럼 콘텐츠를 감싸는 틀을 말합니다. 리디자인
+              시안의 라임은 이 틀에만 칠하고, 글을 읽는 본문 영역은 위의 크림 팔레트를 그대로
+              씁니다. 덕분에 라임을 바꾸거나 꺼도 본문 가독성은 영향을 받지 않습니다.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {brandTokens.map((t) => (
+                <TokenSwatch key={t.varName} {...t} />
+              ))}
+            </div>
+
+            {/* 상단바 스크림 견본 — 실제로 페이지 위에 깔리는 그라데이션 */}
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              상단바 스크림 — 라임에서 아래로 투명해집니다 (높이 96px)
+            </p>
+            <div className="mt-2 h-24 rounded-xl border border-border bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent" />
+
+            <p className="mt-4 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+              라임을 끄고 예전 크림 룩으로 되돌리려면{" "}
+              <code className="rounded bg-background px-1 py-0.5 font-mono">app/globals.css</code> 의{" "}
+              <code className="rounded bg-background px-1 py-0.5 font-mono">--brand-lime</code> 값을{" "}
+              <code className="rounded bg-background px-1 py-0.5 font-mono">var(--background)</code> 로
+              바꾸면 됩니다. 사이트 전체가 한 번에 바뀝니다.
+            </p>
+          </section>
+
+          {/* ── 3. 타이포그래피 ───────────────────── */}
           <section id="typography" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>2. 타이포그래피</h2>
+            <h2 className={h2Class}>3. 타이포그래피</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              글꼴은 두 가지만 씁니다. 제목은 세리프(Instrument Serif) 이탤릭, 본문은
+              한글 Pretendard · 영문 Geist. 지정은 app/globals.css 의 --font-sans / --font-serif.
+            </p>
             <div className="mt-5 space-y-6 rounded-xl border border-border bg-card p-6">
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  제목 (세리프 · 이탤릭 · main)
+                  워드마크 · 큰 제목 (세리프 · 이탤릭 · Instrument Serif)
                 </p>
                 <p className="font-serif text-5xl font-medium italic tracking-tight text-foreground">
                   SoulSeoul
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  ※ 리디자인 시안의 손글씨 워드마크는 아직 적용 전입니다. 시안 PDF의 글꼴이
+                  아웃라인으로 심겨 있어 폰트를 특정할 수 없어서, 로고를 SVG/PNG로 받으면
+                  이 자리를 이미지로 교체합니다.
                 </p>
               </div>
               <div>
@@ -122,12 +170,26 @@ export default function DesignSystemPage() {
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  본문 (산세리프 · Geist)
+                  메뉴 이름 (세리프 · 이탤릭 · 4xl~5xl)
+                </p>
+                <p className="font-serif text-4xl italic tracking-tight text-foreground sm:text-5xl">
+                  Reading
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
+                  본문 (한글 Pretendard · 영문 Geist)
                 </p>
                 <p className="max-w-lg leading-relaxed text-muted-foreground">
                   본문 글자는 이 정도 크기와 줄 간격으로 보입니다. 타로를 중심으로 영화, 책,
                   신화, 천문학, 점성술, 명상 등을 기록하고 연결합니다.
                 </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
+                  메뉴 설명 · 보조 문구 (14px)
+                </p>
+                <p className="text-sm text-muted-foreground">카드를 뽑고 지금 상황을 읽어보기</p>
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
@@ -143,7 +205,7 @@ export default function DesignSystemPage() {
 
           {/* ── 3. 모서리 둥글기 ───────────────────── */}
           <section id="radius" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>3. 모서리 둥글기</h2>
+            <h2 className={h2Class}>4. 모서리 둥글기</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               기준값 하나(--radius)에서 단계별로 계산됩니다.
             </p>
@@ -163,7 +225,7 @@ export default function DesignSystemPage() {
 
           {/* ── 4. 버튼 & 링크 ────────────────────── */}
           <section id="buttons" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>4. 버튼 · 링크</h2>
+            <h2 className={h2Class}>5. 버튼 · 링크</h2>
             <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-6">
               <Button>기본 버튼</Button>
               <Button variant="secondary">보조 버튼</Button>
@@ -188,24 +250,43 @@ export default function DesignSystemPage() {
 
           {/* ── 5. 메뉴 리스트 (홈 화면 스타일) ────── */}
           <section id="menu" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>5. 메뉴 리스트</h2>
+            <h2 className={h2Class}>6. 메뉴 리스트</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               홈 화면과 같은 공용 컴포넌트(components/menu-list.tsx)를 그대로 렌더링합니다. 그
-              파일을 고치면 홈과 여기가 함께 바뀝니다.
+              파일을 고치면 홈과 여기가 함께 바뀝니다. desc(한 줄 설명)는 선택 항목이며,
+              active: false 로 두면 흐리게 표시되고 클릭이 막힙니다.
             </p>
             <div className="mt-5">
               <MenuList
                 items={[
-                  { number: "01", label: "Tarot", href: "#", active: true },
-                  { number: "02", label: "Meditation", href: "#", active: false },
+                  {
+                    number: "01",
+                    label: "Reading",
+                    href: "#",
+                    desc: "카드를 뽑고 지금 상황을 읽어보기",
+                    active: true,
+                  },
+                  {
+                    number: "02",
+                    label: "Archive",
+                    href: "#",
+                    desc: "카드 한 장 한 장의 의미와 기록",
+                    active: true,
+                  },
+                  { number: "03", label: "준비 중인 메뉴", href: "#", active: false },
                 ]}
               />
             </div>
+            <p className="mt-3 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+              메뉴는 <strong className="font-semibold">실제로 만든 것만</strong> 넣습니다. 비어 있는
+              항목이 첫 화면에 보이면 사이트가 미완성으로 읽혀서, 예전의 Meditation·Yoga 항목은
+              콘텐츠가 생길 때까지 뺐습니다.
+            </p>
           </section>
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}
           <section id="prose" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>6. 블로그 본문</h2>
+            <h2 className={h2Class}>7. 블로그 본문</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               글 상세 페이지의 본문(.prose-blog) 스타일.
             </p>
@@ -221,17 +302,23 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 헤더 · 푸터 ─────────────────────── */}
           <section id="chrome" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>7. 헤더 · 푸터</h2>
+            <h2 className={h2Class}>8. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Site design.pdf 기준. 헤더 2종 + 푸터 3종을 페이지 케이스에 따라 골라 씁니다.
+              헤더 2종 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은 리디자인
+              시안의 <strong className="font-semibold">라임 밴드</strong>입니다.
             </p>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ① 페이지 상단 바 — 뒤로가기 + (공유) + 목록(≡)으로 통일. 목록을 누르면
-              사이트맵 + 검색 메뉴가 열립니다 (components/page-header.tsx, site-menu.tsx)
+              ① 페이지 상단 바 — 뒤로가기 + (공유) + 더보기(⋯). ⋯ 를 누르면 사이트맵 · 검색 ·
+              MY · 로그인이 있는 메뉴가 열립니다 (components/page-header.tsx, site-menu.tsx).
+              실제 화면에서는 상단에 고정(sticky)되고 뒤에 라임 스크림이 깔립니다. 아래 견본은
+              상자 안에 보이도록 sticky={"{false}"} 로 넣은 것입니다.
             </p>
-            <div className="mt-2 rounded-xl border border-border bg-background px-4 py-3">
-              <PageHeader backHref="#" showShare />
+            <div
+              id="chrome-topbar-demo"
+              className="mt-2 overflow-hidden rounded-xl border border-border bg-background px-4 pb-8"
+            >
+              <PageHeader backHref="#" showShare sticky={false} />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
@@ -243,21 +330,30 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ③ 푸터 라이트 — 시안의 &ldquo;홈&rdquo; 하단. ✳ URL ✳ + 두 줄 카피라이트
+              ③ 푸터 라임 — <strong className="font-semibold">현재 기본값</strong>. 홈 · Archive ·
+              MY · Tarot 하단에 쓰입니다. 라임 위에서는 회색 글자가 대비가 부족해서 카피라이트도
+              --brand-ink 로 씁니다
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
+              <Footer variant="lime" />
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ④ 푸터 라이트 — 라임 이전의 크림 버전. 라임을 끌 때 되돌아갈 자리입니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="light" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ④ 푸터 다크 밴드 — 시안의 &ldquo;목록(Astrology)&rdquo; 하단
+              ⑤ 푸터 다크 밴드 — 대비가 강한 밴드가 필요할 때 쓰는 예비 버전
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="dark" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ⑤ 푸터 미니멀 — 시안의 &ldquo;블로그 본문&rdquo; 하단. 세리프 로고 + 한 줄
+              ⑥ 푸터 미니멀 — 블로그 본문 · about · privacy 하단. 세리프 로고 + 한 줄
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="minimal" />
@@ -266,7 +362,7 @@ export default function DesignSystemPage() {
 
           {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
           <section id="board" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>8. 카드 아카이브 보드</h2>
+            <h2 className={h2Class}>9. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               /archive 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
               노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
@@ -303,7 +399,7 @@ export default function DesignSystemPage() {
 
           {/* ── 9. 타로 카드 ───────────────────────── */}
           <section id="cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>9. 타로 카드</h2>
+            <h2 className={h2Class}>10. 타로 카드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               앞면 · 뒷면 · 번호 슬롯 3종. (components/tarot-card.tsx)
             </p>
@@ -331,7 +427,7 @@ export default function DesignSystemPage() {
 
           {/* ── 10. 카드 스프레드 ──────────────────── */}
           <section id="spreads" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>10. 카드 스프레드</h2>
+            <h2 className={h2Class}>11. 카드 스프레드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Site design.pdf의 리딩 화면 배열 전체. 좌표의 원본은 lib/spread-layouts.ts
               하나뿐이라, 거기를 고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
@@ -377,7 +473,7 @@ export default function DesignSystemPage() {
 
           {/* ── 11. 배경 ───────────────────────────── */}
           <section id="backgrounds" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>11. 배경</h2>
+            <h2 className={h2Class}>12. 배경</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               푸터처럼 페이지 성격에 맞게 골라 쓰는 공용 배경입니다.
               (components/page-background.tsx) 현재: 홈·타로·리딩 = 오로라, 목록·본문 = 단색.

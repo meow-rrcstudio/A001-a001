@@ -13,13 +13,27 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { Footer } from "@/components/footer"
+import { MenuList, type MenuItem } from "@/components/menu-list"
 import { AdBand } from "@/components/ad-band"
 import { readingTopics } from "@/lib/reading-topics"
 
 // 홈 아래쪽 큰 메뉴 — 실제로 만든 것만 넣습니다.
-const menuItems = [
-  { number: "01", label: "Reading", href: "/tarot/reading", desc: "카드를 뽑고 지금 상황을 읽어보기" },
-  { number: "02", label: "Archive", href: "/archive", desc: "카드 한 장 한 장의 의미와 기록" },
+// 생김새(글자 크기·간격·색)는 components/menu-list.tsx에서 수정합니다.
+const menuItems: MenuItem[] = [
+  {
+    number: "01",
+    label: "Reading",
+    href: "/tarot/reading",
+    desc: "카드를 뽑고 지금 상황을 읽어보기",
+    active: true,
+  },
+  {
+    number: "02",
+    label: "Archive",
+    href: "/archive",
+    desc: "카드 한 장 한 장의 의미와 기록",
+    active: true,
+  },
 ]
 
 export default function HomePage() {
@@ -74,27 +88,10 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── 3) 큰 메뉴 ────────────────────────────────────────────── */}
-        <nav className="mt-14 flex flex-col">
-          {menuItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="group flex items-center justify-between border-t border-border py-5 last:border-b"
-            >
-              <span className="flex items-baseline gap-4">
-                <span className="text-xs text-primary">{item.number}</span>
-                <span className="flex flex-col">
-                  <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">
-                    {item.label}
-                  </span>
-                  <span className="mt-1 text-sm text-muted-foreground">{item.desc}</span>
-                </span>
-              </span>
-              <ArrowUpRight className="h-6 w-6 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
-          ))}
-        </nav>
+        {/* ── 3) 큰 메뉴 — 스타일가이드(/design-1859)와 같은 공용 컴포넌트 ── */}
+        <div className="mt-14">
+          <MenuList items={menuItems} />
+        </div>
       </main>
 
       {/* ── 4) 광고 · 푸터 ──────────────────────────────────────────── */}

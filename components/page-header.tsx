@@ -25,10 +25,13 @@ export function PageHeader({
   backHref,
   showShare = false,
   className = "",
+  sticky = true,
 }: {
   backHref: string
   showShare?: boolean
   className?: string
+  /** 화면 상단 고정 여부. 스타일가이드처럼 상자 안에 견본으로 넣을 때만 false 로 둡니다. */
+  sticky?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -45,14 +48,18 @@ export function PageHeader({
   }
 
   return (
-    <div className={`sticky top-0 z-40 ${className}`}>
+    // isolate: 스크림의 -z-10 이 이 상자 밖(부모 배경 뒤)으로 밀려나지 않게 가둡니다.
+    <div className={`isolate ${sticky ? "sticky top-0 z-40" : "relative"} ${className}`}>
       {/* 라임 스크림 — 버튼 뒤에 깔려 위에서 아래로 투명해집니다 (시안의 96px 그라데이션).
-          fixed 로 두는 이유: 페이지마다 좌우 여백(px-5/px-6/px-8)이 달라서,
-          음수 마진으로 뚫으면 어떤 페이지에선 화면 밖으로 넘쳐 가로 스크롤이 생깁니다.
-          fixed + inset-x-0 은 항상 화면 폭에 정확히 맞습니다. */}
+          고정(sticky) 모드에서 fixed 를 쓰는 이유: 페이지마다 좌우 여백(px-5/px-6/px-8)이
+          달라서, 음수 마진으로 뚫으면 어떤 페이지에선 화면 밖으로 넘쳐 가로 스크롤이 생깁니다.
+          fixed + inset-x-0 은 항상 화면 폭에 정확히 맞습니다.
+          견본(sticky=false)일 때는 absolute 로 두어 상자 안에 그대로 그려집니다. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent"
+        className={`pointer-events-none -z-10 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent ${
+          sticky ? "fixed inset-x-0 top-0" : "absolute inset-x-0 top-0"
+        }`}
       />
 
       <div className="relative flex items-center justify-between py-3">

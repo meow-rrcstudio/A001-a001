@@ -1,5 +1,5 @@
 // components/menu-list.tsx
-// 홈 화면의 큰 메뉴 리스트(01 Tarot, 02 Meditation ...) 공용 컴포넌트입니다.
+// 홈 화면의 큰 메뉴 리스트(01 Reading, 02 Archive ...) 공용 컴포넌트입니다.
 // 홈(app/page.tsx)과 스타일가이드(/design-1859)가 같은 이 컴포넌트를 쓰므로,
 // 여기서 고치면 두 곳 모두 동시에 바뀝니다.
 //
@@ -20,9 +20,10 @@ import { ArrowUpRight } from "lucide-react"
 
 export interface MenuItem {
   number: string // 왼쪽에 작게 표시되는 번호 (예: "01")
-  label: string //  메뉴 이름 (예: "Tarot")
-  href: string //   이동할 주소 (예: "/tarot")
+  label: string //  메뉴 이름 (예: "Reading")
+  href: string //   이동할 주소 (예: "/tarot/reading")
   active: boolean // false면 흐리게 표시되고 클릭해도 이동하지 않음
+  desc?: string //  메뉴 이름 아래 한 줄 설명 (없으면 표시 안 함)
 }
 
 export function MenuList({ items }: { items: MenuItem[] }) {
@@ -38,10 +39,13 @@ export function MenuList({ items }: { items: MenuItem[] }) {
         >
           <span className="flex items-baseline gap-4">
             <span className="text-xs text-primary">{item.number}</span>
-            <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">{item.label}</span>
+            <span className="flex flex-col">
+              <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">{item.label}</span>
+              {item.desc && <span className="mt-1 text-sm text-muted-foreground">{item.desc}</span>}
+            </span>
           </span>
           {item.active && (
-            <ArrowUpRight className="h-6 w-6 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            <ArrowUpRight className="h-6 w-6 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           )}
         </Link>
       ))}
