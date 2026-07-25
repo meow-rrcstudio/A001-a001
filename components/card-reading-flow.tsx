@@ -306,13 +306,17 @@ export function CardReadingFlow({
 
   // ── 부채꼴: 정중앙 기준 좌우 대칭(-55도~+55도)의 "진짜 원호" ──
   // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
+  // 시안 기준: 스프레드 보드가 위, 부채꼴 덱이 화면 아래쪽에 놓입니다.
+  // (부채 모양 자체는 그대로 두고, 보드 높이만큼 통째로 아래로 내립니다)
+  const fanTopOffset = phase === "revealing" ? 0 : boardHeightSelect + 16
+
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
     const angle = -FAN_SPREAD / 2 + (index / Math.max(1, total - 1)) * FAN_SPREAD
     const rad = (angle * Math.PI) / 180
     const x = stageWidth / 2 + Math.sin(rad) * fanRadius
-    const y = 12 + (1 - Math.cos(rad)) * fanRadius
+    const y = fanTopOffset + 12 + (1 - Math.cos(rad)) * fanRadius
     return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 10 + index }
   }
 
@@ -329,7 +333,7 @@ export function CardReadingFlow({
   // ── 스프레드 슬롯: 340px 고정 보드의 정중앙 정렬 ──
   // 카드 사이 간격이 픽셀로 고정되어 기기 폭이 달라져도 시안과 같은 간격입니다.
   function mapSlot(slot: { left: string; top: string }) {
-    const boardTop = phase === "revealing" ? 20 : fanZoneHeight + 3
+    const boardTop = phase === "revealing" ? 20 : 8
     const left = stageWidth / 2 + ((parseFloat(slot.left) - 50) / 100) * BOARD_WIDTH
     const top = boardTop + (parseFloat(slot.top) / 100) * boardHeightNow
     return { left: `${left}px`, top: `${top}px` }
@@ -350,6 +354,27 @@ export function CardReadingFlow({
 
   return (
     <div className="flex flex-1 flex-col" style={{ paddingBottom: bubbleHeight }}>
+      <ReadingCharacterBubble
+        placement="top"
+        message={
+          isShuffling
+            ? (nudgeMessage ?? shuffleMessages[Math.min(shuffleStep, shuffleMessages.length - 1)])
+            : phase === "selecting"
+              ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
+              : flippedIndices.length >= requiredPicks
+                ? mode === "inline"
+                  ? `카드 ${requiredPicks}장이 모였어냥. 내가 읽어줄게, 아래를 눌러보라냥!`
+                  : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
+                : "카드를 하나씩 뒤집어보는 중이야냥..."
+        }
+        promptText={
+          mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
+            ? buildPrompt()
+            : undefined
+        }
+        onHeightChange={setBubbleHeight}
+      />
+
       {/* ── 섞기 단계: 화면 가득 흩어진 카드 더미 (셔플 시안) ── */}
       {isShuffling && (
         <div className="flex flex-1 flex-col">
@@ -539,8 +564,7 @@ export function CardReadingFlow({
               }))
             )
           }
-          className="fixed inset-x-6 z-[70] rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] sm:inset-x-8"
-          style={{ bottom: bubbleHeight + 24 }}
+          className="fixed inset-x-6 bottom-6 z-[70] rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] sm:inset-x-8"
         >
           샨티의 해석 보기
         </button>
@@ -551,32 +575,13 @@ export function CardReadingFlow({
         <button
           type="button"
           onClick={handleGoToPick}
-          className="fixed right-6 z-[70] rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:right-8"
-          style={{ bottom: bubbleHeight + 44 }}
+          className="fixed bottom-6 right-6 z-[70] rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:right-8"
         >
           고르러 가기
         </button>
       )}
 
-      <ReadingCharacterBubble
-        message={
-          isShuffling
-            ? (nudgeMessage ?? shuffleMessages[Math.min(shuffleStep, shuffleMessages.length - 1)])
-            : phase === "selecting"
-              ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
-              : flippedIndices.length >= requiredPicks
-                ? mode === "inline"
-                  ? `카드 ${requiredPicks}장이 모였어냥. 내가 읽어줄게, 아래를 눌러보라냥!`
-                  : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
-                : "카드를 하나씩 뒤집어보는 중이야냥..."
-        }
-        promptText={
-          mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
-            ? buildPrompt()
-            : undefined
-        }
-        onHeightChange={setBubbleHeight}
-      />
+
     </div>
   )
 }
