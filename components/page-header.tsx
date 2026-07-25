@@ -17,7 +17,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Share, MoreHorizontal } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
-import { ShantiMark } from "@/components/brand-mark"
+import { BlinkingShanti } from "@/components/pixel-sprite"
 
 const buttonClass =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"
@@ -68,9 +68,14 @@ export function PageHeader({
           <ArrowLeft className="h-5 w-5" />
         </Link>
 
-        {/* 가운데 샨티 마크 — 시안의 상단바 구성 (뒤로 · 마크 · 더보기) */}
-        <Link href="/" aria-label="홈으로" className="transition-opacity hover:opacity-70">
-          <ShantiMark className="h-5" />
+        {/* 가운데 샨티 — 시안의 상단바 구성 (뒤로 · 캐릭터 · 더보기).
+            이미지가 아니라 도트 데이터라(lib/pixel-sprites.ts) 눈을 깜빡입니다. */}
+        <Link
+          href="/"
+          aria-label="홈으로"
+          className="text-brand-ink transition-opacity hover:opacity-70"
+        >
+          <BlinkingShanti className="h-5" />
         </Link>
 
         <div className="flex items-center gap-2">

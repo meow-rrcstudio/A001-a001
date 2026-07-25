@@ -40,7 +40,7 @@ export function MenuList({ items }: { items: MenuItem[] }) {
           <span className="flex items-baseline gap-4">
             <span className="text-xs text-primary">{item.number}</span>
             <span className="flex flex-col">
-              <span className="font-serif text-4xl italic tracking-tight sm:text-5xl">{item.label}</span>
+              <span className="text-4xl font-bold tracking-tight sm:text-5xl">{item.label}</span>
               {item.desc && <span className="mt-1 text-sm text-muted-foreground">{item.desc}</span>}
             </span>
           </span>

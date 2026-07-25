@@ -80,7 +80,7 @@ export function CardArchiveBoard({ decks }: { decks: ArchiveDeck[] }) {
       {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크(✳) */}
       <div className="mb-8 space-y-4">
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-5xl italic leading-tight text-foreground sm:text-6xl">
+          <h1 className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
             Archive─
           </h1>
           <span
@@ -173,7 +173,7 @@ export function ArchiveDeckSection({
         <div className={`flex w-max min-w-full ${bleed ? "px-4" : ""}`}>
           {/* 패널 상자 — 제목·컬럼이 상자째로 스크롤. px-2/pt-4/pb-2가 상자 안 여백(시안 8px) */}
           <section className="grow rounded-2xl bg-muted/50 px-2 pb-2 pt-4">
-            <h2 className="mb-4 font-serif text-3xl italic text-foreground sm:text-4xl">
+            <h2 className="mb-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               {deck.label}
             </h2>
 

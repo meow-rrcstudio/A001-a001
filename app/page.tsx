@@ -60,7 +60,7 @@ export default function HomePage() {
       <main className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-6 sm:px-8">
         {/* ── 2) 리딩 진입 — 화면에서 가장 먼저 눈에 띄어야 하는 자리 ──── */}
         <section className="-mt-8 rounded-2xl border border-border bg-card p-6 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-          <p className="font-serif text-2xl italic tracking-tight text-foreground">
+          <p className="text-xl font-semibold tracking-tight text-foreground">
             지금 카드 한 장 뽑아볼까요?
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
@@ -76,7 +76,7 @@ export default function HomePage() {
                 className="group flex items-center justify-between rounded-xl border border-border px-4 py-3.5 transition-colors hover:border-primary/40 hover:bg-muted/60"
               >
                 <span className="flex flex-col">
-                  <span className="font-serif text-xl italic tracking-tight text-foreground">
+                  <span className="font-script text-2xl leading-none text-foreground">
                     {topic.enLabel}
                   </span>
                   <span className="text-xs text-muted-foreground">{topic.label}</span>

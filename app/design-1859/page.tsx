@@ -12,7 +12,9 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { MenuList } from "@/components/menu-list"
-import { Wordmark, ShantiMark } from "@/components/brand-mark"
+import { Wordmark } from "@/components/brand-mark"
+import { PixelSprite, BlinkingShanti } from "@/components/pixel-sprite"
+import { SHANTI_BASE, SHANTI_BLINK } from "@/lib/pixel-sprites"
 import { PageHeader } from "@/components/page-header"
 import { ArchiveDeckSection } from "@/components/card-archive-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
@@ -84,8 +86,8 @@ export default function DesignSystemPage() {
       <Header />
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 gap-10 px-4 py-12 sm:px-6">
         <main className="min-w-0 max-w-3xl flex-1">
-          <p className="mb-2 font-serif text-sm italic text-primary">Private Styleguide</p>
-          <h1 className="font-serif text-4xl font-medium italic tracking-tight text-foreground">
+          <p className="mb-2 font-serif text-sm text-primary">Private Styleguide</p>
+          <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground">
             Soul Seoul 디자인시스템
           </h1>
           <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
@@ -138,9 +140,9 @@ export default function DesignSystemPage() {
                 </span>
               </div>
               <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
-                <ShantiMark className="h-10" />
+                <BlinkingShanti className="h-10" title="샨티" />
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  &lt;ShantiMark /&gt; · /shanti-mark.png
+                  &lt;BlinkingShanti /&gt; · 도트 데이터
                 </span>
               </div>
             </div>
@@ -164,42 +166,54 @@ export default function DesignSystemPage() {
           <section id="typography" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>3. 타이포그래피</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              글꼴은 두 가지만 씁니다. 제목은 세리프(Instrument Serif) 이탤릭, 본문은
-              한글 Pretendard · 영문 Geist. 지정은 app/globals.css 의 --font-sans / --font-serif.
+              시안 지정 글꼴은 두 가지입니다 — 한글·영문 본문과 제목은 <strong className="font-semibold">SF Pro</strong>,
+              캘리그라피 영문은 <strong className="font-semibold">Shadows Into Light</strong>.
+            </p>
+            <p className="mt-2 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+              SF Pro 는 애플 글꼴이라 웹으로 배포할 수 없습니다. 그래서 시스템 글꼴로 불러옵니다 —
+              아이폰·맥에서는 진짜 SF Pro(한글은 Apple SD Gothic Neo)가 나오고, 안드로이드·윈도우에서는{" "}
+              <strong className="font-semibold">Pretendard</strong> 가 대신합니다. Pretendard 는 애초에 애플
+              시스템 글꼴의 웹 대체용으로 만들어진 글꼴이라 인상이 거의 같습니다. 지정은{" "}
+              <code className="rounded bg-background px-1 py-0.5 font-mono">app/globals.css</code> 의{" "}
+              <code className="rounded bg-background px-1 py-0.5 font-mono">--font-sans</code>.
             </p>
             <div className="mt-5 space-y-6 rounded-xl border border-border bg-card p-6">
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  워드마크 · 큰 제목 (세리프 · 이탤릭 · Instrument Serif)
+                  워드마크 — 로고는 글꼴이 아니라 이미지입니다 (components/brand-mark.tsx)
                 </p>
-                <p className="font-serif text-5xl font-medium italic tracking-tight text-foreground">
-                  SoulSeoul
+                <Wordmark className="h-10" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
+                  큰 제목 (SF Pro · Bold) — 메뉴 이름, 페이지 제목
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  ※ 리디자인 시안의 손글씨 워드마크는 아직 적용 전입니다. 시안 PDF의 글꼴이
-                  아웃라인으로 심겨 있어 폰트를 특정할 수 없어서, 로고를 SVG/PNG로 받으면
-                  이 자리를 이미지로 교체합니다.
+                <p className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                  Reading
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
+                  캘리그라피 (Shadows Into Light · font-script) — 영문 강조에만
+                </p>
+                <p className="font-script text-4xl leading-none text-foreground">
+                  Love &nbsp; Career &nbsp; Money
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  ※ 한글은 지원하지 않는 글꼴입니다. 영문에만 쓰세요.
                 </p>
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
                   섹션 제목
                 </p>
-                <p className="font-serif text-2xl font-semibold text-foreground">
+                <p className="text-2xl font-semibold tracking-tight text-foreground">
                   타로를 중심으로 기록하는 아카이브
                 </p>
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  메뉴 이름 (세리프 · 이탤릭 · 4xl~5xl)
-                </p>
-                <p className="font-serif text-4xl italic tracking-tight text-foreground sm:text-5xl">
-                  Reading
-                </p>
-              </div>
-              <div>
-                <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  본문 (한글 Pretendard · 영문 Geist)
+                  본문 (SF Pro → 대체 Pretendard)
                 </p>
                 <p className="max-w-lg leading-relaxed text-muted-foreground">
                   본문 글자는 이 정도 크기와 줄 간격으로 보입니다. 타로를 중심으로 영화, 책,
@@ -214,9 +228,11 @@ export default function DesignSystemPage() {
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  이탤릭 라벨 / 대문자 라벨
+                  대문자 라벨 · 모노 라벨
                 </p>
-                <p className="font-serif text-sm italic text-primary">PERSONAL ARCHIVE</p>
+                <p className="font-mono text-xs uppercase tracking-[0.15em] text-primary">
+                  www.soulseoul.xyz
+                </p>
                 <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   Personal Archive
                 </p>

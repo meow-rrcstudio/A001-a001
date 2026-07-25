@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
         <PageHeader backHref="/" className="mb-8" />
 
-        <h1 className="font-serif text-4xl italic leading-tight text-foreground">
+        <h1 className="font-serif text-4xl leading-tight text-foreground">
           privacy statement
         </h1>
         <p className={`mt-4 ${pClass}`}>

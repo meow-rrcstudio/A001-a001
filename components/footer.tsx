@@ -67,7 +67,7 @@ export function Footer({
     return (
       <footer className="mt-16">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-10 text-center sm:px-6">
-          <p className="font-serif text-2xl italic text-foreground">Soul Seoul</p>
+          <p className="font-script text-3xl text-foreground">Soul Seoul</p>
           <p className="font-mono text-xs text-muted-foreground">
             © {year} Shānti Archive. All Rights Reserved.
           </p>

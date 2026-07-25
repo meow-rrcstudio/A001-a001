@@ -1,20 +1,18 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-// gemini 수정: 잘못된 import 제거 및 실제 사용할 Instrument_Serif import 추가
-import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
+import { Geist_Mono, Shadows_Into_Light } from 'next/font/google'
 import './globals.css'
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 })
 
-// 제목(heading)에 사용할 세리프 폰트
-// 'main'이라는 변수명으로 고정하여, 나중에 폰트가 바뀌어도 운영 코드를 수정할 필요가 없도록 설정
-// gemini 수정: 라이브러리 함수 이름 수정 및 타입 오류 방지를 위한 옵션(weight, display) 추가
-const main = Instrument_Serif({ 
-  variable: '--font-main', 
+// 손글씨(캘리그라피) — 시안 지정 글꼴. 영문 강조에만 씁니다.
+// 본문·제목용 SF Pro 는 애플 시스템 글꼴이라 여기서 불러오지 않고
+// app/globals.css 의 --font-sans 에서 시스템 글꼴로 지정합니다.
+const shadows = Shadows_Into_Light({
+  variable: '--font-shadows',
   subsets: ['latin'],
   weight: '400',
   display: 'swap',
@@ -74,7 +72,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} ${main.variable} bg-background`}
+      className={`${geistMono.variable} ${shadows.variable} bg-background`}
     >
       {/* 배경은 페이지마다 components/page-background.tsx 로 선택합니다 */}
       <body className="relative font-sans antialiased">

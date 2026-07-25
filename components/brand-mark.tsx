@@ -1,10 +1,10 @@
 // components/wordmark.svg.tsx
-// 브랜드 마크 두 가지 — 리디자인 시안(PDF)에서 벡터를 추출해 만든 이미지입니다.
+// 손글씨 워드마크 — 리디자인 시안(PDF)에서 벡터를 추출해 만든 이미지입니다.
 //
-// · <Wordmark />   : 손글씨 "Soulseoul ✦" 로고
-// · <ShantiMark /> : 픽셀 고양이 (샨티) — 상단바 가운데, 말풍선 아바타 등
+// <Wordmark /> : 손글씨 "Soulseoul ✦" 로고. 검정 단색이라 라임 위·크림 위 모두 얹힙니다.
 //
-// 원본이 검정 단색이라 배경색을 가리지 않습니다. 라임 위·크림 위 모두 그대로 쓰면 됩니다.
+// ※ 픽셀 고양이(샨티)는 여기가 아니라 components/pixel-sprite.tsx 에 있습니다.
+//    이미지가 아니라 도트 데이터로 그려야 표정을 코드로 움직일 수 있어서입니다.
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 크기 조절 : className 으로 높이만 주면 가로는 비율대로 따라옵니다
@@ -30,19 +30,6 @@ export function Wordmark({
       height={287}
       priority={priority}
       // h-* 로 높이를 주면 w-auto 가 비율을 지켜줍니다
-      className={cn("w-auto", className)}
-    />
-  )
-}
-
-export function ShantiMark({ className }: { className?: string }) {
-  return (
-    <Image
-      src="/shanti-mark.png"
-      alt=""
-      aria-hidden="true"
-      width={284}
-      height={181}
       className={cn("w-auto", className)}
     />
   )

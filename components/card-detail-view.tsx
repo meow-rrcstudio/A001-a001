@@ -155,7 +155,7 @@ export function CardDetailView({
       <div ref={panelRef} className="relative z-10 rounded-t-3xl bg-background">
 
         <div className="mx-auto w-full max-w-3xl px-6 pt-16 sm:px-8">
-          <h1 className="font-serif text-3xl font-bold italic leading-tight tracking-tight text-foreground sm:text-4xl">
+          <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             {title}
           </h1>
 
@@ -189,7 +189,7 @@ export function CardDetailView({
           {(prev || next) && (
             <section className="mt-14">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-serif text-2xl italic text-foreground">Related Stories</h2>
+                <h2 className="font-serif text-2xl text-foreground">Related Stories</h2>
                 <Link
                   href={backHref}
                   className="font-mono text-xs tracking-widest text-primary underline underline-offset-4"

@@ -74,7 +74,7 @@ export default async function MyPage({
         </header>
 
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-20 text-center sm:px-8">
-          <h1 className="font-serif text-4xl italic tracking-tight text-foreground">MY</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">MY</h1>
           <p className="mt-4 max-w-xs text-pretty leading-relaxed text-muted-foreground">
             내 리딩 기록과 저장한 배열은 로그인 후에 볼 수 있어요.
           </p>
@@ -118,7 +118,7 @@ export default async function MyPage({
       <header className="bg-brand-lime">
         <div className="mx-auto w-full max-w-2xl px-6 pb-10 sm:px-8">
           <PageHeader backHref="/" />
-          <h1 className="mt-4 font-serif text-3xl italic tracking-tight text-brand-ink">
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-brand-ink">
             {session.name}
           </h1>
           <p className="mt-1 text-sm text-brand-ink/70">{session.email}</p>
@@ -143,7 +143,7 @@ export default async function MyPage({
               className={`px-3 py-4 text-center ${i > 0 ? "border-l border-border" : ""}`}
             >
               <p className="text-xs text-muted-foreground">{stat.label}</p>
-              <p className="mt-1 font-serif text-xl text-foreground">{stat.value}</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{stat.value}</p>
             </div>
           ))}
         </div>
