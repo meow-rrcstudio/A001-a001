@@ -27,8 +27,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-// 인증 연결 전까지의 자리표시자. 로그인이 붙으면 실제 세션으로 교체하세요.
-const session: { name: string; email: string } | null = null
+// 인증 연결 전까지의 자리표시자. 로그인이 붙으면 이 함수 안을 실제 세션 조회로 바꾸세요.
+//
+// ※ 지금은 로그인 기능이 없어서 항상 비로그인입니다. 그래서 로그인 후 화면을
+//    확인할 방법이 없어, 주소에 ?preview=1 을 붙이면 예시 데이터로 볼 수 있게 해뒀습니다.
+//    (예: /my?preview=1) 인증을 붙일 때 이 preview 분기는 지우면 됩니다.
+type Session = { name: string; email: string; readings: string; spreads: string; points: string }
+
+const previewSession: Session = {
+  name: "꼼마님",
+  email: "shanti.oracle@soulseoul.com",
+  readings: "32회",
+  spreads: "14개",
+  points: "750P",
+}
+
+function getSession(isPreview: boolean): Session | null {
+  if (isPreview) return previewSession
+  return null // ← 인증 연결 시 실제 세션 반환
+}
 
 // 로그인 후 보일 메뉴 — 실제 페이지가 생기면 href 를 채워주세요.
 const myMenu = [
@@ -37,7 +54,14 @@ const myMenu = [
   { label: "회원권 · 행운 조각", desc: "리딩 크레딧 확인과 충전", href: "#" },
 ]
 
-export default function MyPage() {
+export default async function MyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string }>
+}) {
+  const { preview } = await searchParams
+  const session = getSession(preview === "1")
+
   // ── 비로그인 ─────────────────────────────────────────────────────
   // 리딩 자체는 막지 않습니다. 여기(개인 기록)만 로그인 뒤에 둡니다.
   if (!session) {
@@ -69,6 +93,18 @@ export default function MyPage() {
           >
             로그인 없이 리딩 먼저 해보기 →
           </Link>
+
+          {/* 검토용 안내 — 인증을 붙이면 이 블록은 지웁니다 */}
+          <Link
+            href="/my?preview=1"
+            className="mt-12 rounded-lg border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            로그인 기능이 아직 없어 이 화면까지만 보입니다.
+            <br />
+            <span className="font-medium underline underline-offset-4">
+              로그인 후 화면 미리보기 →
+            </span>
+          </Link>
         </main>
 
         <Footer variant="lime" />
@@ -90,12 +126,17 @@ export default function MyPage() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 sm:px-8">
+        {/* 검토용 표시 — 인증을 붙이면 이 배너와 preview 분기를 함께 지웁니다 */}
+        <p className="-mt-6 mb-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-center text-xs text-muted-foreground">
+          미리보기 화면입니다 — 숫자는 예시값이고, 실제 로그인은 아직 연결되지 않았습니다.
+        </p>
+
         {/* 스탯 3종 — 시안의 "내 타로 기록 / 저장한 배열 / 행운 조각" */}
-        <div className="-mt-6 grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card">
           {[
-            { label: "내 타로 기록", value: "0회" },
-            { label: "저장한 배열", value: "0개" },
-            { label: "행운 조각", value: "0P" },
+            { label: "내 타로 기록", value: session.readings },
+            { label: "저장한 배열", value: session.spreads },
+            { label: "행운 조각", value: session.points },
           ].map((stat, i) => (
             <div
               key={stat.label}
