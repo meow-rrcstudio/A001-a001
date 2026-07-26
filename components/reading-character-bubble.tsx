@@ -34,9 +34,13 @@ export function ReadingCharacterBubble({
   useEffect(() => {
     if (!bubbleRef.current || !onHeightChange) return
     const el = bubbleRef.current
+    // 여백까지 포함한 실제 차지 높이(테두리 상자)를 넘깁니다.
+    // contentRect 는 안쪽 글 높이만이라, 이 값을 믿고 화면을 나누면
+    // 말풍선 여백만큼 넘쳐 스크롤이 생깁니다.
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        onHeightChange(entry.contentRect.height)
+        const border = Array.isArray(entry.borderBoxSize) ? entry.borderBoxSize[0] : entry.borderBoxSize
+        onHeightChange(border?.blockSize ?? entry.contentRect.height)
       }
     })
     observer.observe(el)

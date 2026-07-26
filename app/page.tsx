@@ -15,7 +15,7 @@
 // │   소개 문구       : lib/site.ts
 // └──────────────────────────────────────────────────────────────────
 import { Footer } from "@/components/footer"
-import { PageHeader, HEADER_SPACE } from "@/components/page-header"
+import { PageHeader } from "@/components/page-header"
 import { HomeCategoryGrid } from "@/components/home-category-card"
 import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { AdBand } from "@/components/ad-band"
@@ -28,7 +28,7 @@ export default function HomePage() {
         {/* 1) 헤더 — 워드마크 + 햄버거 (화면 위 16px 고정) */}
         <PageHeader variant="home" />
 
-        <div className={`px-6 ${HEADER_SPACE}`}>
+        <div className="mt-3 px-6">
           <p className="max-w-[19rem] text-pretty text-sm leading-relaxed text-black">
             {SITE.tagline}
           </p>

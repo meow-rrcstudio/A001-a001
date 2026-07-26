@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { readingTopics } from "@/lib/reading-topics"
 import { getTopicConfig } from "@/lib/reading-prompt-templates"
 import { CardReadingFlow } from "@/components/card-reading-flow"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { PageBackground } from "@/components/page-background"
 
 export default async function TarotReadingResultPage({
@@ -28,8 +28,10 @@ export default async function TarotReadingResultPage({
   return (
     <div className="relative flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
-      <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 sm:px-8">
-        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} className="mb-8" />
+      <main
+        className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+      >
+        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} />
 
         <CardReadingFlow
           topicLabel={matchedTopic.label}

@@ -115,8 +115,9 @@ export function CardReadingFlow({
   const [bubbleHeight, setBubbleHeight] = useState(160)
   // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
-  // 시안의 하단 슬라이더 — 부채를 좌우로 훑어 카드를 고릅니다 (0 ~ 남은 카드 수-1)
-  const [sliderPos, setSliderPos] = useState(0)
+  // 하단 슬라이더 — 부채를 호를 따라 좌우로 "굴립니다". 카드를 고르는 게 아니라
+  // 78장 중 어느 구간이 화면에 보이는지를 옮기는 손잡이입니다. (0 ~ 1)
+  const [fanRoll, setFanRoll] = useState(0.5)
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
@@ -279,26 +280,51 @@ export function CardReadingFlow({
   // 예전엔 %(화면 비율) 기준이라 기기마다 부채/스프레드 모양이 달라졌습니다.
   // 이제 진짜 원호와 고정 크기 보드를 픽셀로 계산해 어느 기기에서든 같은 모양입니다.
   const FAN_SPREAD = 130 //        부채가 벌어지는 전체 각도 (좌우 각 65도) — 더 동그란 호
-  const FAN_CARD_WIDTH = 64 //     부채 카드 폭
+  const CARD_RATIO = 1.678 //      카드 세로/가로 비율
+  // ── 부채 카드 크기 (시안 규칙) ────────────────────────────────────
+  // "스크롤이 생기지 않도록 리사이징하되, 최대 높이는 300px.
+  //  카드 위아래로 최소 20px 여백."
+  // 남는 공간 = 화면높이 - 헤더 - 말풍선 - 스프레드 보드 - 슬라이더 - 위아래 여백
+  const FAN_GAP = 20 //            카드 위아래 최소 여백
+  const FAN_CARD_HEIGHT_MAX = 300 // 카드 최대 높이
   const BOARD_WIDTH = 356 //       스프레드 보드 폭 (카드 키운 만큼 좌우로 살짝 넓힘)
   const BOARD_HEIGHT_REVEAL = 348 // 결과 화면 보드 높이 (카드 키운 만큼 세로 여유)
 
-  // 부채 반지름: 카드가 화면 밖으로 나가지 않는 한도 내에서 최대 300px
   const halfSpreadRad = ((FAN_SPREAD / 2) * Math.PI) / 180
-  const fanRadius = Math.min((stageWidth / 2 - 44) / Math.sin(halfSpreadRad), 300)
-  // 부채 영역 높이 = 부채가 실제로 차지하는 만큼만 (모바일에선 부채가 작아 영역도 작아짐)
-  const fanCardHalfHeight = (FAN_CARD_WIDTH * 1.678) / 2
-  const fanZoneHeight = Math.round(12 + fanRadius * (1 - Math.cos(halfSpreadRad)) + fanCardHalfHeight + 6)
 
-  // 스프레드 보드 높이: 시안 규칙대로 "화면에 남는 공간"에 맞춰 160~280px 사이에서 유동.
-  // 160px보다 좁아지면 160을 지키고 페이지가 스크롤됩니다.
-  const PAGE_CHROME = 130 // 상단 뒤로가기 줄 + 여백의 대략적인 높이
-  const boardHeightSelect = Math.max(
-    160,
-    Math.min(280, viewportHeight - PAGE_CHROME - fanZoneHeight - bubbleHeight)
+  // ── 세로 공간 나누기 ──────────────────────────────────────────────
+  // 화면 높이에서 헤더·말풍선·슬라이더를 뺀 나머지를 보드와 부채가 나눠 씁니다.
+  // 이 예산 안에서만 그리므로 고르기 화면에는 스크롤이 생기지 않습니다.
+  const HEADER_H = 76 //   고정 헤더가 차지하는 높이
+  const SLIDER_H = 76 //   하단 슬라이더 줄
+  const stageAvailable = Math.max(260, viewportHeight - HEADER_H - bubbleHeight - SLIDER_H)
+
+  // 부채 반지름: 화면 폭에 맞춘 완만한 호 — 시안처럼 가운데가 살짝 솟은 정도
+  const fanRadius = Math.max(220, Math.min(stageWidth * 0.85, 340))
+  // 호가 아래로 내려앉는 깊이(sagitta). 화면 밖으로 나간 카드는 어차피 보이지 않으므로
+  // 전체 130도가 아니라 "화면 폭 안에 들어오는 각도"까지만 계산합니다.
+  const visibleHalfRad = Math.min(halfSpreadRad, Math.asin(Math.min(1, stageWidth / 2 / fanRadius)))
+  const fanSagitta = Math.round(fanRadius * (1 - Math.cos(visibleHalfRad)))
+
+  // 스프레드 보드는 남는 공간의 40% 안팎에서 150~260px 사이로 잡습니다.
+  const boardHeightSelect = Math.max(150, Math.min(260, Math.round(stageAvailable * 0.4)))
+
+  // 카드 높이는 보드가 쓰고 남은 만큼 — 최대 300px, 위아래 20px 여백 확보.
+  const FAN_CARD_HEIGHT = Math.round(
+    Math.max(
+      96,
+      Math.min(FAN_CARD_HEIGHT_MAX, stageAvailable - boardHeightSelect - FAN_GAP * 2 - fanSagitta)
+    )
   )
+  const FAN_CARD_WIDTH = Math.round(FAN_CARD_HEIGHT / CARD_RATIO)
+
+  // 부채가 실제로 차지하는 높이 = 여백 + 카드 + 호가 내려앉는 깊이
+  const fanZoneHeight = FAN_GAP + FAN_CARD_HEIGHT + fanSagitta + FAN_GAP
+
   const stageHeight =
-    phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : fanZoneHeight + boardHeightSelect + 6
+    phase === "revealing"
+      ? BOARD_HEIGHT_REVEAL + 40
+      : Math.min(stageAvailable, boardHeightSelect + fanZoneHeight)
 
   // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
@@ -310,16 +336,32 @@ export function CardReadingFlow({
   // 반지름만 화면 폭에 맞춰 조금 커지고, 원호의 모양 자체는 항상 동일합니다.
   // 시안 기준: 스프레드 보드가 위, 부채꼴 덱이 화면 아래쪽에 놓입니다.
   // (부채 모양 자체는 그대로 두고, 보드 높이만큼 통째로 아래로 내립니다)
-  const fanTopOffset = phase === "revealing" ? 0 : boardHeightSelect + 16
+  // 부채 카드의 "윗변"이 보드 아래 FAN_GAP 만큼 떨어지도록 기준점을 잡습니다.
+  // (카드는 좌표를 중심으로 그려지므로 카드 높이의 절반을 더합니다)
+  const fanTopOffset =
+    phase === "revealing" ? 0 : boardHeightSelect + FAN_GAP + FAN_CARD_HEIGHT / 2
+
+  // 카드 한 장이 차지하는 각도 — 카드가 서로 살짝 겹치도록
+  const ANGLE_STEP = 3.4
+  // 화면에 보이는 창(window) 밖으로 나간 카드는 그리지 않습니다
+  const VISIBLE_HALF = FAN_SPREAD / 2 + ANGLE_STEP * 2
 
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
-    const angle = -FAN_SPREAD / 2 + (index / Math.max(1, total - 1)) * FAN_SPREAD
+    // 슬라이더 위치에 따라 어느 카드가 한가운데 오는지 정해집니다
+    const centerIndex = fanRoll * Math.max(0, total - 1)
+    const angle = (index - centerIndex) * ANGLE_STEP
     const rad = (angle * Math.PI) / 180
     const x = stageWidth / 2 + Math.sin(rad) * fanRadius
-    const y = fanTopOffset + 12 + (1 - Math.cos(rad)) * fanRadius
-    return { left: `${x}px`, top: `${y}px`, rotate: angle, zIndex: 10 + index }
+    const y = fanTopOffset + (1 - Math.cos(rad)) * fanRadius
+    return {
+      left: `${x}px`,
+      top: `${y}px`,
+      rotate: angle,
+      zIndex: 10 + Math.round(60 - Math.abs(angle)),
+      hidden: Math.abs(angle) > VISIBLE_HALF,
+    }
   }
 
   // 결과 화면에서 안 뽑힌 카드들이 왼쪽 위에 작게 쌓이는 자리
@@ -355,7 +397,12 @@ export function CardReadingFlow({
   let leftoverCounter = 0
 
   return (
-    <div className="flex flex-1 flex-col" style={{ paddingBottom: bubbleHeight }}>
+    // 말풍선은 글의 흐름을 따라 상단에 놓입니다(고정 아님).
+    // 아래 여백은 화면에 떠 있는 것 — 고르기의 슬라이더, 결과의 "해석 보기" 버튼 — 만큼만.
+    <div
+      className="flex flex-1 flex-col"
+      style={{ paddingBottom: phase === "selecting" ? SLIDER_H : phase === "revealing" ? 88 : 0 }}
+    >
       <ReadingCharacterBubble
         placement="top"
         message={
@@ -426,9 +473,11 @@ export function CardReadingFlow({
 
       {/* ── 고르기/결과 무대: 부채(위) + 스프레드 슬롯(아래), 겹치지 않게 ── */}
       {!isShuffling && (
+      /* 부채 양끝 카드는 화면 밖으로 나갑니다 — 무대 밖으로 새어나가
+         페이지가 스크롤되지 않도록 여기서 잘라냅니다. */
       <div
         ref={stageRef}
-        className="relative mx-auto w-full max-w-3xl transition-[height] duration-500"
+        className="relative mx-auto w-full max-w-3xl overflow-hidden transition-[height] duration-500"
         style={{ height: stageHeight }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
@@ -479,6 +528,8 @@ export function CardReadingFlow({
             target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: 40 }
           } else {
             const s = getFanStyle(index)
+            // 부채를 굴려 화면 밖으로 나간 카드는 그리지 않습니다 (성능)
+            if (s.hidden) return null
             target = { left: s.left, top: s.top, rotate: s.rotate, zIndex: s.zIndex, width: FAN_CARD_WIDTH }
           }
 
@@ -544,7 +595,7 @@ export function CardReadingFlow({
                 className={`h-full w-full ${canClick ? "cursor-pointer touch-none" : ""}`}
               >
                 <CardBack
-                  highlighted={!isPicked && phase === "selecting" && fanOrder[Math.min(sliderPos, fanOrder.length - 1)] === index}
+                  highlighted={!isPicked && phase === "selecting" && isPeeked}
                   selected={isPicked}
                   flipped={isPicked && flippedIndices.includes(index)}
                   reversed={cardOrientations[index] === "역방향"}
@@ -577,36 +628,24 @@ export function CardReadingFlow({
         </button>
       )}
 
-      {/* 하단 슬라이더 — 시안 기준. 좌우로 훑어 고른 뒤 눌러서 뽑습니다 */}
-      {phase === "selecting" && (() => {
-        const remaining = fanOrder.filter((i) => !selected.includes(i))
-        if (remaining.length === 0) return null
-        const pos = Math.min(sliderPos, remaining.length - 1)
-        return (
-          <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm sm:px-8">
-            <div className="mx-auto flex max-w-3xl items-center gap-4">
-              <input
-                type="range"
-                min={0}
-                max={Math.max(0, remaining.length - 1)}
-                value={pos}
-                onChange={(e) => setSliderPos(Number(e.target.value))}
-                aria-label="카드 고르기"
-                className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-foreground/20 accent-foreground
-                  [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none
-                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
-              />
-              <button
-                type="button"
-                onClick={() => handlePick(remaining[pos])}
-                className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
-              >
-                이 카드 뽑기
-              </button>
-            </div>
-          </div>
-        )
-      })()}
+      {/* 하단 슬라이더 — 부채를 호를 따라 굴립니다.
+          카드를 고르는 건 카드 위를 눌러 좌우로 문지르는 동작입니다(초록 강조). */}
+      {phase === "selecting" && (
+        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm sm:px-8">
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.002}
+            value={fanRoll}
+            onChange={(e) => setFanRoll(Number(e.target.value))}
+            aria-label="카드 굴리기"
+            className="mx-auto block h-1 w-full max-w-3xl cursor-pointer appearance-none rounded-full bg-foreground/20
+              [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
+          />
+        </div>
+      )}
 
       {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}
       {isShuffling && shuffleStep >= 1 && (

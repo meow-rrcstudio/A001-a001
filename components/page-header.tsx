@@ -26,7 +26,7 @@ import { SiteMenu } from "@/components/site-menu"
 import { BlinkingShanti } from "@/components/pixel-sprite"
 import { Wordmark } from "@/components/brand-mark"
 
-/** 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (px) */
+/** 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다) */
 export const HEADER_SPACE = "pt-[76px]"
 
 const roundButton =
@@ -36,8 +36,8 @@ export function PageHeader({
   backHref,
   showShare = false,
   variant = "sub",
-  /** 화면 안 상자에 견본으로 넣을 때만 false (스타일가이드 전용) */
-  fixed = true,
+  /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
+  fixed,
   className = "",
 }: {
   backHref?: string
@@ -46,6 +46,8 @@ export function PageHeader({
   fixed?: boolean
   className?: string
 }) {
+  // 홈은 고정하지 않는 것이 기본입니다 (시안 기준)
+  const isFixed = fixed ?? variant !== "home"
   const [menuOpen, setMenuOpen] = useState(false)
 
   async function handleShare() {
@@ -64,7 +66,7 @@ export function PageHeader({
     <>
       {/* 라임 스크림 — 헤더 뒤에 깔려 위에서 아래로 투명해집니다.
           화면 폭에 정확히 맞추려고 fixed + inset-x-0 을 씁니다. */}
-      {fixed && (
+      {isFixed && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-x-0 top-0 z-40 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent"
@@ -73,7 +75,7 @@ export function PageHeader({
 
       <div
         className={`${
-          fixed ? "fixed inset-x-0 top-4 z-50" : "relative"
+          isFixed ? "fixed inset-x-0 top-4 z-50" : "relative pt-4"
         } mx-auto w-full max-w-md px-6 ${className}`}
       >
         <div className="flex items-center justify-between gap-3">

@@ -24,6 +24,9 @@ import { Archive, FolderClosed, Layers, SlidersHorizontal, TerminalSquare } from
 import { Wordmark } from "@/components/brand-mark"
 import { getRecentQuestions } from "@/lib/recent-questions"
 
+/** 서랍이 드러나는 폭 — 페이지가 이만큼 왼쪽으로 밀립니다 */
+const DRAWER_WIDTH = "78%"
+
 const menuItems = [
   { label: "홈", href: "/", icon: TerminalSquare },
   { label: "타로보기", href: "/tarot/reading/self", icon: Archive },
@@ -36,8 +39,9 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
   const pathname = usePathname()
   const [recent, setRecent] = useState<string[]>([])
 
-  // 메뉴가 열려 있는 동안 뒤 페이지 스크롤 잠금.
-  // (아이폰 사파리는 overflow:hidden 을 무시하므로 몸통을 통째로 고정합니다)
+  // 메뉴가 열리면
+  //   · 뒤 페이지 스크롤을 잠그고 (아이폰 사파리는 overflow:hidden 을 무시해서 몸통을 고정)
+  //   · 페이지(app-shell)를 왼쪽으로 밀어 뒤에 있는 서랍이 드러나게 합니다
   useEffect(() => {
     if (!open) return
     setRecent(getRecentQuestions())
@@ -49,6 +53,17 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
     style.left = "0"
     style.right = "0"
     style.width = "100%"
+
+    const shell = document.getElementById("app-shell")
+    if (shell) {
+      shell.style.transition = "transform 0.28s ease, border-radius 0.28s ease"
+      shell.style.transform = `translateX(-${DRAWER_WIDTH})`
+      shell.style.borderTopRightRadius = "24px"
+      shell.style.borderBottomRightRadius = "24px"
+      shell.style.boxShadow = "0 0 40px rgba(0,0,0,0.18)"
+      shell.style.overflow = "hidden"
+    }
+
     return () => {
       style.position = ""
       style.top = ""
@@ -56,6 +71,13 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
       style.right = ""
       style.width = ""
       window.scrollTo(0, scrollY)
+      if (shell) {
+        shell.style.transform = ""
+        shell.style.borderTopRightRadius = ""
+        shell.style.borderBottomRightRadius = ""
+        shell.style.boxShadow = ""
+        shell.style.overflow = ""
+      }
     }
   }, [open])
 
@@ -72,19 +94,19 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-0">
       {/* 바깥을 누르면 닫힘 */}
       <button
         type="button"
         aria-label="메뉴 닫기"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-black/10"
+        className="absolute inset-0 h-full w-full cursor-default"
       />
 
       {/* 서랍 — 오른쪽에서 밀려 나옵니다 */}
       <nav
         aria-label="사이트 메뉴"
-        className="absolute inset-y-0 right-0 flex w-[78%] max-w-[300px] flex-col overflow-y-auto rounded-l-3xl bg-muted px-6 pb-10 pt-6 shadow-2xl"
+        className="absolute inset-y-0 right-0 flex w-[78%] flex-col overflow-y-auto bg-muted px-6 pb-10 pt-6"
       >
         <Wordmark className="h-9" />
 

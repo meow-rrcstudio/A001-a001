@@ -84,7 +84,12 @@ export default function RootLayout({
     >
       {/* 배경은 페이지마다 components/page-background.tsx 로 선택합니다 */}
       <body className="relative font-sans antialiased">
-        {children}
+        {/* app-shell: 메뉴(서랍)를 열면 이 상자가 왼쪽으로 밀립니다.
+            서랍은 이 상자보다 "뒤"에 있어서, 밀린 자리로 드러납니다.
+            (움직이는 코드는 components/site-menu.tsx) */}
+        <div id="app-shell" className="relative z-10 min-h-screen bg-background">
+          {children}
+        </div>
         {process.env.NODE_ENV === 'production' && <Analytics />}
         {/* 구글 애드센스 — 사이트 소유 확인 + 광고 스크립트 (모든 페이지 공통).
             일반 <script> 태그로 써야 서버가 만드는 원본 HTML의 <head>에 바로 실려서
