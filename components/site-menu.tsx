@@ -35,6 +35,44 @@ const menuItems = [
   { label: "설정", href: "/my/settings", icon: SlidersHorizontal },
 ]
 
+/**
+ * 디자인시스템 페이지용 견본. 서랍은 화면 전체를 덮고 페이지를 밀기 때문에
+ * 상자 안에 그대로 넣을 수 없어, 같은 menuItems 로 속만 그려 보여줍니다.
+ * 항목을 고치면 실제 서랍과 이 견본이 함께 바뀝니다.
+ */
+export function SiteMenuPreview() {
+  return (
+    <div className="flex justify-end bg-background">
+      {/* 왼쪽 = 밀려난 페이지, 오른쪽 = 드러난 서랍 */}
+      <div className="flex-1 rounded-r-3xl bg-card shadow-[0_0_40px_rgba(0,0,0,0.18)]" />
+      <nav aria-label="사이트 메뉴 견본" className="w-[78%] max-w-[300px] bg-muted px-6 pb-10 pt-6">
+        <Wordmark className="h-9" />
+        <ul className="mt-8 space-y-1">
+          {menuItems.map((item, i) => {
+            const Icon = item.icon
+            return (
+              <li key={item.label}>
+                <span
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 ${
+                    i === 0 ? "bg-brand-lime-soft" : ""
+                  }`}
+                >
+                  <Icon className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
+                  <span className="font-myeongjo text-lg text-foreground">{item.label}</span>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="text-xs text-muted-foreground">최근 본 타로점</p>
+          <p className="mt-3 truncate text-[15px] text-foreground">최근 질문이 여기에 쌓입니다</p>
+        </div>
+      </nav>
+    </div>
+  )
+}
+
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname()
   const [recent, setRecent] = useState<string[]>([])
