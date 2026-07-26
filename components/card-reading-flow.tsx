@@ -286,8 +286,8 @@ export function CardReadingFlow({
   // │   펼칩니다. 화면 밖으로 나가는 부분은 잘립니다.
   // └───────────────────────────────────────────────────────────────
   const CARD_RATIO = 1.678 //      카드 세로/가로 비율
-  const FAN_CARD_HEIGHT = 300 //   부채 카드 높이 (고정)
-  const FAN_CARD_WIDTH = Math.round(FAN_CARD_HEIGHT / CARD_RATIO) // 179
+  const FAN_CARD_HEIGHT = 240 //   부채 카드 높이 (고정) — 크기는 이 한 줄로 조절합니다
+  const FAN_CARD_WIDTH = Math.round(FAN_CARD_HEIGHT / CARD_RATIO) // 143
   const BOARD_GAP = 20 //          보드 위아래 여백 (고정)
   const BOARD_HEIGHT_MAX = 300 //  보드 최대 높이
   const BOARD_HEIGHT_MIN = 140 //  이보다 좁아지지는 않습니다
@@ -307,8 +307,10 @@ export function CardReadingFlow({
     Math.min(BOARD_HEIGHT_MAX, stageAvailable - BOARD_GAP * 2 - FAN_VISIBLE_MIN)
   )
 
-  // 무대는 남는 공간을 다 씁니다. 부채의 아랫부분은 여기서 잘립니다.
-  const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageAvailable
+  // 무대는 화면 맨 아래까지 내려갑니다. 부채가 손잡이 뒤로 이어져 보이도록
+  // 손잡이 높이만큼도 무대에 포함시킵니다 (손잡이는 그 위에 떠 있습니다).
+  const stageHeight =
+    phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageAvailable + SLIDER_H
 
   // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
@@ -326,9 +328,23 @@ export function CardReadingFlow({
   //    바로 놓여야 원판이 도는 느낌이 납니다. 0.6초 전환을 걸면 손을
   //    따라오지 못하고 끌리며 떨려 보입니다.
   const fanRadius = Math.max(220, Math.min(stageWidth * 0.85, 340))
-  // 원의 중심 — 부채 꼭대기(보드 아래 20px)에서 반지름만큼 더 내려간 자리
-  const fanApexY = boardHeightSelect + BOARD_GAP * 2 + FAN_CARD_HEIGHT / 2
+  // 부채 꼭대기(맨 위 카드의 한가운데). 두 조건 중 아래쪽을 따릅니다.
+  //  · 보드 아래로 최소 20px 떨어질 것
+  //  · 카드 아랫변이 화면 맨 아래까지 닿을 것 (아래에 빈 자리를 남기지 않도록)
+  const fanApexY = Math.max(
+    boardHeightSelect + BOARD_GAP * 2 + FAN_CARD_HEIGHT / 2,
+    stageHeight - FAN_CARD_HEIGHT / 2
+  )
   const fanCenterY = fanApexY + fanRadius
+  // 부채 맨 위 카드의 윗변 — 보드가 쓸 수 있는 아래 한계선입니다
+  const fanCardTop = fanApexY - FAN_CARD_HEIGHT / 2
+  // 보드는 말풍선과 부채 사이 한가운데에 놓입니다.
+  // (부채를 화면 맨 아래에 붙이고 나면 위쪽에 남는 자리가 생기는데,
+  //  보드를 위로 붙여두면 그 자리가 한쪽에 빈 공간으로 남습니다)
+  const boardTopSelect = Math.max(
+    BOARD_GAP,
+    Math.round((fanCardTop - BOARD_GAP - boardHeightSelect) / 2)
+  )
 
   // 카드 한 장이 차지하는 각도 — 카드가 서로 살짝 겹치도록
   const ANGLE_STEP = 3.4
@@ -375,7 +391,7 @@ export function CardReadingFlow({
   // ── 스프레드 슬롯: 340px 고정 보드의 정중앙 정렬 ──
   // 카드 사이 간격이 픽셀로 고정되어 기기 폭이 달라져도 시안과 같은 간격입니다.
   function mapSlot(slot: { left: string; top: string }) {
-    const boardTop = phase === "revealing" ? 20 : 8
+    const boardTop = phase === "revealing" ? 20 : boardTopSelect
     const left = stageWidth / 2 + ((parseFloat(slot.left) - 50) / 100) * BOARD_WIDTH
     const top = boardTop + (parseFloat(slot.top) / 100) * boardHeightNow
     return { left: `${left}px`, top: `${top}px` }
@@ -399,7 +415,8 @@ export function CardReadingFlow({
     // 아래 여백은 화면에 떠 있는 것 — 고르기의 슬라이더, 결과의 "해석 보기" 버튼 — 만큼만.
     <div
       className="flex flex-1 flex-col"
-      style={{ paddingBottom: phase === "selecting" ? SLIDER_H : phase === "revealing" ? 88 : 0 }}
+      // 고르기 화면은 무대가 이미 화면 맨 아래까지 내려가 있어 비울 필요가 없습니다.
+      style={{ paddingBottom: phase === "revealing" ? 88 : 0 }}
     >
       <ReadingCharacterBubble
         placement="top"
@@ -471,11 +488,13 @@ export function CardReadingFlow({
 
       {/* ── 고르기/결과 무대: 부채(위) + 스프레드 슬롯(아래), 겹치지 않게 ── */}
       {!isShuffling && (
-      /* 부채 양끝 카드는 화면 밖으로 나갑니다 — 무대 밖으로 새어나가
-         페이지가 스크롤되지 않도록 여기서 잘라냅니다. */
+      /* 부채는 화면 좌우 끝까지 꽉 차야 합니다. 페이지 좌우 여백(px-6)
+         바깥으로 빼내려고 음수 여백을 씁니다.
+         양끝 카드는 화면 밖으로 나가므로, 페이지가 스크롤되지 않도록
+         여기서 잘라냅니다. */
       <div
         ref={stageRef}
-        className="relative isolate mx-auto w-full max-w-3xl overflow-hidden transition-[height] duration-500"
+        className="relative isolate -mx-6 overflow-hidden transition-[height] duration-500 sm:-mx-8"
         style={{ height: stageHeight }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
