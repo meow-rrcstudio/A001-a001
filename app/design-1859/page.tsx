@@ -12,6 +12,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { RowList } from "@/components/ui/row-list"
+import { SettingsGroup } from "@/components/ui/settings-list"
 import { HomeCategoryGrid } from "@/components/home-category-card"
 import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { homeCategories } from "@/lib/home-categories"
@@ -69,14 +70,15 @@ const tocGroups: TocGroup[] = [
     items: [
       { id: "buttons", label: "5. 버튼 · 링크" },
       { id: "menu", label: "6. 목록 행" },
-      { id: "home-cards", label: "7. 홈 카테고리" },
-      { id: "chips", label: "8. 필터 칩" },
-      { id: "prose", label: "9. 블로그 본문" },
-      { id: "chrome", label: "10. 헤더 · 푸터" },
-      { id: "board", label: "11. 카드 아카이브" },
-      { id: "cards", label: "12. 타로 카드" },
-      { id: "spreads", label: "13. 카드 스프레드" },
-      { id: "backgrounds", label: "14. 배경" },
+      { id: "settings", label: "7. 설정 행" },
+      { id: "home-cards", label: "8. 홈 카테고리" },
+      { id: "chips", label: "9. 필터 칩" },
+      { id: "prose", label: "10. 블로그 본문" },
+      { id: "chrome", label: "11. 헤더 · 푸터" },
+      { id: "board", label: "12. 카드 아카이브" },
+      { id: "cards", label: "13. 타로 카드" },
+      { id: "spreads", label: "14. 카드 스프레드" },
+      { id: "backgrounds", label: "15. 배경" },
     ],
   },
 ]
@@ -371,9 +373,35 @@ export default function DesignSystemPage() {
             </div>
           </section>
 
+          {/* ── 7. 설정 행 ─────────────────────────── */}
+          <section id="settings" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>7. 설정 행</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              설정 화면의 그룹과 행입니다 (components/ui/settings-list.tsx).
+              목록 행(RowList)과 구분되는 이유는 성격이 달라서입니다 — 목록은
+              &ldquo;다른 곳으로 가는&rdquo; 링크라 화살표가 ↗ 이고, 설정은
+              &ldquo;안으로 들어가 고치는&rdquo; 것이라 › 입니다.
+            </p>
+            <div className="mt-5 rounded-xl border border-border bg-background px-6 pb-6 pt-1">
+              <SettingsGroup
+                label="계정"
+                items={[
+                  { label: "프로필", href: "#" },
+                  {
+                    label: "결제",
+                    href: "#",
+                    value: "999 플랜",
+                    accent: { label: "Max 플랜으로 업그레이드", href: "#" },
+                  },
+                  { label: "사용량", href: "#" },
+                ]}
+              />
+            </div>
+          </section>
+
           {/* ── 7. 홈 카테고리 ─────────────────────── */}
           <section id="home-cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>7. 홈 카테고리</h2>
+            <h2 className={h2Class}>8. 홈 카테고리</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               홈의 카드 6개와 아카이빙 배너입니다
               (components/home-category-card.tsx · home-archive-banner.tsx).
@@ -396,7 +424,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 필터 칩 ─────────────────────────── */}
           <section id="chips" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>8. 필터 칩</h2>
+            <h2 className={h2Class}>9. 필터 칩</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               목록을 좁혀 보는 알약 버튼 줄. 아카이브의 덱 필터가 이걸 씁니다
               (components/ui/filter-chips.tsx). 선택된 칩은 검정 채움,
@@ -409,7 +437,7 @@ export default function DesignSystemPage() {
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}
           <section id="prose" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>9. 블로그 본문</h2>
+            <h2 className={h2Class}>10. 블로그 본문</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               글 상세 페이지의 본문(.prose-blog) 스타일.
             </p>
@@ -425,7 +453,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 헤더 · 푸터 ─────────────────────── */}
           <section id="chrome" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>10. 헤더 · 푸터</h2>
+            <h2 className={h2Class}>11. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               헤더 2종 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은 리디자인
               시안의 <strong className="font-semibold">라임 밴드</strong>입니다.
@@ -485,7 +513,7 @@ export default function DesignSystemPage() {
 
           {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
           <section id="board" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>11. 카드 아카이브 보드</h2>
+            <h2 className={h2Class}>12. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               /archive 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
               노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
@@ -522,7 +550,7 @@ export default function DesignSystemPage() {
 
           {/* ── 9. 타로 카드 ───────────────────────── */}
           <section id="cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>12. 타로 카드</h2>
+            <h2 className={h2Class}>13. 타로 카드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               앞면 · 뒷면 · 번호 슬롯 3종. (components/tarot-card.tsx)
             </p>
@@ -550,7 +578,7 @@ export default function DesignSystemPage() {
 
           {/* ── 10. 카드 스프레드 ──────────────────── */}
           <section id="spreads" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>13. 카드 스프레드</h2>
+            <h2 className={h2Class}>14. 카드 스프레드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Site design.pdf의 리딩 화면 배열 전체. 좌표의 원본은 lib/spread-layouts.ts
               하나뿐이라, 거기를 고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
@@ -596,7 +624,7 @@ export default function DesignSystemPage() {
 
           {/* ── 11. 배경 ───────────────────────────── */}
           <section id="backgrounds" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>14. 배경</h2>
+            <h2 className={h2Class}>15. 배경</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               푸터처럼 페이지 성격에 맞게 골라 쓰는 공용 배경입니다.
               (components/page-background.tsx) 현재: 홈·타로·리딩 = 오로라, 목록·본문 = 단색.
