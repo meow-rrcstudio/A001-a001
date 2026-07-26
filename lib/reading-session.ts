@@ -3,8 +3,10 @@
 
 import { allTarotCards, type TarotCardInfo } from "@/lib/tarot-cards"
 
-const STORAGE_KEY = "reading-deck-slugs"
-const DECK_SIZE = 48 // 부채꼴 밀도를 위해 78장 중 48장 사용 (전부 실제로 뽑을 수 있는 카드)
+// 덱 크기가 바뀌면 뒤의 숫자를 올립니다.
+// (예전에 48장으로 담아둔 덱이 그대로 살아나지 않도록)
+const STORAGE_KEY = "reading-deck-slugs.v2"
+const DECK_SIZE = allTarotCards.length // 78장 전부 — 부채는 한 벌을 통째로 펼칩니다
 
 export function getReadingDeck(): TarotCardInfo[] {
   if (typeof window === "undefined") return allTarotCards.slice(0, DECK_SIZE)
