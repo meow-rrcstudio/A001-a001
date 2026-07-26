@@ -12,9 +12,10 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { getHistory } from "@/lib/mock-reading-history"
+import { getHistory, type HistoryDay } from "@/lib/mock-reading-history"
 
 export function ReadingHistory({ userName }: { userName: string }) {
   // 보고 있는 달 (1일로 고정해두고 달만 옮깁니다)
@@ -23,7 +24,14 @@ export function ReadingHistory({ userName }: { userName: string }) {
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
 
-  const days = getHistory(cursor.getFullYear(), cursor.getMonth())
+  // 기록이 브라우저에 있어서 화면이 뜬 뒤에 읽습니다
+  // (서버에서 미리 그리면 빈 목록이라 화면이 한 번 튑니다)
+  const [days, setDays] = useState<HistoryDay[]>([])
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    setDays(getHistory(cursor.getFullYear(), cursor.getMonth()))
+    setReady(true)
+  }, [cursor])
 
   function moveMonth(delta: number) {
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1))
@@ -58,7 +66,9 @@ export function ReadingHistory({ userName }: { userName: string }) {
         </button>
       </div>
 
-      {days.length === 0 ? (
+      {!ready ? (
+        <div className="py-20" />
+      ) : days.length === 0 ? (
         <p className="px-6 py-20 text-center text-sm text-muted-foreground">
           이 달에는 아직 리딩 기록이 없어요.
         </p>
@@ -71,11 +81,17 @@ export function ReadingHistory({ userName }: { userName: string }) {
 
               <div className="min-w-0 flex-1 space-y-7">
                 {group.records.map((record) => (
-                  <article key={record.id}>
+                  // 한 건을 누르면 그때 나눈 대화가 그대로 열립니다
+                  <Link
+                    key={record.id}
+                    href={`/my/${record.id}`}
+                    className="block transition-opacity hover:opacity-70"
+                  >
                     <h2 className="font-myeongjo text-xl font-bold text-foreground">
                       {record.topicLabel}
                     </h2>
-                    <p className="mt-0.5 text-pretty text-sm text-muted-foreground">
+                    {/* 요약은 두 줄까지 — 목록에서는 훑어보는 게 먼저입니다 */}
+                    <p className="mt-0.5 line-clamp-2 text-pretty text-sm text-muted-foreground">
                       {record.summary}
                     </p>
 
@@ -93,7 +109,7 @@ export function ReadingHistory({ userName }: { userName: string }) {
                         </span>
                       ))}
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
             </div>

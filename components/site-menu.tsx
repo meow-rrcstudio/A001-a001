@@ -22,7 +22,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Archive, FolderClosed, Layers, SlidersHorizontal, TerminalSquare } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
-import { getRecentQuestions } from "@/lib/recent-questions"
+import { listRecent, type SavedReading } from "@/lib/reading-archive"
 
 /** 서랍이 드러나는 폭 — 페이지가 이만큼 왼쪽으로 밀립니다 */
 const DRAWER_WIDTH = "78%"
@@ -75,14 +75,14 @@ export function SiteMenuPreview() {
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname()
-  const [recent, setRecent] = useState<string[]>([])
+  const [recent, setRecent] = useState<SavedReading[]>([])
 
   // 메뉴가 열리면
   //   · 뒤 페이지 스크롤을 잠그고 (아이폰 사파리는 overflow:hidden 을 무시해서 몸통을 고정)
   //   · 페이지(app-shell)를 왼쪽으로 밀어 뒤에 있는 서랍이 드러나게 합니다
   useEffect(() => {
     if (!open) return
-    setRecent(getRecentQuestions())
+    setRecent(listRecent())
 
     const scrollY = window.scrollY
     const { style } = document.body
@@ -171,19 +171,20 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
           })}
         </ul>
 
-        {/* 최근 본 타로점 — 기록이 없으면 이 영역은 나오지 않습니다 */}
+        {/* 최근 본 타로점 — 누르면 그때 나눈 대화가 그대로 열립니다.
+            기록이 없으면 이 영역은 나오지 않습니다 */}
         {recent.length > 0 && (
           <div className="mt-8 border-t border-border pt-6">
             <p className="text-xs text-muted-foreground">최근 본 타로점</p>
             <ul className="mt-3 space-y-3">
-              {recent.map((q, i) => (
-                <li key={`${q}-${i}`}>
+              {recent.map((r) => (
+                <li key={r.id}>
                   <Link
-                    href="/my"
+                    href={`/my/${r.id}`}
                     onClick={onClose}
                     className="block truncate text-[15px] text-foreground transition-opacity hover:opacity-70"
                   >
-                    {q}
+                    {r.question}
                   </Link>
                 </li>
               ))}

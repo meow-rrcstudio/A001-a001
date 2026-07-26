@@ -22,7 +22,7 @@ import { ReadingResultView, type PickedCard } from "@/components/reading-result-
 import { SUGGESTED_QUESTIONS, buildMockReading, type ReadingResult } from "@/lib/mock-reading"
 import type { ReadingQuestion } from "@/lib/reading-content"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
-import { rememberQuestion } from "@/lib/recent-questions"
+import { appendTurn, saveReading } from "@/lib/reading-archive"
 
 // 자유 질문용 스프레드 — 시안의 6장 십자 배열
 const FREE_QUESTION: ReadingQuestion = {
@@ -48,6 +48,8 @@ export default function AskPage() {
   const [question, setQuestion] = useState("")
   const [result, setResult] = useState<ReadingResult | null>(null)
   const [cards, setCards] = useState<PickedCard[]>([])
+  // 보관된 타로점 id — 이어서 나눈 대화를 여기에 계속 쌓습니다
+  const [readingId, setReadingId] = useState<string | null>(null)
 
   // 권한 확인 — 유료 회원이거나 체험이 남은 회원만 이 화면을 씁니다
   useEffect(() => {
@@ -65,7 +67,6 @@ export default function AskPage() {
     setQuestion(q)
     // 체험으로 보는 경우 여기서 1회 차감합니다 (유료 회원은 차감 안 함)
     consumeTrial()
-    rememberQuestion(q)
     setStep("draw")
   }
 
@@ -85,8 +86,13 @@ export default function AskPage() {
             question={FREE_QUESTION}
             introMessage={`"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
             onComplete={(picked) => {
+              const built = buildMockReading(question, picked)
               setCards(picked)
-              setResult(buildMockReading(question, picked))
+              setResult(built)
+              // 여기서 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
+              setReadingId(
+                saveReading({ question, topicLabel: question, cards: picked, result: built })
+              )
               setStep("result")
             }}
           />
@@ -102,10 +108,12 @@ export default function AskPage() {
         question={question}
         result={result}
         cards={cards}
+        onTurn={(turn) => readingId && appendTurn(readingId, turn)}
         onRestart={() => {
           setQuestion("")
           setResult(null)
           setCards([])
+          setReadingId(null)
           setStep("ask")
         }}
       />

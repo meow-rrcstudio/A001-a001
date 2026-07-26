@@ -107,32 +107,47 @@ export function ReadingResultView({
   question,
   result,
   cards = [],
+  backHref = "/tarot/ask",
+  initialTurns = [],
+  onTurn,
   onRestart,
 }: {
   question: string
   result: ReadingResult
   cards?: PickedCard[]
-  onRestart: () => void
+  /** 뒤로가기가 갈 곳. 기록에서 다시 열었을 때는 /my 로 돌아갑니다 */
+  backHref?: string
+  /** 예전에 나눈 대화 — 기록에서 다시 열면 그때 대화가 그대로 이어집니다 */
+  initialTurns?: Turn[]
+  /** 새 대화 한 마디가 오갈 때마다 불립니다 (보관용) */
+  onTurn?: (turn: Turn) => void
+  /** 새 질문하기. 넘기지 않으면 버튼이 나오지 않습니다 (기록에서 열었을 때) */
+  onRestart?: () => void
 }) {
-  const [turns, setTurns] = useState<Turn[]>([])
+  const [turns, setTurns] = useState<Turn[]>(initialTurns)
   const [draft, setDraft] = useState("")
+
+  function addTurn(turn: Turn) {
+    setTurns((t) => [...t, turn])
+    onTurn?.(turn)
+  }
 
   function handleSend(e: React.FormEvent) {
     e.preventDefault()
     const text = draft.trim()
     if (!text) return
     setDraft("")
-    setTurns((t) => [...t, { role: "user", text }])
+    addTurn({ role: "user", text })
     // ⚠️ 임시 답변 — 연동 시 이 줄을 실제 API 호출로 교체하세요
     setTimeout(() => {
-      setTurns((t) => [...t, { role: "shanti", text: buildMockReply(text) }])
+      addTurn({ role: "shanti", text: buildMockReply(text) })
     }, 400)
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-32 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader backHref="/tarot/ask" showShare />
+        <PageHeader backHref={backHref} showShare />
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">
@@ -193,14 +208,16 @@ export function ReadingResultView({
           )
         )}
 
-        <button
-          type="button"
-          onClick={onRestart}
-          className="mt-10 inline-flex items-center justify-center gap-2 self-start text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-        >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          새 질문하기
-        </button>
+        {onRestart && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="mt-10 inline-flex items-center justify-center gap-2 self-start text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            새 질문하기
+          </button>
+        )}
       </main>
 
       {/* 입력창 — 화면 하단 고정 */}

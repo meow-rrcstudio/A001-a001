@@ -1,10 +1,17 @@
 // lib/mock-reading-history.ts
-// ⚠️ [임시 데이터] 리딩 기록을 저장하는 곳이 아직 없어서 목업으로 채웁니다.
+// MY 의 월별 기록 목록입니다.
 //
-// 연동할 때 할 일:
-//   1) getHistory() 를 실제 조회(로그인 사용자 + 해당 월)로 교체
-//   2) 이 파일의 SAMPLE 배열 삭제
+// 내가 실제로 본 타로점(lib/reading-archive.ts 에 보관된 것)과
+// 화면 느낌을 보기 위한 임시 샘플을 함께 보여줍니다.
+// 목록의 한 건을 누르면 /my/[id] 로 그때 대화가 그대로 열립니다.
+//
+// ⚠️ 연동할 때 할 일:
+//   1) getHistory() 안에서 SAMPLE 을 빼고 서버 조회 결과만 쓰기
+//   2) 이 파일의 SAMPLE 배열과 sampleReading() 삭제
 // 화면은 아래 타입만 보고 그리므로, 타입만 맞추면 화면 코드는 그대로 둡니다.
+"use client"
+
+import { listAll, type SavedReading } from "@/lib/reading-archive"
 
 /** 리딩 한 건 */
 export interface ReadingRecord {
@@ -69,9 +76,45 @@ const SAMPLE: ReadingRecord[] = [
   },
 ]
 
+/** 보관된 타로점 한 건을 목록에 띄울 모양으로 바꿉니다 */
+function toRecord(r: SavedReading): ReadingRecord {
+  return {
+    id: r.id,
+    date: new Date(r.at),
+    // 목록 제목은 내가 던진 질문 그대로 — 무엇을 물었는지가 제일 잘 기억나서입니다
+    topicLabel: r.question,
+    summary: r.result.summary,
+    cardImages: r.cards.map((c) => c.imageUrl),
+  }
+}
+
+/**
+ * 샘플 기록을 열었을 때 보여줄 내용.
+ * ⚠️ 임시 — 실제로 본 타로점은 reading-archive 에 그대로 남아 있습니다.
+ */
+export function sampleReading(id: string) {
+  const found = SAMPLE.find((r) => r.id === id)
+  if (!found) return null
+  return {
+    id: found.id,
+    question: found.topicLabel,
+    topicLabel: found.topicLabel,
+    at: found.date.toISOString(),
+    cards: found.cardImages.map((imageUrl) => ({ name: "", reversed: false, imageUrl })),
+    result: {
+      title: found.summary,
+      summary: found.summary,
+      keywords: [],
+      sections: [],
+    },
+    turns: [],
+  }
+}
+
 /** 해당 연·월의 기록을 날짜별로 묶어 최신순으로 돌려줍니다. */
 export function getHistory(year: number, month: number): HistoryDay[] {
-  const inMonth = SAMPLE.filter(
+  const saved = listAll().map(toRecord)
+  const inMonth = [...saved, ...SAMPLE].filter(
     (r) => r.date.getFullYear() === year && r.date.getMonth() === month
   )
 
