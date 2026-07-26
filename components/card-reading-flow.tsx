@@ -335,6 +335,11 @@ export function CardReadingFlow({
   // 원의 뒤쪽으로 넘어간 카드는 화면에 있을 수 없습니다 (그리기만 생략)
   const VISIBLE_HALF = 90
 
+  // ── 겹침 순서(z) 층 ──────────────────────────────────────────────
+  const FAN_Z = 10 //      부채 위 카드 — 왼쪽부터 한 장씩 위로 (10 ~ 10+77)
+  const PEEK_Z = 200 //    지금 빼꼼 나온 카드 — 이웃에 가리지 않도록 맨 위로
+  const PICKED_Z = 300 //  뽑혀서 자리로 날아간 카드
+
   function getFanStyle(cardIndex: number) {
     const index = fanOrder.indexOf(cardIndex)
     const total = shuffledDeck.length
@@ -348,7 +353,10 @@ export function CardReadingFlow({
       left: `${x}px`,
       top: `${y}px`,
       rotate: angle,
-      zIndex: 10 + Math.round(60 - Math.abs(angle)),
+      // 겹치는 순서 — 왼쪽부터 오른쪽으로 한 장씩 얹습니다.
+      // 뒷장이 앞장 위로 올라가므로 맨 오른쪽 카드가 제일 위입니다.
+      // (가운데를 제일 위로 두면 가운데에서 좌우로 펼쳐진 것처럼 보입니다)
+      zIndex: FAN_Z + index,
       // 뒤로 넘어간 카드는 자리만 비켜둡니다 (지웠다 다시 그리면 깜박입니다)
       hidden: Math.abs(angle) > VISIBLE_HALF,
     }
@@ -467,7 +475,7 @@ export function CardReadingFlow({
          페이지가 스크롤되지 않도록 여기서 잘라냅니다. */
       <div
         ref={stageRef}
-        className="relative mx-auto w-full max-w-3xl overflow-hidden transition-[height] duration-500"
+        className="relative isolate mx-auto w-full max-w-3xl overflow-hidden transition-[height] duration-500"
         style={{ height: stageHeight }}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
@@ -512,12 +520,12 @@ export function CardReadingFlow({
           if (isPicked) {
             const s = resultSlots[pickedOrder]
             const pos = mapSlot(s)
-            // 뽑힌 카드는 부채(최대 40)보다 위, 말풍선(60)보다는 항상 아래
+            // 뽑힌 카드는 부채 위 어느 카드보다도 앞에 놓입니다
             target = {
               left: pos.left,
               top: pos.top,
               rotate: s.rotate,
-              zIndex: 41 + pickedOrder,
+              zIndex: PICKED_Z + pickedOrder,
               width: slotWidth + 2,
             }
           } else if (isLeftover) {
@@ -539,6 +547,8 @@ export function CardReadingFlow({
           const isOnFan = !isPicked && !isLeftover
           const canClick = !isPicked && phase === "selecting"
           const isPeeked = peekedIndex === index
+          // 빼꼼 나온 카드는 오른쪽 이웃에 가리지 않게 맨 위로 올립니다
+          if (isOnFan && isPeeked) target.zIndex = PEEK_Z
 
           return (
             <motion.div
