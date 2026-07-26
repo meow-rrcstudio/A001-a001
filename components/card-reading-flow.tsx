@@ -120,8 +120,8 @@ export function CardReadingFlow({
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
-  // 화면 높이 — 스프레드 보드가 남는 공간에 맞춰 늘고 줄기 위해 필요
-  const [viewportHeight, setViewportHeight] = useState(800)
+  // 무대가 flex 로 받아간 실제 높이 — 보드와 부채를 여기에 맞춰 나눕니다
+  const [stageBoxHeight, setStageBoxHeight] = useState(560)
 
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
@@ -193,23 +193,24 @@ export function CardReadingFlow({
     window.scrollTo(0, 0)
   }, [])
 
-  // 무대 폭을 측정 (화면 회전·창 크기 변경에도 대응)
+  // 무대의 실제 크기를 잽니다 (화면 회전·창 크기 변경에도 대응).
+  //
+  // ⚠️ 높이를 window.innerHeight 로 계산하지 않습니다.
+  //    모바일 사파리는 주소창이 접히고 펴지면서 innerHeight 가 달라지고,
+  //    그 값으로 미리 계산해 두면 부채가 화면 아래로 잠기지 않고 떠버립니다.
+  //    무대는 남는 자리를 flex 로 받아가고, 우리는 받은 만큼만 잽니다.
   useEffect(() => {
     const el = stageRef.current
     if (!el) return
-    setStageWidth(el.clientWidth)
-    const observer = new ResizeObserver(() => setStageWidth(el.clientWidth))
+    const measure = () => {
+      setStageWidth(el.clientWidth)
+      setStageBoxHeight(el.clientHeight)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
     observer.observe(el)
     return () => observer.disconnect()
   }, [phase])
-
-  // 화면 높이 측정
-  useEffect(() => {
-    const update = () => setViewportHeight(window.innerHeight)
-    update()
-    window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
-  }, [])
 
   function finishShuffling() {
     if (shuffleStartRef.current !== null) {
@@ -295,22 +296,17 @@ export function CardReadingFlow({
   const BOARD_WIDTH = 356 //       스프레드 보드 폭
   const BOARD_HEIGHT_REVEAL = 348 // 결과 화면 보드 높이
 
-  const HEADER_H = 76 //   고정 헤더가 차지하는 높이
-  const SLIDER_H = 76 //   하단 슬라이더 줄
+  const SLIDER_H = 76 //   하단 손잡이 줄 (무대 위에 떠 있습니다)
 
-  // 무대가 쓸 수 있는 세로 공간 (헤더·말풍선·슬라이더를 뺀 나머지)
-  const stageAvailable = Math.max(260, viewportHeight - HEADER_H - bubbleHeight - SLIDER_H)
+  // 무대는 말풍선 아래부터 화면 맨 아래까지를 flex 로 받아갑니다.
+  // 손잡이는 그 위에 떠 있으므로 무대 높이에 포함됩니다.
+  const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageBoxHeight
 
   // 보드만 반응형으로 줄어듭니다. 부채 카드는 고정이라 여기서 빼지 않습니다.
   const boardHeightSelect = Math.max(
     BOARD_HEIGHT_MIN,
-    Math.min(BOARD_HEIGHT_MAX, stageAvailable - BOARD_GAP * 2 - FAN_VISIBLE_MIN)
+    Math.min(BOARD_HEIGHT_MAX, stageHeight - SLIDER_H - BOARD_GAP * 2 - FAN_VISIBLE_MIN)
   )
-
-  // 무대는 화면 맨 아래까지 내려갑니다. 부채가 손잡이 뒤로 이어져 보이도록
-  // 손잡이 높이만큼도 무대에 포함시킵니다 (손잡이는 그 위에 떠 있습니다).
-  const stageHeight =
-    phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageAvailable + SLIDER_H
 
   // 보드가 좁아지면 슬롯·카드도 함께 살짝 작아져 겹침을 피합니다 (44~56px)
   const boardHeightNow = phase === "revealing" ? BOARD_HEIGHT_REVEAL : boardHeightSelect
@@ -356,8 +352,11 @@ export function CardReadingFlow({
   const VISIBLE_HALF = 90
 
   // ── 겹침 순서(z) 층 ──────────────────────────────────────────────
+  // ⚠️ 빼꼼 나온 카드는 층을 바꾸지 않습니다. 부채에 꽂힌 그 깊이 그대로
+  //    위로만 밀려 올라오고, 오른쪽 이웃 카드에는 여전히 가립니다.
+  //    맨 앞으로 끌어올리면 한 장만 통째로 떠 보여서 부채에서 빠져나온
+  //    것처럼 됩니다 (운영 화면과 다릅니다).
   const FAN_Z = 10 //      부채 위 카드 — 왼쪽부터 한 장씩 위로 (10 ~ 10+77)
-  const PEEK_Z = 200 //    지금 빼꼼 나온 카드 — 이웃에 가리지 않도록 맨 위로
   const PICKED_Z = 300 //  뽑혀서 자리로 날아간 카드
 
   function getFanStyle(cardIndex: number) {
@@ -498,8 +497,12 @@ export function CardReadingFlow({
          여기서 잘라냅니다. */
       <div
         ref={stageRef}
-        className="relative isolate -mx-6 overflow-hidden transition-[height] duration-500 sm:-mx-8"
-        style={{ height: stageHeight }}
+        // 고르기 화면에서는 남는 자리를 flex 로 받아갑니다 (모바일 주소창 대응).
+        // 결과 화면은 보드만 있으면 되므로 높이를 지정합니다.
+        className={`relative isolate -mx-6 overflow-hidden sm:-mx-8 ${
+          phase === "revealing" ? "transition-[height] duration-500" : "min-h-0 flex-1"
+        }`}
+        style={phase === "revealing" ? { height: stageHeight } : undefined}
       >
         {/* 스프레드 슬롯 — 어떤 배열로 나올지 항상 미리 보여줍니다 (시안 기준) */}
         {resultSlots.map((slot, i) => {
@@ -570,8 +573,6 @@ export function CardReadingFlow({
           const isOnFan = !isPicked && !isLeftover
           const canClick = !isPicked && phase === "selecting"
           const isPeeked = peekedIndex === index
-          // 빼꼼 나온 카드는 오른쪽 이웃에 가리지 않게 맨 위로 올립니다
-          if (isOnFan && isPeeked) target.zIndex = PEEK_Z
 
           return (
             <motion.div

@@ -76,7 +76,9 @@ export default function AskPage() {
   // ── 2) 카드 섞기 · 뽑기 ────────────────────────────────────────
   if (step === "draw") {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
+      // 카드 고르기 화면은 딱 한 화면입니다. 100vh 는 모바일 사파리에서
+      // 주소창을 뺀 높이보다 커서 스크롤이 생기므로 dvh 를 씁니다.
+      <div className="flex h-dvh flex-col overflow-hidden bg-background">
         <main className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
           <PageHeader backHref="/tarot/ask" />
           <CardReadingFlow

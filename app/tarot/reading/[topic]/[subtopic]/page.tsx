@@ -26,7 +26,8 @@ export default async function TarotReadingResultPage({
     : config.confirmLine(question.label)
 
   return (
-    <div className="relative flex min-h-screen flex-col">
+    // 카드 고르기 화면은 딱 한 화면입니다 (모바일 주소창 때문에 dvh)
+    <div className="relative flex h-dvh flex-col overflow-hidden">
       <PageBackground variant="aurora" />
       <main
         className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
