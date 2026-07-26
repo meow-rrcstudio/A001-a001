@@ -20,6 +20,8 @@
   --font-heading: var(--font-sans);
   /* 손글씨 — "Love / Career / Money", "Connect with Shanti" 같은 영문 강조에만 */
   --font-script: var(--font-shadows), 'Shadows Into Light', cursive;
+  /* 명조 — 홈 카테고리 카드·아카이빙 배너 제목. 다국어 인용구의 폴백도 겸합니다 */
+  --font-myeongjo: var(--font-nanum), 'Nanum Myeongjo', 'Apple SD Gothic Neo', serif;
   /* 브랜드 크롬 색을 Tailwind 클래스로 노출 (bg-brand-lime, text-brand-ink 등) */
   --color-brand-lime: var(--brand-lime);
   --color-brand-lime-soft: var(--brand-lime-soft);

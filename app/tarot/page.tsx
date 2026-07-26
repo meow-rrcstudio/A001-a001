@@ -71,7 +71,7 @@ export default async function TarotListPage() {
           (이 버튼 컴포넌트는 asChild를 지원하지 않아, 같은 스타일을 Link에 직접 입힘) */}
       <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 px-6">
         <Link
-          href="/tarot/reading"
+          href="/"
           className={cn(
             buttonVariants({ variant: "connect", size: "lg" }),
             "h-14 rounded-full px-8 font-script text-2xl shadow-lg"

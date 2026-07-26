@@ -13,7 +13,7 @@ export const SITE = {
   /** 주소 양옆에 붙는 장식 별 (워드마크의 별과 같은 모양) */
   star: "✦",
   /** 사이트 한 줄 소개 — 홈·메뉴·메타데이터가 같은 문장을 씁니다 */
-  tagline: "타로를 중심으로 마음과 몸, 여러가지 일상의 경험을 기록하고 연결하는 개인 아카이브입니다.",
+  tagline: "타로를 중심으로 여러가지 일상의 경험을 기록하고 연결하는 개인 아카이브입니다.",
 } as const
 
 /** "©2026 Meow RRC Studio. Soulseoul Archive. All Rights Reserved." */

@@ -55,7 +55,7 @@ export default function AskPage() {
       return
     }
     const as = new URLSearchParams(window.location.search).get("as")
-    router.replace(as ? `/tarot/reading?as=${as}` : "/tarot/reading")
+    router.replace(as ? `/?as=${as}` : "/")
   }, [router])
 
   function submit(text: string) {

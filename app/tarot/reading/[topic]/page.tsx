@@ -1,15 +1,15 @@
 // app/tarot/reading/[topic]/page.tsx
-// 주제(Self/Love/Career/Money)를 고른 직후, 샨티가 먼저 반응하고
-// 세부 질문(32개 중 이 주제에 해당하는 것들)을 고르는 중간 화면입니다.
-import Link from "next/link"
+// 홈에서 카테고리를 고른 뒤 나오는 화면입니다.
+//
+// 권한에 따라 갈립니다 (판단은 lib/reading-entitlement.ts 한 곳):
+//   · 유료 회원 · 체험 잔여  → 자유 질문 입력(/tarot/ask)으로 보냅니다
+//   · 그 외(비회원 포함)     → 이 화면 — 세부 질문을 골라 프롬프트를 받아갑니다
+//
+// ※ 예전에 있던 "대주제 고르기" 화면은 홈으로 흡수되어 삭제됐습니다.
 import { notFound } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
 import { readingTopics } from "@/lib/reading-topics"
 import { getTopicConfig } from "@/lib/reading-prompt-templates"
-import { ScatteredCardsBackground } from "@/components/scattered-cards-bg"
-import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
-import { PageHeader } from "@/components/page-header"
-import { PageBackground } from "@/components/page-background"
+import { TopicQuestionList } from "@/components/topic-question-list"
 
 export default async function TopicSubQuestionPage({
   params,
@@ -23,25 +23,11 @@ export default async function TopicSubQuestionPage({
   const config = getTopicConfig(matchedTopic.slug)
 
   return (
-    <div className="relative flex min-h-screen flex-col">
-      <PageBackground variant="aurora" />
-      <ScatteredCardsBackground />
-      <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 pb-48 sm:px-8">
-  <PageHeader backHref="/tarot/reading" className="mb-8" />
-  <nav className="flex flex-col">
-    {config.questions.map((q) => (
-      <Link
-        key={q.slug}
-        href={`/tarot/reading/${matchedTopic.slug}/${q.slug}`}
-        className="group flex items-center justify-between border-t border-border py-5 first:border-t-0 last:border-b"
-      >
-        <span className="text-pretty text-base leading-snug sm:text-lg">{q.label}</span>
-      </Link>
-    ))}
-  </nav>
-</main>
-
-<ReadingCharacterBubble message={config.reactionLine} />
-    </div>
+    <TopicQuestionList
+      topicSlug={matchedTopic.slug}
+      topicLabel={matchedTopic.label}
+      reactionLine={config.reactionLine}
+      questions={config.questions.map((q) => ({ slug: q.slug, label: q.label }))}
+    />
   )
 }

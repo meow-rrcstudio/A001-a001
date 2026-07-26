@@ -487,4 +487,169 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
       },
     ],
   },
+
+  // ── 일상 ──────────────────────────────────────────────────────────
+  daily: {
+    titleLabel: "일상에 대한 이야기",
+    reactionLine: "특별한 일이 없어도 매일은 흐르지. 그 흐름을 읽어보자냥.",
+    confirmTemplate: `"{q}"이라... 사소해 보여도 매일이 쌓여 삶이 되는 법이다. 마음을 담아 섞어보라냥.`,
+    domainSection: { key: "daily_advice", label: "오늘을 위한 조언 🌤", guide: "리듬+환기" },
+    questions: [
+      {
+        slug: "today",
+        label: "오늘 하루는 어떻게 흘러갈까?",
+        layoutKey: "three-row",
+        positions: [
+          { label: "오전의 기운", guide: g("오전의 기운") },
+          { label: "오후의 기운", guide: g("오후의 기운") },
+          { label: "오늘의 조언", guide: g("오늘 필요한 조언") },
+        ],
+      },
+      {
+        slug: "this-week",
+        label: "이번 주 전체 흐름이 궁금해",
+        layoutKey: "four-row",
+        positions: [
+          { label: "주 초반", guide: g("주 초반의 흐름") },
+          { label: "주 중반", guide: g("주 중반의 흐름") },
+          { label: "주 후반", guide: g("주 후반의 흐름") },
+          { label: "이번 주 조언", guide: g("이번 주에 필요한 조언") },
+        ],
+      },
+      {
+        slug: "why-tired",
+        label: "요즘 왜 이렇게 지칠까?",
+        layoutKey: "four-diamond",
+        positions: [
+          { label: "겉으로 보이는 피로", guide: g("겉으로 드러난 피로") },
+          { label: "진짜 원인", guide: g("숨어 있는 진짜 원인") },
+          { label: "빼야 할 것", guide: g("덜어내야 할 것") },
+          { label: "회복 방법", guide: g("기운을 되찾는 방법") },
+        ],
+      },
+      {
+        slug: "routine",
+        label: "지금 내 생활 리듬은 괜찮을까?",
+        layoutKey: "three-arch",
+        positions: [
+          { label: "지금의 리듬", guide: g("지금의 생활 리듬") },
+          { label: "어긋난 지점", guide: g("어긋나 있는 지점") },
+          { label: "고칠 방향", guide: g("바로잡을 방향") },
+        ],
+      },
+      {
+        slug: "small-choice",
+        label: "지금 고민 중인 작은 선택이 있어",
+        layoutKey: "three-inverted",
+        positions: [
+          { label: "이대로 갈 때", guide: g("이대로 갔을 때") },
+          { label: "바꿔볼 때", guide: g("바꿔봤을 때") },
+          { label: "조언", guide: g("마지막 조언") },
+        ],
+      },
+      {
+        slug: "mood-lift",
+        label: "요즘 기분을 바꾸려면 뭘 하면 좋을까?",
+        layoutKey: "three-row",
+        positions: [
+          { label: "지금 기분의 뿌리", guide: g("지금 기분의 뿌리") },
+          { label: "도움이 될 것", guide: g("기분을 바꿔줄 것") },
+          { label: "피할 것", guide: g("지금은 피할 것") },
+        ],
+      },
+      {
+        slug: "general",
+        label: "그냥 요즘 일상이 전체적으로 궁금해",
+        layoutKey: "three-row",
+        positions: [
+          { label: "지금", guide: g("지금의 일상") },
+          { label: "흐름", guide: g("흘러가는 흐름") },
+          { label: "조언", guide: g("지금 필요한 조언") },
+        ],
+      },
+    ],
+  },
+
+  // ── 친구 ──────────────────────────────────────────────────────────
+  friend: {
+    titleLabel: "친구에 대한 이야기",
+    reactionLine: "사람 사이는 고양이가 봐도 어렵더군. 어디 한번 들여다보자냥.",
+    confirmTemplate: `"{q}"이라... 관계는 혼자 푸는 게 아니지. 마음을 담아 섞어보라냥.`,
+    domainSection: { key: "relation_advice", label: "관계를 위한 조언 🤝", guide: "거리조절+태도" },
+    questions: [
+      {
+        slug: "how-they-see-me",
+        label: "그 친구는 나를 어떻게 생각할까?",
+        layoutKey: "four-diamond",
+        positions: [
+          { label: "지나온 관계", guide: g("두 사람이 지나온 관계") },
+          { label: "겉으로 보이는 태도", guide: g("겉으로 보이는 태도") },
+          { label: "속마음", guide: g("그 친구의 속마음") },
+          { label: "관계의 방향", guide: g("앞으로의 방향") },
+        ],
+      },
+      {
+        slug: "awkward",
+        label: "요즘 어색해진 이유가 뭘까?",
+        layoutKey: "four-diamond",
+        positions: [
+          { label: "겉으로 드러난 계기", guide: g("겉으로 드러난 계기") },
+          { label: "숨은 원인", guide: g("숨어 있는 원인") },
+          { label: "내가 놓친 것", guide: g("내가 놓치고 있는 것") },
+          { label: "풀어갈 방법", guide: g("풀어나갈 방법") },
+        ],
+      },
+      {
+        slug: "distance",
+        label: "이 관계, 거리를 어떻게 두는 게 좋을까?",
+        layoutKey: "three-arch",
+        positions: [
+          { label: "가까워질 때", guide: g("더 가까워졌을 때") },
+          { label: "거리를 둘 때", guide: g("거리를 두었을 때") },
+          { label: "조언", guide: g("지금 필요한 조언") },
+        ],
+      },
+      {
+        slug: "should-i-say",
+        label: "서운한 걸 말해도 될까?",
+        layoutKey: "three-inverted",
+        positions: [
+          { label: "말했을 때", guide: g("말을 꺼냈을 때") },
+          { label: "삼켰을 때", guide: g("말을 삼켰을 때") },
+          { label: "조언", guide: g("어떻게 전할지에 대한 조언") },
+        ],
+      },
+      {
+        slug: "new-people",
+        label: "새로운 사람들과 잘 지낼 수 있을까?",
+        layoutKey: "three-row",
+        positions: [
+          { label: "지금 내 태도", guide: g("지금 내가 지닌 태도") },
+          { label: "만나게 될 흐름", guide: g("앞으로 만나게 될 흐름") },
+          { label: "조언", guide: g("좋은 인연을 위한 조언") },
+        ],
+      },
+      {
+        slug: "who-matters",
+        label: "지금 내 곁에 남을 사람은 누구일까?",
+        layoutKey: "four-row",
+        positions: [
+          { label: "곁에 남는 인연", guide: g("곁에 남을 인연") },
+          { label: "멀어지는 인연", guide: g("멀어질 인연") },
+          { label: "새로 오는 인연", guide: g("새로 다가올 인연") },
+          { label: "조언", guide: g("인연을 대하는 조언") },
+        ],
+      },
+      {
+        slug: "general",
+        label: "그냥 요즘 인간관계가 전체적으로 궁금해",
+        layoutKey: "three-row",
+        positions: [
+          { label: "지금", guide: g("지금의 관계") },
+          { label: "흐름", guide: g("흘러가는 흐름") },
+          { label: "조언", guide: g("지금 필요한 조언") },
+        ],
+      },
+    ],
+  }
 }

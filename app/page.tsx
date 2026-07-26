@@ -1,54 +1,56 @@
 // app/page.tsx
-// 홈 — 시안(Main_메뉴)의 닫힌 상태와 같은 구성입니다.
+// 홈 — 시안(Home.pdf) 기준입니다.
 //
-// ┌─ 시안 구성 ───────────────────────────────────────────────────────
-// │ 1) 라임 영역 — 워드마크 + 소개 두 줄, 오른쪽에 햄버거(≡)
-// │ 2) 흰 카드   — 돌 사진
-// │ 3) 라임 푸터
+// ┌─ 구조 ────────────────────────────────────────────────────────────
+// │ 1) 라임 헤더   — 워드마크 + 햄버거, 그 아래 한 줄 소개
+// │ 2) 카테고리 6칸 — 이름 + 그 달의 인용구 + 화살표 (2열 격자)
+// │ 3) 검정 배너   — 아카이빙 (Tarot · Oracle · Yoga · Movie · Book)
+// │ 4) 광고 · 라임 푸터
 // │
-// │ 메뉴(Reading·Archive·Search·My·Login)는 ≡ 를 눌러 나오는
-// │ 패널에 들어 있습니다 (components/site-menu.tsx).
+// │ 메뉴를 거치지 않고 홈에서 바로 리딩에 들어갑니다.
+// │ 카드를 누르면 그 주제의 세부 질문 화면으로 갑니다.
+// │
+// │ 내용은 전부 lib/ 에 있습니다 —
+// │   카테고리·인용구 : lib/home-categories.ts
+// │   소개 문구       : lib/site.ts
 // └──────────────────────────────────────────────────────────────────
-import Image from "next/image"
 import { Footer } from "@/components/footer"
 import { Wordmark } from "@/components/brand-mark"
-import { SITE } from "@/lib/site"
 import { HomeMenuButton } from "@/components/home-menu-button"
+import { HomeCategoryGrid } from "@/components/home-category-card"
+import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { AdBand } from "@/components/ad-band"
+import { SITE } from "@/lib/site"
 
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime">
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-10">
-        <h1>
-          <Wordmark className="mx-auto h-12" priority />
-          <span className="sr-only">Soul Seoul</span>
-        </h1>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col">
+        {/* 1) 헤더 — 워드마크 + 햄버거 */}
+        <div className="px-6 pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <h1>
+              <Wordmark className="h-10" priority />
+              <span className="sr-only">Soul Seoul</span>
+            </h1>
+            <HomeMenuButton />
+          </div>
 
-        <p className="mx-auto mt-5 max-w-xs text-pretty text-center text-[15px] leading-relaxed text-brand-ink/80">
-{SITE.tagline}
-        </p>
-
-        {/* 햄버거 — 시안처럼 소개 아래 오른쪽 */}
-        <div className="mt-3 flex justify-end">
-          <HomeMenuButton />
+          <p className="mt-3 max-w-[19rem] text-pretty text-sm leading-relaxed text-black">
+            {SITE.tagline}
+          </p>
         </div>
 
-        {/* 돌 사진 — 흰 카드 */}
-        <div className="mt-2 overflow-hidden bg-white">
-          <Image
-            src="/menu-stone.webp"
-            alt=""
-            aria-hidden="true"
-            width={760}
-            height={1052}
-            priority
-            className="h-auto w-full"
-          />
+        {/* 2) 카테고리 6칸 */}
+        <div className="mt-7">
+          <HomeCategoryGrid />
         </div>
 
-        {/* 광고 — 사진 아래, 푸터 위 */}
-        <div className="py-8">
+        {/* 3) 아카이빙 배너 */}
+        <HomeArchiveBanner />
+
+        {/* 4) 광고 */}
+        <div className="px-6 py-8">
           <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} />
         </div>
       </main>

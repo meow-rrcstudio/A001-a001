@@ -23,7 +23,7 @@ import { getEntitlement } from "@/lib/reading-entitlement"
 
 // 마지막 줄은 로그인 여부에 따라 Login ↔ My 로 바뀝니다.
 const baseItems: RowItem[] = [
-  { number: "01", label: "Mind", href: "/tarot/reading" },
+  { number: "01", label: "Mind", href: "/" },
   { number: "02", label: "Body", href: "#", ready: false },
   { number: "03", label: "Archiving", href: "/archive" },
 ]

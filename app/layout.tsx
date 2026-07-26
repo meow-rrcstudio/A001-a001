@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist_Mono, Shadows_Into_Light } from 'next/font/google'
+import { Geist_Mono, Nanum_Myeongjo, Shadows_Into_Light } from 'next/font/google'
 import './globals.css'
 
 const geistMono = Geist_Mono({
@@ -11,6 +11,14 @@ const geistMono = Geist_Mono({
 // 손글씨(캘리그라피) — 시안 지정 글꼴. 영문 강조에만 씁니다.
 // 본문·제목용 SF Pro 는 애플 시스템 글꼴이라 여기서 불러오지 않고
 // app/globals.css 의 --font-sans 에서 시스템 글꼴로 지정합니다.
+// 카테고리 제목용 명조체 — 홈 카드와 아카이빙 배너 제목에만 씁니다
+const myeongjo = Nanum_Myeongjo({
+  variable: '--font-nanum',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  display: 'swap',
+})
+
 const shadows = Shadows_Into_Light({
   variable: '--font-shadows',
   subsets: ['latin'],
@@ -72,7 +80,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${geistMono.variable} ${shadows.variable} bg-background`}
+      className={`${geistMono.variable} ${shadows.variable} ${myeongjo.variable} bg-background`}
     >
       {/* 배경은 페이지마다 components/page-background.tsx 로 선택합니다 */}
       <body className="relative font-sans antialiased">
