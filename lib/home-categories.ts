@@ -12,6 +12,10 @@
 // │
 // │ ※ 카드 높이가 160px로 고정이라 인용구는 두 줄 안에 들어가야 합니다.
 // │    한글·영문 기준 40자, 한자·가나 기준 20자 정도가 안전합니다.
+// │
+// │ ※ 원문은 손대지 않습니다. 고대 그리스어의 강세·기식 부호, 일본어 표기,
+// │    히브리어 철자 등은 전해지는 형태를 그대로 둡니다. 맞춤법이 어긋나 보여도
+// │    임의로 "교정"하지 마세요. (출처 표기는 예외 — 잘못된 출처는 바로잡습니다)
 // └──────────────────────────────────────────────────────────────────
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
 
@@ -67,7 +71,7 @@ export const homeCategories: HomeCategory[] = [
     slug: "friend",
     label: "친구",
     quotes: [
-      { text: "Ὁ φίλος ἄλλος αὐτός.", source: "Ἀριστοτέλης" },
+      { text: "Ὁ φίλος αλλος αυτός.", source: "Ἀριστοτέλης" },
       { text: "有朋自遠方來，不亦樂乎.", source: "論語" },
       { text: "Amicus certus in re incerta cernitur.", source: "Ennius" },
       { text: "A friend may well be reckoned the masterpiece of nature.", source: "Emerson" },
@@ -95,15 +99,26 @@ export const homeCategories: HomeCategory[] = [
   },
 ]
 
+// 회전 시작 달. 이 달에 각 카테고리의 첫 번째 문구(=시안 원문)가 나오고,
+// 다음 달부터 배열 순서대로 넘어갑니다.
+// 특정 문구를 지금 띄우고 싶으면 quotes 배열에서 그 문구를 맨 앞으로 옮기세요.
+const ANCHOR_YEAR = 2026
+const ANCHOR_MONTH = 6 // 0=1월 … 6=7월
+
 /**
  * 그 달에 보여줄 인용구를 고릅니다.
  * 무작위가 아니라 "연·월"로 정해지므로 같은 달에는 항상 같은 문구가 나옵니다.
+ * (서버와 브라우저가 같은 값을 그리므로 문구가 바뀌는 깜빡임이 없습니다)
  *
  * @param date 기준 날짜 (테스트·미리보기에서 다른 달을 확인할 때 넘깁니다)
  */
 export function quoteOfMonth(category: HomeCategory, date: Date = new Date()): Quote {
-  const monthIndex = date.getFullYear() * 12 + date.getMonth()
-  return category.quotes[monthIndex % category.quotes.length]
+  const months =
+    (date.getFullYear() - ANCHOR_YEAR) * 12 + (date.getMonth() - ANCHOR_MONTH)
+  const total = category.quotes.length
+  // 기준 달보다 이전이어도 음수가 되지 않도록 보정
+  const index = ((months % total) + total) % total
+  return category.quotes[index]
 }
 
 /** 검정 아카이빙 배너에 들어가는 내용 */
