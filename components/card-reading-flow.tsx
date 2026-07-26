@@ -115,6 +115,8 @@ export function CardReadingFlow({
   const [bubbleHeight, setBubbleHeight] = useState(160)
   // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
+  // 시안의 하단 슬라이더 — 부채를 좌우로 훑어 카드를 고릅니다 (0 ~ 남은 카드 수-1)
+  const [sliderPos, setSliderPos] = useState(0)
   // 무대의 실제 픽셀 폭 — 부채 반지름과 보드 중앙 정렬 계산에 사용
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageWidth, setStageWidth] = useState(360)
@@ -435,7 +437,11 @@ export function CardReadingFlow({
           return (
             <div
               key={i}
-              className="absolute flex aspect-[1144/1919] items-center justify-center rounded-[8%] border border-border bg-muted/60"
+              className={`absolute flex aspect-[1144/1919] items-center justify-center rounded-[8%] border ${
+                !filled && i === selected.length
+                  ? "border-foreground/25 bg-muted"
+                  : "border-border bg-muted/60"
+              }`}
               style={{
                 ...mapSlot(slot),
                 width: slotWidth,
@@ -538,6 +544,7 @@ export function CardReadingFlow({
                 className={`h-full w-full ${canClick ? "cursor-pointer touch-none" : ""}`}
               >
                 <CardBack
+                  highlighted={!isPicked && phase === "selecting" && fanOrder[Math.min(sliderPos, fanOrder.length - 1)] === index}
                   selected={isPicked}
                   flipped={isPicked && flippedIndices.includes(index)}
                   reversed={cardOrientations[index] === "역방향"}
@@ -569,6 +576,37 @@ export function CardReadingFlow({
           샨티의 해석 보기
         </button>
       )}
+
+      {/* 하단 슬라이더 — 시안 기준. 좌우로 훑어 고른 뒤 눌러서 뽑습니다 */}
+      {phase === "selecting" && (() => {
+        const remaining = fanOrder.filter((i) => !selected.includes(i))
+        if (remaining.length === 0) return null
+        const pos = Math.min(sliderPos, remaining.length - 1)
+        return (
+          <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm sm:px-8">
+            <div className="mx-auto flex max-w-3xl items-center gap-4">
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, remaining.length - 1)}
+                value={pos}
+                onChange={(e) => setSliderPos(Number(e.target.value))}
+                aria-label="카드 고르기"
+                className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-foreground/20 accent-foreground
+                  [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => handlePick(remaining[pos])}
+                className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+              >
+                이 카드 뽑기
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 고르러 가기 — 1번만 섞어도 이동 가능 */}
       {isShuffling && shuffleStep >= 1 && (

@@ -14,12 +14,15 @@ const CARD_BACK_IMAGE =
 
 export function CardBack({
   selected = false,
+  /** 슬라이더가 지금 가리키는 카드 — 시안처럼 연두 테두리로 강조합니다 */
+  highlighted = false,
   flipped = false,
   reversed = false,
   faceImageUrl,
   faceAlt,
 }: {
   selected?: boolean
+  highlighted?: boolean
   flipped?: boolean
   reversed?: boolean
   faceImageUrl?: string
@@ -39,7 +42,11 @@ export function CardBack({
         {/* 뒷면 */}
         <div
           className={`absolute inset-0 overflow-hidden rounded-[6%] ring-1 transition-shadow ${
-            selected ? "ring-2 ring-primary shadow-lg shadow-primary/30" : "ring-border"
+            selected
+              ? "ring-2 ring-primary shadow-lg shadow-primary/30"
+              : highlighted
+                ? "ring-2 ring-accent shadow-lg shadow-accent/25"
+                : "ring-border"
           }`}
           style={{ backfaceVisibility: "hidden" }}
         >

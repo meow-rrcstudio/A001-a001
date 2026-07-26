@@ -9,7 +9,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LogIn, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { SettingsGroup, type SettingsItem } from "@/components/ui/settings-list"
@@ -39,11 +39,7 @@ export default function SettingsPage() {
   if (!entitlement.isLoggedIn) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-brand-lime">
-          <div className="mx-auto w-full max-w-md px-6">
-            <PageHeader backHref="/my" />
-          </div>
-        </header>
+        <PageHeader backHref="/my" />
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-20 text-center">
           <h1 className="font-myeongjo text-2xl font-bold text-foreground">설정</h1>
           <p className="mt-4 text-sm text-muted-foreground">로그인 후에 볼 수 있어요.</p>
@@ -74,13 +70,8 @@ export default function SettingsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="bg-brand-lime">
-        <div className="mx-auto w-full max-w-md px-6">
-          <PageHeader backHref="/my" />
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-md flex-1 px-6 pb-10">
+      <PageHeader backHref="/my" />
+      <main className={`mx-auto w-full max-w-md flex-1 px-6 pb-10 ${HEADER_SPACE}`}>
         <h1 className="pb-4 pt-2 font-myeongjo text-2xl font-bold text-foreground">설정</h1>
 
         <p className="rounded-xl bg-muted px-5 py-4 text-base font-semibold text-foreground">

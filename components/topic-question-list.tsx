@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { Button } from "@/components/ui/button"
 import { resetReadingDeck } from "@/lib/reading-session"
@@ -49,7 +49,7 @@ export function TopicQuestionList({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-10 sm:px-8">
+      <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-10 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader backHref="/" />
 
         <ReadingCharacterBubble placement="top" message={reactionLine} />

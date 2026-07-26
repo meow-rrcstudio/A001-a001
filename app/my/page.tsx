@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LogIn, Settings } from "lucide-react"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { ReadingHistory } from "@/components/reading-history"
@@ -37,12 +37,7 @@ export default function MyPage() {
   if (!entitlement.isLoggedIn) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-brand-lime">
-          <div className="mx-auto w-full max-w-md px-6">
-            <PageHeader backHref="/" />
-          </div>
-        </header>
-
+        <PageHeader backHref="/" />
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-20 text-center">
           <h1 className="font-myeongjo text-2xl font-bold text-foreground">MY</h1>
           <p className="mt-4 max-w-xs text-pretty leading-relaxed text-muted-foreground">
@@ -63,13 +58,8 @@ export default function MyPage() {
   // ── 로그인 ───────────────────────────────────────────────────────
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="bg-brand-lime">
-        <div className="mx-auto w-full max-w-md px-6">
-          <PageHeader backHref="/" />
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-md flex-1">
+      <PageHeader backHref="/" />
+      <main className={`mx-auto w-full max-w-md flex-1 ${HEADER_SPACE}`}>
         <ReadingHistory userName="꼼마님" />
 
         <div className="px-6 py-8">

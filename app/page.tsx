@@ -15,8 +15,7 @@
 // │   소개 문구       : lib/site.ts
 // └──────────────────────────────────────────────────────────────────
 import { Footer } from "@/components/footer"
-import { Wordmark } from "@/components/brand-mark"
-import { HomeMenuButton } from "@/components/home-menu-button"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { HomeCategoryGrid } from "@/components/home-category-card"
 import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { AdBand } from "@/components/ad-band"
@@ -26,17 +25,11 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime">
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        {/* 1) 헤더 — 워드마크 + 햄버거 */}
-        <div className="px-6 pt-8">
-          <div className="flex items-start justify-between gap-4">
-            <h1>
-              <Wordmark className="h-10" priority />
-              <span className="sr-only">Soul Seoul</span>
-            </h1>
-            <HomeMenuButton />
-          </div>
+        {/* 1) 헤더 — 워드마크 + 햄버거 (화면 위 16px 고정) */}
+        <PageHeader variant="home" />
 
-          <p className="mt-3 max-w-[19rem] text-pretty text-sm leading-relaxed text-black">
+        <div className={`px-6 ${HEADER_SPACE}`}>
+          <p className="max-w-[19rem] text-pretty text-sm leading-relaxed text-black">
             {SITE.tagline}
           </p>
         </div>

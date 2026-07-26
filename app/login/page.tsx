@@ -14,8 +14,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { TestLoginForm } from "@/components/test-login-form"
 import { SITE, copyrightLine } from "@/lib/site"
@@ -30,17 +30,9 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime text-brand-ink">
       {/* 뒤로 — 로그인은 막다른 길이면 안 됩니다. 항상 나갈 구멍을 둡니다. */}
-      <div className="mx-auto w-full max-w-md px-6 pt-6">
-        <Link
-          href="/"
-          aria-label="홈으로"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/70 transition-colors hover:bg-background"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-      </div>
+      <PageHeader variant="minimal" backHref="/" />
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-6">
+      <main className={`mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 ${HEADER_SPACE}`}>
         <h1>
           <Wordmark className="mx-auto h-12" priority />
           <span className="sr-only">Soul Seoul</span>

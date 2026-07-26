@@ -1,38 +1,50 @@
 // components/page-header.tsx
-// 콘텐츠 페이지 상단 바 — 시안(Site Redesign) 기준으로 다시 만들었습니다.
-// 왼쪽 뒤로가기, 오른쪽 (공유) + 더보기(⋯). ⋯ 를 누르면 메뉴가 열립니다.
-// (사이트 로고 헤더는 components/header.tsx)
+// 사이트 공용 상단바. 화면 성격에 따라 세 가지 케이스가 있습니다.
+//
+// ┌─ 헤더 케이스 ─────────────────────────────────────────────────────
+// │ variant="sub"     뒤로 + 샨티 + 더보기 — 대부분의 하위 화면
+// │                   (타로보기·아카이빙·글 상세·기록·설정·리딩 전 과정)
+// │ variant="home"    워드마크 + 햄버거 — 홈 전용
+// │ variant="minimal" 뒤로만 — 로그인처럼 나갈 길만 필요한 화면
+// │
+// │ 세 케이스 모두 화면 위에서 16px 떨어진 자리에 "고정"됩니다.
+// │ 스크롤해도 따라 내려오지 않고 그 자리에 그대로 있습니다.
+// └──────────────────────────────────────────────────────────────────
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
-// │ · 라임 스크림 높이 : h-24 (96px — 시안 실측). 버튼 뒤에 깔리는 라임 그라데이션
-// │ · 버튼 크기        : h-11 w-11 (44px — 손가락 최소 터치 크기)
-// │ · 버튼 배경        : bg-background/70 — 라임 위에 뜨는 밝은 원
-// │ · 아이콘 크기      : h-5 w-5 (20px)
-// │ · 스티키 끄기      : 아래 sticky top-0 z-40 을 지우면 함께 스크롤됩니다
-// │ · 라임 끄기        : globals.css 의 --brand-lime 을 바꾸면 전체가 함께 바뀜
+// │ · 고정 위치   : top-4 (16px)
+// │ · 라임 스크림 : h-24 (96px) — 헤더 뒤에 깔려 아래로 투명해집니다
+// │ · 버튼 크기   : h-11 w-11 (44px — 손가락 최소 터치 크기)
+// │ · 본문 여백   : 헤더가 떠 있으므로 페이지는 HEADER_SPACE 만큼 위를 비웁니다
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Share, MoreHorizontal } from "lucide-react"
+import { ArrowLeft, Menu, MoreHorizontal, Share } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
 import { BlinkingShanti } from "@/components/pixel-sprite"
+import { Wordmark } from "@/components/brand-mark"
 
-const buttonClass =
+/** 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (px) */
+export const HEADER_SPACE = "pt-[76px]"
+
+const roundButton =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"
 
 export function PageHeader({
   backHref,
   showShare = false,
+  variant = "sub",
+  /** 화면 안 상자에 견본으로 넣을 때만 false (스타일가이드 전용) */
+  fixed = true,
   className = "",
-  sticky = true,
 }: {
-  backHref: string
+  backHref?: string
   showShare?: boolean
+  variant?: "sub" | "home" | "minimal"
+  fixed?: boolean
   className?: string
-  /** 화면 상단 고정 여부. 스타일가이드처럼 상자 안에 견본으로 넣을 때만 false 로 둡니다. */
-  sticky?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -49,54 +61,74 @@ export function PageHeader({
   }
 
   return (
-    // isolate: 스크림의 -z-10 이 이 상자 밖(부모 배경 뒤)으로 밀려나지 않게 가둡니다.
-    <div className={`isolate ${sticky ? "sticky top-0 z-40" : "relative"} ${className}`}>
-      {/* 라임 스크림 — 버튼 뒤에 깔려 위에서 아래로 투명해집니다 (시안의 96px 그라데이션).
-          고정(sticky) 모드에서 fixed 를 쓰는 이유: 페이지마다 좌우 여백(px-5/px-6/px-8)이
-          달라서, 음수 마진으로 뚫으면 어떤 페이지에선 화면 밖으로 넘쳐 가로 스크롤이 생깁니다.
-          fixed + inset-x-0 은 항상 화면 폭에 정확히 맞습니다.
-          견본(sticky=false)일 때는 absolute 로 두어 상자 안에 그대로 그려집니다. */}
+    <>
+      {/* 라임 스크림 — 헤더 뒤에 깔려 위에서 아래로 투명해집니다.
+          화면 폭에 정확히 맞추려고 fixed + inset-x-0 을 씁니다. */}
+      {fixed && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-40 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent"
+        />
+      )}
+
       <div
-        aria-hidden="true"
-        className={`pointer-events-none -z-10 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent ${
-          sticky ? "fixed inset-x-0 top-0" : "absolute inset-x-0 top-0"
-        }`}
-      />
-
-      <div className="relative flex items-center justify-between py-3">
-        <Link href={backHref} className={buttonClass} aria-label="뒤로">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-
-        {/* 가운데 샨티 — 시안의 상단바 구성 (뒤로 · 캐릭터 · 더보기).
-            이미지가 아니라 도트 데이터라(lib/pixel-sprites.ts) 눈을 깜빡입니다. */}
-        <Link
-          href="/"
-          aria-label="홈으로"
-          className="text-brand-ink transition-opacity hover:opacity-70"
-        >
-          <BlinkingShanti className="h-5" />
-        </Link>
-
-        <div className="flex items-center gap-2">
-          {showShare && (
-            <button type="button" onClick={handleShare} className={buttonClass} aria-label="공유">
-              <Share className="h-5 w-5" />
-            </button>
+        className={`${
+          fixed ? "fixed inset-x-0 top-4 z-50" : "relative"
+        } mx-auto w-full max-w-md px-6 ${className}`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          {/* 왼쪽 — 홈은 워드마크, 나머지는 뒤로가기 */}
+          {variant === "home" ? (
+            <Wordmark className="h-10" priority />
+          ) : (
+            <Link href={backHref ?? "/"} className={roundButton} aria-label="뒤로">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
           )}
-          {/* 더보기(⋯) — 메뉴 + 검색 + MY + 로그인 */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className={buttonClass}
-            aria-label="메뉴 열기"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
+
+          {/* 가운데 — 하위 화면에만 샨티가 있습니다 */}
+          {variant === "sub" && (
+            <Link
+              href="/"
+              aria-label="홈으로"
+              className="text-brand-ink transition-opacity hover:opacity-70"
+            >
+              <BlinkingShanti className="h-5" />
+            </Link>
+          )}
+
+          {/* 오른쪽 — 홈은 햄버거, 하위 화면은 (공유 +) 더보기, 최소형은 없음 */}
+          {variant === "minimal" ? (
+            <span className="h-11 w-11" aria-hidden="true" />
+          ) : (
+            <div className="flex items-center gap-2">
+              {showShare && (
+                <button type="button" onClick={handleShare} className={roundButton} aria-label="공유">
+                  <Share className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label="메뉴 열기"
+                className={
+                  variant === "home"
+                    ? "inline-flex h-11 w-11 items-center justify-center text-brand-ink transition-opacity hover:opacity-70"
+                    : roundButton
+                }
+              >
+                {variant === "home" ? (
+                  <Menu className="h-7 w-7" />
+                ) : (
+                  <MoreHorizontal className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       <SiteMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
-    </div>
+    </>
   )
 }

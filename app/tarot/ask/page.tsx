@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader, HEADER_SPACE } from "@/components/page-header"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,7 @@ import { ReadingResultView, type PickedCard } from "@/components/reading-result-
 import { SUGGESTED_QUESTIONS, buildMockReading, type ReadingResult } from "@/lib/mock-reading"
 import type { ReadingQuestion } from "@/lib/reading-content"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
+import { rememberQuestion } from "@/lib/recent-questions"
 
 // 자유 질문용 스프레드 — 시안의 6장 십자 배열
 const FREE_QUESTION: ReadingQuestion = {
@@ -64,6 +65,7 @@ export default function AskPage() {
     setQuestion(q)
     // 체험으로 보는 경우 여기서 1회 차감합니다 (유료 회원은 차감 안 함)
     consumeTrial()
+    rememberQuestion(q)
     setStep("draw")
   }
 
@@ -74,7 +76,7 @@ export default function AskPage() {
   if (step === "draw") {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8">
+        <main className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
           <PageHeader backHref="/tarot/ask" />
           <CardReadingFlow
             mode="inline"
@@ -113,7 +115,7 @@ export default function AskPage() {
   // ── 1) 질문 입력 ──────────────────────────────────────────────
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8">
+      <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader backHref="/" />
 
         <ReadingCharacterBubble
