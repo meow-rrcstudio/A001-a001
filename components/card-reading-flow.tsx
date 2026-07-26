@@ -330,10 +330,14 @@ export function CardReadingFlow({
   const fanRadius = Math.max(220, Math.min(stageWidth * 0.85, 340))
   // 부채 꼭대기(맨 위 카드의 한가운데). 두 조건 중 아래쪽을 따릅니다.
   //  · 보드 아래로 최소 20px 떨어질 것
-  //  · 카드 아랫변이 화면 맨 아래까지 닿을 것 (아래에 빈 자리를 남기지 않도록)
+  //  · 카드 아랫변이 화면 밖으로 충분히 잠길 것
+  //
+  // 카드의 아랫끝이 화면 안에서 보이면 부채가 잘린 게 아니라 "짧은 카드"로
+  // 보입니다. FAN_BLEED 만큼 화면 아래로 더 내려서 끝을 감춥니다.
+  const FAN_BLEED = 60
   const fanApexY = Math.max(
     boardHeightSelect + BOARD_GAP * 2 + FAN_CARD_HEIGHT / 2,
-    stageHeight - FAN_CARD_HEIGHT / 2
+    stageHeight + FAN_BLEED - FAN_CARD_HEIGHT / 2
   )
   const fanCenterY = fanApexY + fanRadius
   // 부채 맨 위 카드의 윗변 — 보드가 쓸 수 있는 아래 한계선입니다
