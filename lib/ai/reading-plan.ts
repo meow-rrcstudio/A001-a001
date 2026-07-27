@@ -24,6 +24,24 @@ export const SPREAD_CHOICES: { key: string; count: number; when: string }[] = [
   { key: "ten-celtic", count: 10, when: "인생의 큰 갈림길처럼 깊고 무거운 질문" },
 ]
 
+/**
+ * 장수만 정해졌을 때 쓸 배열을 골라줍니다.
+ *
+ * 면담 도중 카드를 더 뽑을 때는 샨티가 자리만 일러주고 배열 이름은 주지
+ * 않습니다. 그 장수에 맞는 가장 단순한 배열을 여기서 정합니다.
+ */
+export function layoutKeyForCount(count: number): string {
+  const simple: Record<number, string> = {
+    1: "one-card",
+    2: "two-card",
+    3: "three-row",
+    4: "four-row",
+    5: "five-grid",
+    6: "six-cross",
+  }
+  return simple[count] ?? "three-row"
+}
+
 export const PLAN_JSON_SCHEMA = {
   type: "object",
   properties: {

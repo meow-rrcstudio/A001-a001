@@ -21,7 +21,6 @@ export const HEADER_SPACE = "pt-[76px]"
  *    남습니다. 웹에서 없앨 수 있는 건 자동완성 줄까지입니다.
  */
 export const KEYBOARD_ONLY_INPUT_PROPS = {
-  type: "text",
   autoComplete: "off",
   autoCorrect: "off",
   autoCapitalize: "off",

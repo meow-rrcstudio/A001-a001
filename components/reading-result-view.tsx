@@ -1,8 +1,10 @@
 // components/reading-result-view.tsx
 // 사이트 내 해석 결과 + 이어서 대화하기 화면 (시안의 "결과보기" · "대화하기").
 //
-// ⚠️ 답변은 아직 AI 에 연결되어 있지 않습니다 — lib/mock-reading.ts 의
-//    임시 함수를 씁니다. 연동 시 handleSend 안의 buildMockReply 만 바꾸면 됩니다.
+// 이어지는 물음은 lib/use-reading-chat.ts 가 맡습니다. 샨티가 카드를 더
+// 봐야겠다고 하면 두 갈래입니다 — 이 몸이 대신 뽑거나(카드가 말 아래에
+// 깔리고 곧바로 이어 읽어줍니다), 묻는 이가 직접 뽑거나(onDrawRequest 로
+// 카드 고르기 화면에 넘깁니다).
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 사용자 말풍선 : bg-secondary(연라임) · 오른쪽 정렬
@@ -12,13 +14,16 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Copy, Volume2, ThumbsUp, Share2, Check, RotateCcw } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
-import { HEADER_SPACE, KEYBOARD_ONLY_INPUT_PROPS } from "@/lib/layout"
-import { buildMockReply, type ReadingResult } from "@/lib/mock-reading"
+import { ChatInput } from "@/components/chat-input"
+import { HEADER_SPACE } from "@/lib/layout"
+import { type ReadingResult } from "@/lib/mock-reading"
+import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
+import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 
-type Turn = { role: "user" | "shanti"; text: string }
+type Turn = ChatTurn
 
 /** 답변 아래 붙는 액션 줄 (복사·읽어주기·좋아요·공유) */
 function AnswerActions({ text }: { text: string }) {
@@ -123,17 +128,21 @@ export function ReadingResultView({
   question,
   result,
   cards = [],
+  positions,
   streaming = false,
   error = null,
   backHref = "/tarot/ask",
   initialTurns = [],
   onTurn,
   onRestart,
+  onDrawRequest,
 }: {
   question: string
   /** 아직 만들어지는 중이면 조각이 비어 있을 수 있습니다 */
   result: Partial<ReadingResult>
   cards?: PickedCard[]
+  /** 뽑은 카드들의 자리 이름 (샨티가 고른 배열). 면담에 함께 넘깁니다 */
+  positions?: string[]
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
   streaming?: boolean
   /** 해석을 못 받았을 때의 사유 */
@@ -146,27 +155,40 @@ export function ReadingResultView({
   onTurn?: (turn: Turn) => void
   /** 새 질문하기. 넘기지 않으면 버튼이 나오지 않습니다 (기록에서 열었을 때) */
   onRestart?: () => void
+  /**
+   * 샨티가 "네가 직접 뽑아라"라고 할 때 불립니다. 카드 고르기 화면으로
+   * 넘겼다가 뽑은 카드를 done 으로 돌려주면 면담이 이어집니다.
+   * 넘기지 않으면 직접 뽑기를 청하지 않고 답만 나옵니다 (기록 화면 등).
+   */
+  onDrawRequest?: (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => void
 }) {
-  const [turns, setTurns] = useState<Turn[]>(initialTurns)
   const [draft, setDraft] = useState("")
+  const {
+    turns: newTurns,
+    streamingText,
+    busy,
+    error: chatError,
+    pendingDraw,
+    send,
+    submitDrawnCards,
+  } = useReadingChat({ question, cards, positions, reading: result, onTurn })
 
-  function addTurn(turn: Turn) {
-    setTurns((t) => [...t, turn])
-    onTurn?.(turn)
-  }
+  // 기록에서 다시 연 예전 대화 + 이번에 새로 나눈 대화
+  const turns: Turn[] = [...initialTurns, ...newTurns]
 
-  function handleSend(e: React.KeyboardEvent<HTMLInputElement>) {
-    // 한글은 조합 중에도 엔터가 올라옵니다. 조합이 끝난 뒤에만 보냅니다.
-    if (e.key !== "Enter" || e.nativeEvent.isComposing) return
-    e.preventDefault()
+  // 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다.
+  useEffect(() => {
+    if (!pendingDraw || !onDrawRequest) return
+    onDrawRequest(pendingDraw, (picked) => {
+      void submitDrawnCards(picked)
+    })
+  }, [pendingDraw, onDrawRequest, submitDrawnCards])
+
+  function handleSend() {
     const text = draft.trim()
-    if (!text) return
+    if (!text || busy) return
     setDraft("")
-    addTurn({ role: "user", text })
-    // ⚠️ 임시 답변 — 연동 시 이 줄을 실제 API 호출로 교체하세요
-    setTimeout(() => {
-      addTurn({ role: "shanti", text: buildMockReply(text) })
-    }, 400)
+    void send(text)
   }
 
   return (
@@ -250,16 +272,45 @@ export function ReadingResultView({
         {turns.map((turn, i) =>
           turn.role === "user" ? (
             <div key={i} className="mt-6 flex justify-end">
-              <p className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
+              <p className="max-w-[85%] whitespace-pre-line rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
                 {turn.text}
               </p>
             </div>
           ) : (
             <div key={i} className="mt-5">
-              <p className="text-[15px] leading-relaxed text-foreground/90">{turn.text}</p>
+              <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+                {turn.text}
+              </p>
+              {/* 이 마디에서 카드를 더 뽑았으면 말 아래에 깔아 보여줍니다 */}
+              {!!turn.cards?.length && (
+                <div className="mt-3">
+                  <MiniSpread cards={turn.cards} />
+                </div>
+              )}
               <AnswerActions text={turn.text} />
             </div>
           )
+        )}
+
+        {/* 지금 흘러들어오는 중인 답 */}
+        {streamingText !== null && (
+          <div className="mt-5">
+            {streamingText ? (
+              <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+                {streamingText}
+                <Cursor />
+              </p>
+            ) : (
+              <p className="text-[15px] text-muted-foreground">샨티가 카드를 다시 들여다보는 중...</p>
+            )}
+          </div>
+        )}
+
+        {chatError && (
+          <div className="mt-5 rounded-xl border border-border bg-muted px-4 py-4">
+            <p className="text-[15px] text-foreground">흐음... 말이 막혔구먼. 다시 물어보라냥.</p>
+            <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{chatError}</p>
+          </div>
         )}
 
         {onRestart && (
@@ -278,18 +329,16 @@ export function ReadingResultView({
       {!streaming && (
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
         {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
-            테두리 줄 없이 그림자로만 띄웁니다.
-            ⚠️ <form> 으로 감싸지 않습니다 — iOS 가 키보드 위에 자동완성
-               줄(암호·카드·연락처)을 얹습니다. lib/layout.ts 참고. */}
+            테두리 줄 없이 그림자로만 띄웁니다. */}
         <div className="mx-auto w-full max-w-3xl px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
-          <input
+          <ChatInput
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleSend}
-            placeholder="Shānti-에게 응답하기"
-            aria-label="샨티에게 응답하기"
-            {...KEYBOARD_ONLY_INPUT_PROPS}
-            className="pointer-events-auto h-14 w-full rounded-2xl bg-card px-5 font-script text-lg text-foreground shadow-raised outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40"
+            onChange={setDraft}
+            onSubmit={handleSend}
+            disabled={busy}
+            placeholder={busy ? "샨티가 생각하는 중..." : "Shānti-에게 응답하기"}
+            ariaLabel="샨티에게 응답하기"
+            className="pointer-events-auto"
           />
         </div>
       </div>

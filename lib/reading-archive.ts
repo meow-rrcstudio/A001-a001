@@ -19,6 +19,8 @@ const RECENT_MAX = 4
 export interface ReadingTurn {
   role: "user" | "shanti"
   text: string
+  /** 면담 도중 더 뽑은 카드 — 다시 열었을 때도 그대로 보이도록 함께 담습니다 */
+  cards?: PickedCard[]
 }
 
 /** 보관된 타로점 한 건 */

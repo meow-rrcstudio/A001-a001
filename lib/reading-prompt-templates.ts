@@ -7,6 +7,7 @@
 import { ACTIVE_CHARACTER } from "@/lib/character"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
+import { CHAT_INSTRUCTION } from "@/lib/ai/reading-chat"
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
 
 // 하위 호환: 기존 코드가 쓰던 이름을 유지하되, 실체는 reading-topics의 슬러그 타입입니다.
@@ -116,6 +117,71 @@ export function buildReadingMessages({
   return {
     system: layers.join("\n\n"),
     user: buildReadingLayer({ question, cards }),
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 면담 — 해석을 받은 뒤 이어지는 물음
+// ═══════════════════════════════════════════════════════════════════
+
+/** 면담에 들려보내는 지금까지의 사정 */
+export interface ChatContext {
+  /** 처음 던진 질문 */
+  question: string
+  /** 그때 뽑은 카드 (자리 이름과 함께) */
+  cards: { name: string; orientation: "정방향" | "역방향"; position?: string }[]
+  /** 앞서 해준 해석 */
+  reading?: { title: string; summary: string; keywords: string[]; sections: { heading: string; body: string }[] }
+  /** 그 뒤로 오간 말. 카드를 더 뽑았으면 그것도 한 마디로 들어옵니다 */
+  turns: { role: "user" | "shanti"; text: string }[]
+  /** 이번에 새로 던진 물음 */
+  message: string
+}
+
+function describeCards(cards: ChatContext["cards"]): string {
+  if (cards.length === 0) return "(없음)"
+  return cards
+    .map((c, i) => `${i + 1}. ${c.position ? `${c.position} — ` : ""}${c.name} (${c.orientation})`)
+    .join("\n")
+}
+
+/**
+ * 면담용 — 페르소나는 그대로 두고, 지금까지의 사정을 user 쪽에 싣습니다.
+ *
+ * 페르소나·지시는 매번 같아서 앞쪽(system)에 두면 캐싱이 걸립니다.
+ * 오간 말은 요청마다 달라지므로 user 로 보냅니다.
+ */
+export function buildChatMessages(
+  context: ChatContext,
+  character = ACTIVE_CHARACTER
+): { system: string; user: string } {
+  const { question, cards, reading, turns, message } = context
+
+  const parts = [
+    `### 처음 던진 물음\n${question}`,
+    `### 뽑힌 카드\n${describeCards(cards)}`,
+  ]
+
+  if (reading) {
+    parts.push(
+      `### 이 몸이 앞서 해준 해석\n${reading.title}\n\n${reading.summary}\n\n` +
+        `키워드: ${reading.keywords.join(" · ")}\n\n` +
+        reading.sections.map((s) => `[${s.heading}]\n${s.body}`).join("\n\n")
+    )
+  }
+
+  if (turns.length > 0) {
+    parts.push(
+      `### 그 뒤로 오간 말\n` +
+        turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
+    )
+  }
+
+  parts.push(`### 이번 물음\n${message}`)
+
+  return {
+    system: [character.persona, CHAT_INSTRUCTION].join("\n\n"),
+    user: parts.join("\n\n"),
   }
 }
 

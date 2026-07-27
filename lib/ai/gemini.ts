@@ -101,7 +101,7 @@ export async function runReadingWithGemini({
  * 돌려주는 것은 "지금까지 쌓인 JSON 문자열"입니다. 아직 완성되지 않은
  * 상태라 받는 쪽에서 parsePartialJson 으로 읽어냅니다.
  */
-export async function* streamReadingWithGemini({
+export function streamReadingWithGemini({
   topicKey,
   question,
   cards,
@@ -110,12 +110,31 @@ export async function* streamReadingWithGemini({
   question: ReadingQuestion
   cards: { name: string; orientation: "정방향" | "역방향" }[]
 }): AsyncGenerator<string> {
+  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface: "inline" })
+  return streamGeminiJson({ system, user, schema: READING_JSON_SCHEMA })
+}
+
+/**
+ * 정해진 모양(JSON 스키마)으로 답을 받아 조각내어 흘려보냅니다.
+ *
+ * 해석·면담이 이 함수를 함께 씁니다. 돌려주는 것은 "지금까지 쌓인 JSON
+ * 문자열"이라, 받는 쪽에서 parsePartialJson 으로 읽어냅니다.
+ */
+export async function* streamGeminiJson({
+  system,
+  user,
+  schema,
+  maxOutputTokens = MAX_OUTPUT_TOKENS,
+}: {
+  system: string
+  user: string
+  schema: unknown
+  maxOutputTokens?: number
+}): AsyncGenerator<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY 가 없습니다. Vercel 환경변수를 확인하세요.")
   }
-
-  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface: "inline" })
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_READING_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
@@ -126,11 +145,11 @@ export async function* streamReadingWithGemini({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: {
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          maxOutputTokens,
           thinkingConfig: NO_THINKING,
           // 화면이 바로 쓸 수 있는 조각으로 받습니다.
           responseMimeType: "application/json",
-          responseSchema: READING_JSON_SCHEMA,
+          responseSchema: schema,
         },
       }),
     }

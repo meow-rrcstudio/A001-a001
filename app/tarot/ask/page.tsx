@@ -11,10 +11,10 @@
 // ⚠️ 이어지는 대화(답변)는 아직 lib/mock-reading.ts 의 임시 함수입니다.
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
-import { HEADER_SPACE, KEYBOARD_ONLY_INPUT_PROPS } from "@/lib/layout"
+import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,9 @@ import { SUGGESTED_QUESTIONS } from "@/lib/mock-reading"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, type ReadingPlan } from "@/app/api/reading/plan/route"
+import { layoutKeyForCount } from "@/lib/ai/reading-plan"
+import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
+import { ChatInput } from "@/components/chat-input"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
 import { appendTurn, saveReading } from "@/lib/reading-archive"
 
@@ -41,6 +44,19 @@ export default function AskPage() {
   const { reading, streaming, error, run } = useReadingStream()
   // 보관된 타로점 id — 이어서 나눈 대화를 여기에 계속 쌓습니다
   const [readingId, setReadingId] = useState<string | null>(null)
+  // 면담 도중 샨티가 "네가 직접 뽑아라"라고 했을 때. 카드 고르기 화면을
+  // 해석 위에 덮어 띄웁니다 — 해석 화면을 걷어내면 나눈 대화가 사라집니다.
+  const [followup, setFollowup] = useState<{
+    draw: ChatDrawRequest
+    done: (picked: PickedCard[]) => void
+  } | null>(null)
+
+  const handleDrawRequest = useCallback(
+    (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
+      setFollowup({ draw, done })
+    },
+    []
+  )
 
   // 권한 확인 — 유료 회원이거나 체험이 남은 회원만 이 화면을 씁니다
   useEffect(() => {
@@ -123,20 +139,53 @@ export default function AskPage() {
   // ── 3) 해석 + 대화 ────────────────────────────────────────────
   if (step === "result") {
     return (
-      <ReadingResultView
-        question={question}
-        result={reading ?? {}}
-        cards={cards}
-        streaming={streaming}
-        error={error}
-        onTurn={(turn) => readingId && appendTurn(readingId, turn)}
-        onRestart={() => {
-          setQuestion("")
-          setCards([])
-          setReadingId(null)
-          setStep("ask")
-        }}
-      />
+      <>
+        <ReadingResultView
+          question={question}
+          result={reading ?? {}}
+          cards={cards}
+          positions={plan?.positions.map((p) => p.label)}
+          streaming={streaming}
+          error={error}
+          onTurn={(turn) => readingId && appendTurn(readingId, turn)}
+          onDrawRequest={handleDrawRequest}
+          onRestart={() => {
+            setQuestion("")
+            setCards([])
+            setReadingId(null)
+            setStep("ask")
+          }}
+        />
+
+        {/* 면담 중 추가로 뽑기 — 해석 화면 위에 덮습니다 (대화를 잃지 않도록) */}
+        {followup && (
+          <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-background">
+            <main
+              className={`relative z-10 mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+            >
+              <PageHeader variant="reading" backHref="/tarot/ask" />
+              <CardReadingFlow
+                mode="inline"
+                topicLabel={question}
+                topicSlug="self"
+                question={{
+                  slug: FREE_QUESTION_SLUG,
+                  label: question,
+                  layoutKey: layoutKeyForCount(
+                    followup.draw.positions.length
+                  ) as ReturnType<typeof buildFreeQuestion>["layoutKey"],
+                  positions: followup.draw.positions,
+                }}
+                introMessage={followup.draw.intro}
+                onComplete={(picked) => {
+                  followup.done(picked)
+                  setFollowup(null)
+                }}
+              />
+            </main>
+          </div>
+        )}
+      </>
     )
   }
 
@@ -173,25 +222,15 @@ export default function AskPage() {
             ))}
           </div>
 
-          {/* 시안: 보내기 버튼 없이 둥근 흰 카드 하나. 키보드 엔터로 보냅니다.
-              ⚠️ <form> 으로 감싸지 않습니다. iOS 는 폼 안의 입력칸을 보면
-                 키보드 위에 자동완성 줄(암호·카드·연락처)을 띄웁니다. */}
-          <div className="mt-4">
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" || e.nativeEvent.isComposing) return
-                e.preventDefault()
-                submit(question)
-              }}
-              disabled={planning}
-              placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
-              aria-label="질문 입력"
-              {...KEYBOARD_ONLY_INPUT_PROPS}
-              className="h-14 w-full rounded-2xl bg-card px-5 text-[15px] text-foreground shadow-raised outline-none transition-opacity placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
-            />
-          </div>
+          <ChatInput
+            value={question}
+            onChange={setQuestion}
+            onSubmit={() => submit(question)}
+            disabled={planning}
+            placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
+            ariaLabel="질문 입력"
+            className="mt-4"
+          />
         </div>
       </main>
     </div>
