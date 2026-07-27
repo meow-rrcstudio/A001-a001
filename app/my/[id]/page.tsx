@@ -7,7 +7,8 @@
 
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
-import { PageHeader, HEADER_SPACE } from "@/components/page-header"
+import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingResultView } from "@/components/reading-result-view"
 import { Button } from "@/components/ui/button"
 import { appendTurn, getReading, type SavedReading } from "@/lib/reading-archive"

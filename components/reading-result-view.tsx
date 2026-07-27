@@ -14,7 +14,8 @@
 
 import { useState } from "react"
 import { Copy, Volume2, ThumbsUp, Share2, Check, RotateCcw } from "lucide-react"
-import { PageHeader, HEADER_SPACE } from "@/components/page-header"
+import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 import { buildMockReply, type ReadingResult } from "@/lib/mock-reading"
 
 type Turn = { role: "user" | "shanti"; text: string }

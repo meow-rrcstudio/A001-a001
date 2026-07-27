@@ -3,6 +3,7 @@ import { allTarotCards } from "@/lib/tarot-cards"
 import { TarotCardImage } from "@/components/tarot-card-image"
 import { getAllSlugs } from "@/lib/notion"
 import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 import { PageBackground } from "@/components/page-background"
 import { Footer } from "@/components/footer"
 import { AdBand } from "@/components/ad-band"
@@ -20,8 +21,8 @@ export default async function TarotListPage() {
     <div className="flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
       {/* 하단 여백은 광고 띠배너 래퍼(py-10)가 담당 — 40px 간격 유지 */}
-      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 pt-10 sm:px-8">
-        <PageHeader backHref="/archive" showShare className="mb-8" />
+      <main className={`relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 sm:px-8 ${HEADER_SPACE}`}>
+        <PageHeader backHref="/archive" showShare />
 
         <div className="mb-8">
           <h1 className="text-5xl font-bold tracking-tight text-foreground">Tarot</h1>

@@ -15,6 +15,7 @@ import { LayoutGrid } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { AdBand } from "@/components/ad-band"
 import { CardArchiveBoard } from "@/components/card-archive-board"
+import { HEADER_SPACE } from "@/lib/layout"
 import { getPublishedPosts } from "@/lib/notion"
 import { buildCardArchive } from "@/lib/card-archive"
 
@@ -32,7 +33,7 @@ export default async function ArchivePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
+      <main className={`mx-auto w-full max-w-3xl flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
         <CardArchiveBoard decks={decks} />
 
         {/* 78장 카드 그림으로 훑어보고 싶은 사람을 위한 진입점 —

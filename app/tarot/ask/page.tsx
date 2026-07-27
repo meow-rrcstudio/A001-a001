@@ -14,7 +14,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { PageHeader, HEADER_SPACE } from "@/components/page-header"
+import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"

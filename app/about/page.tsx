@@ -5,6 +5,7 @@
 import type { Metadata } from "next"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 
 export const metadata: Metadata = {
   title: "about",
@@ -18,8 +19,8 @@ const h2Class = "mt-10 font-serif text-xl font-semibold text-foreground"
 export default function aboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
-        <PageHeader backHref="/" className="mb-8" />
+      <main className={`mx-auto w-full max-w-3xl flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
+        <PageHeader backHref="/" />
 
         {/* 페이지 제목 — 세리프 이탤릭 + 테라코타 애스터리스크 */}
         <div className="flex items-center gap-3">

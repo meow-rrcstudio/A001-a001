@@ -32,8 +32,9 @@ import { SiteMenu } from "@/components/site-menu"
 import { BlinkingShanti } from "@/components/pixel-sprite"
 import { Wordmark } from "@/components/brand-mark"
 
-/** 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다) */
-export const HEADER_SPACE = "pt-[76px]"
+// 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다).
+// 값은 lib/layout.ts 에 있습니다 — 서버 컴포넌트도 읽어야 하기 때문입니다.
+// 여기서 다시 내보내면 서버 쪽에서 스텁이 잡히므로 다시 내보내지 않습니다.
 
 const roundButton =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"

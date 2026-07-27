@@ -4,7 +4,8 @@ import { notFound } from "next/navigation"
 import { readingTopics } from "@/lib/reading-topics"
 import { getTopicConfig } from "@/lib/reading-prompt-templates"
 import { CardReadingFlow } from "@/components/card-reading-flow"
-import { PageHeader, HEADER_SPACE } from "@/components/page-header"
+import { PageHeader } from "@/components/page-header"
+import { HEADER_SPACE } from "@/lib/layout"
 import { PageBackground } from "@/components/page-background"
 
 export default async function TarotReadingResultPage({
