@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { getHistory, type HistoryDay } from "@/lib/reading-history"
 
 export function ReadingHistory({ userName }: { userName?: string | null }) {
@@ -41,6 +42,11 @@ export function ReadingHistory({ userName }: { userName?: string | null }) {
       alive = false
     }
   }, [cursor])
+
+  // 지난 달을 보고 있을 때는 "아직"이라고 하면 어색합니다
+  const now = new Date()
+  const isThisMonth =
+    cursor.getFullYear() === now.getFullYear() && cursor.getMonth() === now.getMonth()
 
   function moveMonth(delta: number) {
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1))
@@ -78,9 +84,19 @@ export function ReadingHistory({ userName }: { userName?: string | null }) {
       {!ready ? (
         <div className="py-20" />
       ) : days.length === 0 ? (
-        <p className="px-6 py-20 text-center text-sm text-muted-foreground">
-          이 달에는 아직 리딩 기록이 없어요.
-        </p>
+        // 빈 화면에서 할 일을 주는 게 먼저입니다.
+        // "없어요"만 적어두면 여기서 갈 데가 없습니다.
+        <div className="flex flex-col items-center px-6 py-16 text-center">
+          <p className="text-[15px] leading-relaxed text-foreground">
+            {isThisMonth ? "아직 이번 달 기록이 없어요." : "이 달에는 기록이 없어요."}
+          </p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            타로를 보면 여기에 차곡차곡 쌓여요.
+          </p>
+          <Button variant="solid" size="pill" className="mt-6" render={<Link href="/tarot" />}>
+            타로 보러 가기
+          </Button>
+        </div>
       ) : (
         <div className="divide-y divide-border">
           {days.map((group) => (
