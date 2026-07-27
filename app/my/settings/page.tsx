@@ -5,7 +5,6 @@
 // 담당합니다. 새 설정을 추가하려면 배열에 한 줄 넣으면 됩니다.
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LogIn, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -15,11 +14,9 @@ import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { SettingsGroup, type SettingsItem } from "@/components/ui/settings-list"
+import { useAccount } from "@/lib/use-account"
 import {
-  DEFAULT_ENTITLEMENT,
-  getEntitlement,
   signOut,
-  type Entitlement,
 } from "@/lib/reading-entitlement"
 
 // 앱 섹션의 "권한 · 햅틱 피드백"은 웹에서 제어할 수 없어 넣지 않았습니다.
@@ -28,13 +25,7 @@ const APP_ITEMS: SettingsItem[] = [{ label: "연동", href: "#" }]
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [entitlement, setEntitlement] = useState<Entitlement>(DEFAULT_ENTITLEMENT)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    setEntitlement(getEntitlement())
-    setReady(true)
-  }, [])
+  const { account: entitlement, ready } = useAccount()
 
   if (!ready) return <div className="min-h-screen bg-background" />
 
@@ -79,7 +70,7 @@ export default function SettingsPage() {
         <h1 className="pb-4 pt-2 font-myeongjo text-2xl font-bold text-foreground">설정</h1>
 
         <p className="rounded-xl bg-muted px-5 py-4 text-base font-semibold text-foreground">
-          shanti.oracle@soulseoul.com
+          {entitlement.email ?? "이메일 없음"}
         </p>
 
         <SettingsGroup label="계정" items={accountItems} />
@@ -88,7 +79,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => {
-            signOut()
+            void signOut()
             router.push("/")
             router.refresh()
           }}

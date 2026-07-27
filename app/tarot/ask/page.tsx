@@ -26,13 +26,15 @@ import { FALLBACK_PLAN, type ReadingPlan } from "@/app/api/reading/plan/route"
 import { layoutKeyForCount } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
-import { canUseInsiteReading, consumeCredit, getEntitlement } from "@/lib/reading-entitlement"
+import { canUseInsiteReading, consumeCredit } from "@/lib/reading-entitlement"
+import { useAccount } from "@/lib/use-account"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
 type Step = "ask" | "draw" | "result"
 
 export default function AskPage() {
   const router = useRouter()
+  const { account, ready: accountReady, refresh: refreshAccount } = useAccount()
   const [allowed, setAllowed] = useState(false)
   const [step, setStep] = useState<Step>("ask")
   const [question, setQuestion] = useState("")
@@ -60,13 +62,14 @@ export default function AskPage() {
 
   // 권한 확인 — 크레딧이 남은 회원만 이 화면을 씁니다
   useEffect(() => {
-    if (canUseInsiteReading(getEntitlement())) {
+    if (!accountReady) return
+    if (canUseInsiteReading(account)) {
       setAllowed(true)
       return
     }
     const as = new URLSearchParams(window.location.search).get("as")
     router.replace(as ? `/?as=${as}` : "/")
-  }, [router])
+  }, [router, accountReady, account])
 
   async function submit(text: string) {
     const q = text.trim()
@@ -75,7 +78,11 @@ export default function AskPage() {
     setPlanning(true)
     // 크레딧 한 장은 여기서만 깎습니다. 이어서 묻는 것과 카드를 더
     // 뽑는 것은 같은 한 판이라 더 깎지 않습니다.
-    consumeCredit()
+    //
+    // ⚠️ 아직 화면에서 깎습니다. 서버가 깎게 옮겨야 합니다 —
+    //    이 줄을 건너뛰면 크레딧 없이도 볼 수 있습니다.
+    await consumeCredit()
+    void refreshAccount()
 
     // 이 질문에 어떤 배열이 어울릴지 먼저 정합니다 (2초 안팎).
     // 실패해도 기본 배열로 흐름을 이어갑니다.

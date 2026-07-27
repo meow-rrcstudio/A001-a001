@@ -8,7 +8,6 @@
 // 로그인 여부는 lib/reading-entitlement.ts 한 곳에서 판단합니다.
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { LogIn, Settings } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
@@ -16,20 +15,10 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { ReadingHistory } from "@/components/reading-history"
-import {
-  DEFAULT_ENTITLEMENT,
-  getEntitlement,
-  type Entitlement,
-} from "@/lib/reading-entitlement"
+import { useAccount } from "@/lib/use-account"
 
 export default function MyPage() {
-  const [entitlement, setEntitlement] = useState<Entitlement>(DEFAULT_ENTITLEMENT)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    setEntitlement(getEntitlement())
-    setReady(true)
-  }, [])
+  const { account: entitlement, ready } = useAccount()
 
   if (!ready) return <div className="min-h-screen bg-background" />
 

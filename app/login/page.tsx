@@ -22,8 +22,7 @@ import Image from "next/image"
 import { Wordmark } from "@/components/brand-mark"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
-import { Button } from "@/components/ui/button"
-import { TestLoginForm } from "@/components/test-login-form"
+import { LoginForm } from "@/components/login-form"
 import { SITE, copyrightLine } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -63,22 +62,9 @@ export default function LoginPage() {
         </p>
 
         {/* 시안의 세 가지 — 카카오·구글은 연동, 이메일은 직접 가입입니다.
-            국내 서비스라 카카오를 맨 위에 둡니다.
-
-            TODO(인증): 아래 onClick 자리에 공급자 로그인 호출을 연결하세요.
-            ⚠️ 카카오는 버튼 모양에 브랜드 규정이 있습니다(노란 바탕 #FEE500 +
-               지정 로고). 지금은 시안대로 검정 버튼으로 두었으니, 카카오
-               심사 전에 규정을 확인하고 필요하면 그때 바꿔야 합니다. */}
-        <div className="mt-8 space-y-3">
-          <Button variant="solid" size="pill" className="w-full">
-            카카오로 계속하기
-          </Button>
-          <Button variant="solid" size="pill" className="w-full">
-            Google로 계속하기
-          </Button>
-          {/* ⚠️ 검토용 테스트 로그인 — 오픈 전 TestLoginForm 을
-                 실제 이메일 가입·로그인으로 교체합니다 */}
-          <TestLoginForm />
+            동작은 components/login-form.tsx 에 있습니다. */}
+        <div className="mt-8">
+          <LoginForm />
         </div>
       </main>
 

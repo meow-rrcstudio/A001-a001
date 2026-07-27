@@ -136,9 +136,20 @@ export function signInWithTestAccount(id: string, password: string): boolean {
   return true
 }
 
-/** 로그아웃 — 저장된 상태를 지웁니다 */
-export function signOut() {
+/**
+ * 로그아웃.
+ *
+ * Supabase 세션(쿠키)과 브라우저에 남은 검토용 상태를 함께 지웁니다.
+ * 둘 중 하나만 지우면 "로그아웃했는데 여전히 로그인돼 보이는" 상태가 됩니다.
+ */
+export async function signOut() {
   if (typeof window === "undefined") return
+  try {
+    const { getSupabaseBrowser } = await import("@/lib/supabase/client")
+    await getSupabaseBrowser()?.auth.signOut()
+  } catch {
+    // 연결 전이면 넘어갑니다
+  }
   try {
     window.localStorage.removeItem(STORAGE_KEY)
   } catch {
@@ -161,9 +172,30 @@ function saveEntitlement(e: Entitlement) {
  * ⚠️ 이어서 묻는 것과 카드를 더 뽑는 것은 같은 한 판이라 여기서 다시
  *    부르지 않습니다. 부르는 곳은 질문을 던지는 한 곳뿐입니다.
  */
-export function consumeCredit() {
-  if (typeof window === "undefined") return
+export async function consumeCredit(
+  reason: "reading" | "extend" = "reading",
+  key?: string
+): Promise<boolean> {
+  if (typeof window === "undefined") return false
+
+  // 연결됐으면 서버가 깎습니다 (잔액의 진짜 주인은 서버입니다).
+  const { isSupabaseConfigured } = await import("@/lib/supabase/env")
+  if (isSupabaseConfigured) {
+    try {
+      const response = await fetch("/api/account/spend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason, key }),
+      })
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+
+  // 연결 전 — 검토용 테스트 계정 경로
   const e = getEntitlement()
-  if (e.credits <= 0) return
+  if (e.credits <= 0) return false
   saveEntitlement({ ...e, credits: e.credits - 1 })
+  return true
 }

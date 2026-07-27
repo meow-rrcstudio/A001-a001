@@ -26,12 +26,8 @@ import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
-import {
-  consumeCredit,
-  getEntitlement,
-  FOLLOWUPS_PER_CREDIT,
-  FOLLOWUP_WARN_AT,
-} from "@/lib/reading-entitlement"
+import { consumeCredit, FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/reading-entitlement"
+import { useAccount } from "@/lib/use-account"
 
 type Turn = ChatTurn
 
@@ -242,8 +238,8 @@ export function ReadingResultView({
   // ⚠️ 이 셈은 브라우저에만 있습니다. 크레딧과 마찬가지로, 로그인이
   //    붙으면 서버가 다시 세야 합니다 (지금은 새로고침하면 초기화됩니다).
   const [extraCredits, setExtraCredits] = useState(0)
-  const [credits, setCredits] = useState<number | null>(null)
-  useEffect(() => setCredits(getEntitlement().credits), [extraCredits])
+  const { account, ready: accountReady, refresh: refreshAccount } = useAccount()
+  const credits = accountReady ? account.credits : null
 
   const asked = turns.filter((t) => t.role === "user").length
   const allowance = FOLLOWUPS_PER_CREDIT * (1 + extraCredits)
@@ -251,10 +247,13 @@ export function ReadingResultView({
   const outOfAsks = leftToAsk <= 0
 
   /** 한 장 더 써서 계속 묻기 */
-  function spendAnotherCredit() {
+  async function spendAnotherCredit() {
     if ((credits ?? 0) <= 0) return
-    consumeCredit()
+    // 깎이지 않았으면(잔액 부족·통신 실패) 늘려주지 않습니다.
+    const spent = await consumeCredit("extend")
+    if (!spent) return
     setExtraCredits((n) => n + 1)
+    void refreshAccount()
   }
 
   // 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다.
@@ -429,7 +428,7 @@ export function ReadingResultView({
               {credits !== null && credits > 0 ? (
                 <button
                   type="button"
-                  onClick={spendAnotherCredit}
+                  onClick={() => void spendAnotherCredit()}
                   className="mt-3 w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   {CREDIT_UNIT.one} 한 {CREDIT_UNIT.counter} 더 쓰고 이어서 묻기 (남은 {countCredits(credits)})

@@ -19,7 +19,8 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { Button } from "@/components/ui/button"
 import { resetReadingDeck } from "@/lib/reading-session"
-import { canUseInsiteReading, getEntitlement } from "@/lib/reading-entitlement"
+import { canUseInsiteReading } from "@/lib/reading-entitlement"
+import { useAccount } from "@/lib/use-account"
 
 export function TopicQuestionList({
   topicSlug,
@@ -36,15 +37,18 @@ export function TopicQuestionList({
   // 권한 확인 전에는 그리지 않습니다 (무료 화면이 잠깐 스쳤다 바뀌는 걸 방지)
   const [checked, setChecked] = useState(false)
 
+  const { account, ready } = useAccount()
+
   useEffect(() => {
     resetReadingDeck()
-    if (canUseInsiteReading(getEntitlement())) {
+    if (!ready) return
+    if (canUseInsiteReading(account)) {
       const as = new URLSearchParams(window.location.search).get("as")
       router.replace(as ? `/tarot/ask?as=${as}` : "/tarot/ask")
       return
     }
     setChecked(true)
-  }, [router])
+  }, [router, ready, account])
 
   if (!checked) return <div className="min-h-screen bg-background" />
 
