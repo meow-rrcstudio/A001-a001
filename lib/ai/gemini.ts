@@ -72,6 +72,13 @@ export async function runReadingWithGemini({
   const text: string =
     data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
 
+  if (!text.trim()) {
+    throw new Error(
+      `제미나이가 글자를 하나도 내놓지 않았습니다 ` +
+        `(finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}).`
+    )
+  }
+
   const usage = data?.usageMetadata ?? {}
   return {
     text,
@@ -140,41 +147,70 @@ export async function* streamReadingWithGemini({
   // 글자 없이 끝났을 때 "왜"를 말해주기 위해 마지막 상태를 들고 있습니다.
   let finishReason = ""
   let blockReason = ""
+  // 아무것도 못 읽었을 때 실제로 뭐가 왔는지 보여주려고 앞부분만 남깁니다.
+  let rawHead = ""
+
+  /**
+   * "data: {...}" 한 줄을 읽습니다.
+   *
+   * ⚠️ 빈 줄(이벤트 구분자)로 끊지 않습니다. 예전엔 buffer.split("\n\n") 로
+   *    끊었는데 두 가지가 망가졌습니다.
+   *    · 서버가 CRLF 를 쓰면 구분자가 "\r\n\r\n" 이라 "\n\n" 이 아예
+   *      없습니다 — 한 조각도 못 읽고 조용히 끝났습니다 (빈 화면의 원인)
+   *    · 마지막 이벤트는 뒤에 빈 줄이 안 붙어 buffer 에 남은 채 버려졌습니다
+   *    제미나이는 한 줄에 JSON 한 덩어리를 담아 보내므로 줄 단위로 읽습니다.
+   */
+  function readLine(line: string): string | null {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith("data:")) return null
+    const payload = trimmed.slice(5).trim()
+    if (!payload || payload === "[DONE]") return null
+    try {
+      const data = JSON.parse(payload)
+      finishReason = data?.candidates?.[0]?.finishReason ?? finishReason
+      blockReason = data?.promptFeedback?.blockReason ?? blockReason
+      const piece: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
+      return piece || null
+    } catch {
+      // 아직 덜 온 줄 — 다음 조각과 합쳐질 때 다시 시도됩니다
+      return null
+    }
+  }
 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    buffer += decoder.decode(value, { stream: true })
+    const text = decoder.decode(value, { stream: true })
+    if (rawHead.length < 400) rawHead += text.slice(0, 400 - rawHead.length)
+    buffer += text
 
-    // SSE — 빈 줄로 구분된 "data: {...}" 덩어리들
-    const chunks = buffer.split("\n\n")
-    buffer = chunks.pop() ?? ""
-    for (const chunk of chunks) {
-      const line = chunk.split("\n").find((l) => l.startsWith("data:"))
-      if (!line) continue
-      try {
-        const data = JSON.parse(line.slice(5).trim())
-        finishReason = data?.candidates?.[0]?.finishReason ?? finishReason
-        blockReason = data?.promptFeedback?.blockReason ?? blockReason
-        const piece: string =
-          data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
-        if (piece) {
-          accumulated += piece
-          yield accumulated
-        }
-      } catch {
-        // 잘린 덩어리 — 다음 조각과 합쳐질 때 다시 시도됩니다
+    // \r\n 과 \n 을 모두 받아냅니다. 마지막 조각은 아직 덜 왔을 수 있으니 남깁니다.
+    const lines = buffer.split(/\r?\n/)
+    buffer = lines.pop() ?? ""
+    for (const line of lines) {
+      const piece = readLine(line)
+      if (piece) {
+        accumulated += piece
+        yield accumulated
       }
     }
   }
 
+  // 마지막 줄은 뒤에 줄바꿈이 없어 buffer 에 남습니다 — 여기서 마저 읽습니다.
+  const tail = readLine(buffer)
+  if (tail) {
+    accumulated += tail
+    yield accumulated
+  }
+
   // 한 글자도 못 받았는데 조용히 끝나면 화면엔 빈 칸만 남습니다.
-  // 그럴 바엔 사유를 들고 실패하는 편이 낫습니다.
+  // 그럴 바엔 무엇이 왔는지 들고 실패하는 편이 낫습니다.
   if (!accumulated.trim()) {
     throw new Error(
       `제미나이가 글자를 하나도 내놓지 않았습니다 ` +
         `(finishReason=${finishReason || "없음"}${blockReason ? `, blockReason=${blockReason}` : ""}). ` +
-        `MAX_TOKENS 면 maxOutputTokens 를 올리거나 thinkingBudget 을 확인하세요.`
+        `받은 것: ${rawHead ? JSON.stringify(rawHead.slice(0, 300)) : "아무것도 오지 않음"}`
     )
   }
 }
