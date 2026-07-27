@@ -57,14 +57,15 @@ export default function SettingsPage() {
   const accountItems: SettingsItem[] = [
     { label: "프로필", href: "#" },
     {
-      label: "결제",
+      // 건별(크레딧)이라 "플랜"이 없습니다. 남은 장수를 그대로 보여줍니다.
+      label: "크레딧",
       href: "#",
-      value: entitlement.isPaid ? "999 플랜" : "무료",
-      accent: entitlement.isPaid
-        ? { label: "Max 플랜으로 업그레이드", href: "#" }
-        : { label: "플랜 알아보기", href: "#" },
+      value: `${entitlement.credits}장 남음`,
+      accent:
+        entitlement.credits > 0
+          ? { label: "크레딧 더 사기", href: "#" }
+          : { label: "크레딧 사러 가기", href: "#" },
     },
-    { label: "사용량", href: "#" },
     { label: "알림", href: "#" },
     { label: "개인정보", href: "/privacy" },
   ]

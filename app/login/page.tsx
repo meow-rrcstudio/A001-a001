@@ -1,9 +1,14 @@
 // app/login/page.tsx
 // 로그인 화면 — 시안(login-page) 기준 라임 전체화면입니다.
 //
+// 로그인 방식은 세 가지입니다 (시안 기준).
+//   · 카카오 — 연동 (국내 사용자 대부분이 이걸 씁니다. 그래서 맨 위)
+//   · 구글   — 연동
+//   · 이메일 — 직접 가입
+//
 // 인증 연결 순서:
-//   1) 인증 공급자 선택 (NextAuth / Supabase / Clerk 등)
-//   2) Google·Apple 콘솔에서 OAuth 앱 등록 → 환경변수(.env)에 키 입력
+//   1) 인증 공급자 선택 (Supabase Auth 는 셋 다 한 번에 됩니다)
+//   2) 카카오 개발자센터·Google Cloud 에서 앱 등록 → 환경변수(.env)에 키 입력
 //   3) 아래 버튼의 onClick 에 공급자 호출 연결
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
@@ -57,16 +62,22 @@ export default function LoginPage() {
           로그인이 필요해요.
         </p>
 
+        {/* 시안의 세 가지 — 카카오·구글은 연동, 이메일은 직접 가입입니다.
+            국내 서비스라 카카오를 맨 위에 둡니다.
+
+            TODO(인증): 아래 onClick 자리에 공급자 로그인 호출을 연결하세요.
+            ⚠️ 카카오는 버튼 모양에 브랜드 규정이 있습니다(노란 바탕 #FEE500 +
+               지정 로고). 지금은 시안대로 검정 버튼으로 두었으니, 카카오
+               심사 전에 규정을 확인하고 필요하면 그때 바꿔야 합니다. */}
         <div className="mt-8 space-y-3">
-          {/* TODO(인증): 아래 onClick 자리에 공급자 로그인 호출을 연결하세요.
-              (NextAuth 예: signIn("google") / signIn("apple") / 이메일 폼 이동) */}
+          <Button variant="solid" size="pill" className="w-full">
+            카카오로 계속하기
+          </Button>
           <Button variant="solid" size="pill" className="w-full">
             Google로 계속하기
           </Button>
-          <Button variant="solid" size="pill" className="w-full">
-            Apple로 계속하기
-          </Button>
-          {/* ⚠️ 검토용 테스트 로그인 — 오픈 전 TestLoginForm 을 실제 이메일 로그인으로 교체 */}
+          {/* ⚠️ 검토용 테스트 로그인 — 오픈 전 TestLoginForm 을
+                 실제 이메일 가입·로그인으로 교체합니다 */}
           <TestLoginForm />
         </div>
       </main>

@@ -26,7 +26,7 @@ import { FALLBACK_PLAN, type ReadingPlan } from "@/app/api/reading/plan/route"
 import { layoutKeyForCount } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
-import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
+import { canUseInsiteReading, consumeCredit, getEntitlement } from "@/lib/reading-entitlement"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
 type Step = "ask" | "draw" | "result"
@@ -58,7 +58,7 @@ export default function AskPage() {
     []
   )
 
-  // 권한 확인 — 유료 회원이거나 체험이 남은 회원만 이 화면을 씁니다
+  // 권한 확인 — 크레딧이 남은 회원만 이 화면을 씁니다
   useEffect(() => {
     if (canUseInsiteReading(getEntitlement())) {
       setAllowed(true)
@@ -73,8 +73,9 @@ export default function AskPage() {
     if (!q || planning) return
     setQuestion(q)
     setPlanning(true)
-    // 체험으로 보는 경우 여기서 1회 차감합니다 (유료 회원은 차감 안 함)
-    consumeTrial()
+    // 크레딧 한 장은 여기서만 깎습니다. 이어서 묻는 것과 카드를 더
+    // 뽑는 것은 같은 한 판이라 더 깎지 않습니다.
+    consumeCredit()
 
     // 이 질문에 어떤 배열이 어울릴지 먼저 정합니다 (2초 안팎).
     // 실패해도 기본 배열로 흐름을 이어갑니다.
