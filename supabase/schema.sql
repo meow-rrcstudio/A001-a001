@@ -229,11 +229,19 @@ as $$
 declare
   v_balance integer;
 begin
-  -- 이 회원의 크레딧 줄을 잠가 두고 셉니다.
+  -- 이 회원에 대해서만 순서를 세웁니다. 같은 사람의 요청 둘이 동시에
+  -- 들어와도 하나가 끝날 때까지 다른 하나가 기다립니다 (다른 회원은
+  -- 서로 안 기다립니다).
+  --
+  -- ⚠️ 여기서 "select sum(...) ... for update" 를 쓰면 안 됩니다.
+  --    PostgreSQL 은 합계를 내는 조회에 잠금을 걸지 못해
+  --    "FOR UPDATE is not allowed with aggregate functions" 로 죽습니다.
+  --    만들 때는 통과하고 처음 불릴 때 터지므로 찾기 어렵습니다.
+  perform pg_advisory_xact_lock(hashtextextended(p_user_id::text, 0));
+
   select coalesce(sum(delta), 0) into v_balance
   from public.credit_entries
-  where user_id = p_user_id
-  for update;
+  where user_id = p_user_id;
 
   if v_balance < 1 then
     return -1;
@@ -242,6 +250,12 @@ begin
   insert into public.credit_entries (user_id, delta, reason, reading_id, idempotency_key)
   values (p_user_id, -1, p_reason, p_reading_id, p_key)
   on conflict (idempotency_key) do nothing;
+
+  -- 같은 열쇠로 이미 깎은 요청이면 아무 줄도 안 들어갑니다.
+  -- 그때 v_balance - 1 을 돌려주면 깎지도 않고 깎았다고 말하는 셈입니다.
+  if not found then
+    return v_balance;
+  end if;
 
   return v_balance - 1;
 end;
