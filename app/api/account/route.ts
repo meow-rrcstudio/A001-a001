@@ -35,10 +35,26 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   if (!supabase || !admin) return NextResponse.json(LOGGED_OUT)
 
+  // ⚠️ 프로필 행이 없으면 아래 update 가 0줄을 고치고 조용히 끝납니다.
+  //    그러면 가입 크레딧이 영영 안 들어갑니다 (실제로 그랬습니다).
+  //    가입 트리거가 못 돌았거나, 트리거를 만들기 전에 가입한 사람이
+  //    그렇습니다. 여기서 먼저 만들어 두고 시작합니다.
+  await admin.from("profiles").upsert(
+    {
+      id: user.id,
+      email: user.email ?? null,
+      display_name:
+        (user.user_metadata?.name as string | undefined) ??
+        (user.user_metadata?.full_name as string | undefined) ??
+        null,
+    },
+    { onConflict: "id", ignoreDuplicates: true }
+  )
+
   // 가입 선물 — 아직 안 받았으면 지금 한 번.
   //
   // 표시를 먼저 남기고 크레딧을 넣습니다. 순서를 반대로 하면 사이에
-  // 요청이 하나 더 들어왔을 때 두 번 받아갈 수 있습니다. eq("welcomed_at",
+  // 요청이 하나 더 들어왔을 때 두 번 받아갈 수 있습니다. is("welcomed_at",
   // null) 조건이 붙어 있어 먼저 도착한 요청 하나만 통과합니다.
   const { data: claimed } = await admin
     .from("profiles")
@@ -56,14 +72,23 @@ export async function GET() {
     })
   }
 
-  // 잔액은 로그인한 사람의 자격으로 읽습니다 (본인 것만 보입니다).
-  const { data: balance } = await supabase
+  // 잔액은 admin 으로 읽습니다. 위에서 이미 "이 요청이 누구인지" 확인했고
+  // user.id 로만 좁혀 읽으므로 남의 것이 섞일 수 없습니다.
+  //
+  // 사용자 자격으로 읽으면 뷰의 권한 설정이 조금만 어긋나도 잔액이 0으로
+  // 보입니다 — 크레딧이 있는데 없다고 나오는 게 제일 나쁩니다.
+  // (브라우저가 직접 읽을 때는 여전히 RLS 가 막습니다)
+  const { data: balance, error: balanceError } = await admin
     .from("credit_balance")
     .select("credits")
     .eq("user_id", user.id)
     .maybeSingle()
 
-  const { data: profile } = await supabase
+  if (balanceError) {
+    console.error("[account] 잔액을 못 읽었습니다:", balanceError.message)
+  }
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("display_name")
     .eq("id", user.id)

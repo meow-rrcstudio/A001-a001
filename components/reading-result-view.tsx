@@ -435,7 +435,7 @@ export function ReadingResultView({
                 </button>
               ) : (
                 <Link
-                  href="/my/settings"
+                  href="/my/credits"
                   className="mt-3 block rounded-full bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   {CREDIT_UNIT.one} 사러 가기

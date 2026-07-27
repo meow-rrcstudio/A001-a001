@@ -52,12 +52,12 @@ export default function SettingsPage() {
       // 건별이라 "플랜"이 없습니다. 남은 장수를 그대로 보여줍니다.
       // 부르는 말은 lib/credit-packs.ts 한 곳에서 옵니다.
       label: CREDIT_UNIT.one,
-      href: "#",
+      href: "/my/credits",
       value: `${countCredits(entitlement.credits)} 남음`,
       accent:
         entitlement.credits > 0
-          ? { label: `${CREDIT_UNIT.one} 더 사기`, href: "#" }
-          : { label: `${CREDIT_UNIT.one} 사러 가기`, href: "#" },
+          ? { label: `${CREDIT_UNIT.one} 더 사기`, href: "/my/credits" }
+          : { label: `${CREDIT_UNIT.one} 사러 가기`, href: "/my/credits" },
     },
     { label: "알림", href: "#" },
     { label: "개인정보", href: "/privacy" },
