@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingResultView } from "@/components/reading-result-view"
 import { Button } from "@/components/ui/button"
-import { appendTurn, getReading, type SavedReading } from "@/lib/reading-archive"
+import { appendTurn, getReading, replaceTurns, type SavedReading } from "@/lib/reading-archive"
 import { sampleReading } from "@/lib/mock-reading-history"
 
 export default function SavedReadingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,9 +51,12 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
       question={reading.question}
       result={reading.result}
       cards={reading.cards}
+      layoutKey={reading.layoutKey}
+      positions={reading.positions}
       backHref="/my"
       initialTurns={reading.turns}
       onTurn={(turn) => appendTurn(reading.id, turn)}
+      onTurnsReplace={(turns) => replaceTurns(reading.id, turns)}
     />
   )
 }

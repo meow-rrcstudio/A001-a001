@@ -51,7 +51,9 @@ export function useReadingChat({
   cards,
   positions,
   reading,
+  priorTurns = [],
   onTurn,
+  onTurnsReplace,
 }: {
   question: string
   /** 처음에 뽑은 카드 */
@@ -60,10 +62,18 @@ export function useReadingChat({
   positions?: string[]
   /** 앞서 해준 해석 */
   reading?: Partial<ReadingResult>
+  /**
+   * 기록에서 다시 열었을 때 그때 나눈 대화.
+   * 화면에 그대로 이어 그리고, 샨티에게도 함께 들려보냅니다 —
+   * 이게 없으면 다시 연 대화에서 샨티가 앞 얘기를 하나도 기억 못 합니다.
+   */
+  priorTurns?: ChatTurn[]
   /** 한 마디가 오갈 때마다 (보관용) */
   onTurn?: (turn: ChatTurn) => void
+  /** 새로고침으로 마지막 답을 걷어냈을 때 — 보관본도 그만큼 되돌립니다 */
+  onTurnsReplace?: (turns: ChatTurn[]) => void
 }) {
-  const [turns, setTurns] = useState<ChatTurn[]>([])
+  const [turns, setTurns] = useState<ChatTurn[]>(priorTurns)
   /** 지금 흘러들어오는 중인 샨티의 말 */
   const [streamingText, setStreamingText] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -75,15 +85,23 @@ export function useReadingChat({
   // 샨티가 "아까 더 뽑은 그 카드"를 기억합니다.
   const cardsRef = useRef<CardForPrompt[]>(toPromptCards(cards, positions))
   // turns 는 요청 직전 값이 필요한데 setState 는 비동기라 ref 로도 들고 있습니다.
-  const turnsRef = useRef<ChatTurn[]>([])
+  const turnsRef = useRef<ChatTurn[]>(priorTurns)
+  // 이번에 새로 오간 마디 수 — 기록에서 연 예전 대화와 구분합니다.
+  const priorCountRef = useRef(priorTurns.length)
 
-  // 카드는 해석 화면으로 넘어온 뒤에 채워질 수 있습니다 (기록에서 다시 열 때 등).
-  // 아직 한 마디도 안 오갔으면 늦게 온 값으로 갈아끼웁니다.
+  // 카드·예전 대화는 화면이 뜬 뒤에 채워질 수 있습니다 (기록에서 다시 열 때).
+  // 아직 한 마디도 새로 안 오갔으면 늦게 온 값으로 갈아끼웁니다.
   useEffect(() => {
-    if (turnsRef.current.length === 0) {
-      cardsRef.current = toPromptCards(cards, positions)
-    }
-  }, [cards, positions])
+    // 이번 화면에서 이미 말이 오갔으면 건드리지 않습니다
+    if (turnsRef.current.length > priorCountRef.current) return
+    cardsRef.current = toPromptCards(cards, positions)
+    // 달라진 게 없으면 여기서 멈춥니다 — setTurns 를 매번 부르면
+    // 부모가 넘기는 빈 배열이 매 렌더 새 값이라 무한히 다시 그립니다.
+    if (priorTurns.length === priorCountRef.current) return
+    turnsRef.current = priorTurns
+    priorCountRef.current = priorTurns.length
+    setTurns(priorTurns)
+  }, [cards, positions, priorTurns])
 
   const pushTurn = useCallback(
     (turn: ChatTurn) => {
@@ -216,6 +234,28 @@ export function useReadingChat({
     [ask, busy, pushTurn]
   )
 
+  /**
+   * 마지막 답이 마음에 안 들 때 다시 받습니다 (새로고침).
+   *
+   * 마지막 샨티 마디를 걷어내고 그 앞의 물음을 다시 던집니다. 걷어내지
+   * 않으면 "아까 한 말을 되풀이하지 말라"는 규칙 때문에 답이 점점
+   * 엉뚱해집니다.
+   */
+  const retryLast = useCallback(async () => {
+    if (busy) return
+    const lastUser = [...turnsRef.current].reverse().find((t) => t.role === "user")
+    if (!lastUser) return
+
+    // 마지막 물음 뒤에 붙은 답들만 걷어냅니다 (물음 자체는 남깁니다).
+    const cut = turnsRef.current.lastIndexOf(lastUser)
+    turnsRef.current = turnsRef.current.slice(0, cut + 1)
+    setTurns(turnsRef.current)
+    // 보관본도 같이 되돌립니다. 안 그러면 버린 답이 기록에 남아,
+    // 다시 열었을 때 답이 두 번 나옵니다.
+    onTurnsReplace?.(turnsRef.current)
+    await ask(lastUser.text)
+  }, [ask, busy, onTurnsReplace])
+
   /** 묻는 이가 직접 뽑고 돌아왔습니다 */
   const submitDrawnCards = useCallback(
     async (picked: PickedCard[]) => {
@@ -240,5 +280,5 @@ export function useReadingChat({
     [ask, pendingDraw, pushTurn]
   )
 
-  return { turns, streamingText, busy, error, pendingDraw, send, submitDrawnCards }
+  return { turns, streamingText, busy, error, pendingDraw, send, retryLast, submitDrawnCards }
 }

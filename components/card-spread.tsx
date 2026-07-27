@@ -15,13 +15,26 @@
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
 import { TarotCardSlot } from "@/components/tarot-card"
 
+/** 이 배열에 실제로 놓인 카드 한 장 */
+export interface SpreadCard {
+  name: string
+  reversed: boolean
+  imageUrl: string
+}
+
 export function CardSpread({
   layout,
+  cards,
   aspectClassName = "aspect-[16/10]",
   cardWidthClassName = "w-[16%]",
   className = "",
 }: {
   layout: LayoutKey
+  /**
+   * 뽑힌 카드. 주면 번호 대신 그 카드 그림이 놓입니다 —
+   * 해석 화면의 미니 배열이 이걸 씁니다. 안 주면 번호 슬롯(스타일가이드).
+   */
+  cards?: SpreadCard[]
   aspectClassName?: string
   cardWidthClassName?: string
   className?: string
@@ -30,19 +43,38 @@ export function CardSpread({
 
   return (
     <div className={`relative w-full ${aspectClassName} ${className}`}>
-      {slots.map((slot, i) => (
-        <div
-          key={i}
-          className={`absolute ${cardWidthClassName}`}
-          style={{
-            left: slot.left,
-            top: slot.top,
-            transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
-          }}
-        >
-          <TarotCardSlot number={i + 1} />
-        </div>
-      ))}
+      {slots.map((slot, i) => {
+        const card = cards?.[i]
+        return (
+          <div
+            key={i}
+            className={`absolute ${cardWidthClassName}`}
+            style={{
+              left: slot.left,
+              top: slot.top,
+              transform: `translate(-50%, -50%) rotate(${slot.rotate}deg)`,
+            }}
+          >
+            {card ? (
+              <span
+                title={`${card.name}${card.reversed ? " (역방향)" : ""}`}
+                className="block aspect-[1144/1919] overflow-hidden rounded-[3px] bg-card outline outline-[0.5px] outline-black/20"
+              >
+                {card.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={card.imageUrl}
+                    alt={card.name}
+                    className={`h-full w-full object-cover ${card.reversed ? "rotate-180" : ""}`}
+                  />
+                )}
+              </span>
+            ) : (
+              <TarotCardSlot number={i + 1} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

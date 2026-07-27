@@ -7,8 +7,8 @@
 // │ 3) result — 사이트 안에서 해석 보기 + 이어서 대화하기
 // └──────────────────────────────────────────────────────────────────
 //
-// 해석은 /api/reading 이 흘려보내 주고, 도착하는 대로 화면에 채워집니다.
-// ⚠️ 이어지는 대화(답변)는 아직 lib/mock-reading.ts 의 임시 함수입니다.
+// 해석은 /api/reading, 이어지는 면담은 /api/reading/chat 이 흘려보내 주고,
+// 도착하는 대로 화면에 채워집니다.
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
@@ -27,7 +27,7 @@ import { layoutKeyForCount } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
-import { appendTurn, saveReading } from "@/lib/reading-archive"
+import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
 type Step = "ask" | "draw" | "result"
 
@@ -93,6 +93,33 @@ export default function AskPage() {
     }
   }
 
+  /**
+   * 해석을 받아 보관합니다. 카드를 다 뽑았을 때와 새로고침이 함께 씁니다.
+   * (새로고침은 같은 카드 그대로 해석만 다시 받는 것입니다)
+   */
+  async function runReading(picked: PickedCard[]) {
+    const built = await run({
+      topicKey: "self",
+      questionSlug: FREE_QUESTION_SLUG,
+      questionLabel: question,
+      plan,
+      cards: picked,
+    })
+    // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
+    if (built) {
+      setReadingId(
+        saveReading({
+          question,
+          topicLabel: question,
+          cards: picked,
+          layoutKey: plan?.layoutKey,
+          positions: plan?.positions.map((p) => p.label),
+          result: built,
+        })
+      )
+    }
+  }
+
   // 권한 확인 전에는 빈 화면 (무료 화면으로 되돌아가는 중일 수 있음)
   if (!allowed) return <div className="min-h-screen bg-background" />
 
@@ -112,23 +139,11 @@ export default function AskPage() {
             topicSlug="self"
             question={buildFreeQuestion(question, plan)}
             introMessage={plan?.intro ?? `"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
-            onComplete={async (picked) => {
+            onComplete={(picked) => {
               setCards(picked)
               setStep("result")
               // 결과 화면으로 먼저 넘어간 뒤 해석을 받습니다 (빈 화면 대기 없이)
-              const built = await run({
-                topicKey: "self",
-                questionSlug: FREE_QUESTION_SLUG,
-                questionLabel: question,
-                plan,
-                cards: picked,
-              })
-              // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
-              if (built) {
-                setReadingId(
-                  saveReading({ question, topicLabel: question, cards: picked, result: built })
-                )
-              }
+              void runReading(picked)
             }}
           />
         </main>
@@ -145,10 +160,13 @@ export default function AskPage() {
           result={reading ?? {}}
           cards={cards}
           positions={plan?.positions.map((p) => p.label)}
+          layoutKey={plan?.layoutKey}
           streaming={streaming}
           error={error}
           onTurn={(turn) => readingId && appendTurn(readingId, turn)}
+          onTurnsReplace={(turns) => readingId && replaceTurns(readingId, turns)}
           onDrawRequest={handleDrawRequest}
+          onRegenerate={() => void runReading(cards)}
           onRestart={() => {
             setQuestion("")
             setCards([])

@@ -15,7 +15,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Copy, Volume2, ThumbsUp, Share2, Check, RotateCcw } from "lucide-react"
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw } from "lucide-react"
+import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
+import { CardSpread } from "@/components/card-spread"
 import { PageHeader } from "@/components/page-header"
 import { ChatInput } from "@/components/chat-input"
 import { HEADER_SPACE } from "@/lib/layout"
@@ -25,9 +27,17 @@ import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 
 type Turn = ChatTurn
 
-/** 답변 아래 붙는 액션 줄 (복사·읽어주기·좋아요·공유) */
-function AnswerActions({ text }: { text: string }) {
+/**
+ * 답변 아래 붙는 액션 줄 — 복사 · 좋아요 · 싫어요 · 새로고침.
+ *
+ * ⚠️ 좋아요/싫어요는 아직 화면에만 남습니다. 보낼 곳(서버)이 생기면
+ *    onRate 를 실제 호출로 이으면 됩니다.
+ * 새로고침은 마지막 답에만 붙습니다 — 중간 답을 다시 만들면 그 뒤에
+ * 이어진 대화와 앞뒤가 안 맞기 때문입니다.
+ */
+function AnswerActions({ text, onRegenerate }: { text: string; onRegenerate?: () => void }) {
   const [copied, setCopied] = useState(false)
+  const [rating, setRating] = useState<"up" | "down" | null>(null)
 
   async function copy() {
     try {
@@ -39,45 +49,38 @@ function AnswerActions({ text }: { text: string }) {
     }
   }
 
-  function speak() {
-    // 브라우저 내장 음성 합성. 지원하지 않으면 아무 일도 하지 않습니다.
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined
-    if (!synth) return
-    synth.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = "ko-KR"
-    synth.speak(u)
-  }
-
-  async function share() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ text })
-      } catch {
-        // 사용자가 취소 — 무시
-      }
-    } else {
-      void copy()
-    }
-  }
-
   const btn =
     "inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+  const btnOn = "inline-flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground"
 
   return (
     <div className="mt-2 flex items-center gap-1">
       <button type="button" onClick={copy} aria-label="복사" className={btn}>
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </button>
-      <button type="button" onClick={speak} aria-label="읽어주기" className={btn}>
-        <Volume2 className="h-4 w-4" />
-      </button>
-      <button type="button" aria-label="좋아요" className={btn}>
+      <button
+        type="button"
+        onClick={() => setRating((r) => (r === "up" ? null : "up"))}
+        aria-label="좋아요"
+        aria-pressed={rating === "up"}
+        className={rating === "up" ? btnOn : btn}
+      >
         <ThumbsUp className="h-4 w-4" />
       </button>
-      <button type="button" onClick={share} aria-label="공유" className={btn}>
-        <Share2 className="h-4 w-4" />
+      <button
+        type="button"
+        onClick={() => setRating((r) => (r === "down" ? null : "down"))}
+        aria-label="싫어요"
+        aria-pressed={rating === "down"}
+        className={rating === "down" ? btnOn : btn}
+      >
+        <ThumbsDown className="h-4 w-4" />
       </button>
+      {onRegenerate && (
+        <button type="button" onClick={onRegenerate} aria-label="새로고침" className={btn}>
+          <RefreshCw className="h-4 w-4" />
+        </button>
+      )}
     </div>
   )
 }
@@ -99,27 +102,59 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 export type PickedCard = { name: string; reversed: boolean; imageUrl: string }
 
-/** 뽑은 카드 미니 배열 — 시안에서 해석 제목 위에 놓이는 작은 스프레드 */
-function MiniSpread({ cards }: { cards: PickedCard[] }) {
-  if (cards.length === 0) return null
+/** 카드 한 장 — 미니 배열 안에 놓이는 작은 그림 */
+function MiniCard({ card, className = "", style }: { card: PickedCard; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-xl bg-muted/60 p-2">
-      {cards.map((c, i) => (
-        <span
-          key={`${c.name}-${i}`}
-          title={`${c.name}${c.reversed ? " (역방향)" : ""}`}
-          className="relative block h-[46px] w-[26px] overflow-hidden rounded-[3px] bg-card outline outline-[0.5px] outline-black/20"
-        >
-          {c.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={c.imageUrl}
-              alt={c.name}
-              className={`h-full w-full object-cover ${c.reversed ? "rotate-180" : ""}`}
-            />
-          )}
-        </span>
-      ))}
+    <span
+      title={`${card.name}${card.reversed ? " (역방향)" : ""}`}
+      style={style}
+      className={`block overflow-hidden rounded-[3px] bg-card outline outline-[0.5px] outline-black/20 ${className}`}
+    >
+      {card.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={card.imageUrl}
+          alt={card.name}
+          className={`h-full w-full object-cover ${card.reversed ? "rotate-180" : ""}`}
+        />
+      )}
+    </span>
+  )
+}
+
+/**
+ * 뽑은 카드 미니 배열 — 해석 제목 위에 놓입니다.
+ *
+ * layoutKey 를 주면 뽑을 때 본 배열 모양 그대로 놓입니다 (십자면 십자).
+ * 좌표는 CardSpread 한 곳에서 오므로 lib/spread-layouts.ts 를 고치면
+ * 카드 고르기 화면·스타일가이드와 함께 바뀝니다.
+ *
+ * layoutKey 가 없거나 자리 수가 안 맞으면 뽑힌 순서대로 1열입니다 —
+ * 면담 중 더 뽑은 카드처럼 배열이랄 게 없을 때가 그렇습니다.
+ */
+function MiniSpread({ cards, layoutKey }: { cards: PickedCard[]; layoutKey?: string }) {
+  if (cards.length === 0) return null
+
+  const slots = layoutKey ? spreadLayouts[layoutKey as LayoutKey] : undefined
+
+  if (!slots || slots.length !== cards.length) {
+    return (
+      <div className="inline-flex flex-wrap gap-1 rounded-xl bg-muted/60 p-2">
+        {cards.map((c, i) => (
+          <MiniCard key={`${c.name}-${i}`} card={c} className="h-[46px] w-[26px]" />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-[240px] max-w-full rounded-xl bg-muted/60 p-3">
+      <CardSpread
+        layout={layoutKey as LayoutKey}
+        cards={cards}
+        aspectClassName="aspect-[16/13]"
+        cardWidthClassName={cards.length >= 7 ? "w-[13%]" : "w-[16%]"}
+      />
     </div>
   )
 }
@@ -129,13 +164,16 @@ export function ReadingResultView({
   result,
   cards = [],
   positions,
+  layoutKey,
   streaming = false,
   error = null,
   backHref = "/tarot/ask",
   initialTurns = [],
   onTurn,
+  onTurnsReplace,
   onRestart,
   onDrawRequest,
+  onRegenerate,
 }: {
   question: string
   /** 아직 만들어지는 중이면 조각이 비어 있을 수 있습니다 */
@@ -143,6 +181,8 @@ export function ReadingResultView({
   cards?: PickedCard[]
   /** 뽑은 카드들의 자리 이름 (샨티가 고른 배열). 면담에 함께 넘깁니다 */
   positions?: string[]
+  /** 그 배열의 이름 (예: "six-cross"). 주면 뽑을 때 본 모양 그대로 놓입니다 */
+  layoutKey?: string
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
   streaming?: boolean
   /** 해석을 못 받았을 때의 사유 */
@@ -153,6 +193,8 @@ export function ReadingResultView({
   initialTurns?: Turn[]
   /** 새 대화 한 마디가 오갈 때마다 불립니다 (보관용) */
   onTurn?: (turn: Turn) => void
+  /** 새로고침으로 마지막 답을 물렀을 때 — 보관본도 그만큼 되돌립니다 */
+  onTurnsReplace?: (turns: Turn[]) => void
   /** 새 질문하기. 넘기지 않으면 버튼이 나오지 않습니다 (기록에서 열었을 때) */
   onRestart?: () => void
   /**
@@ -161,20 +203,28 @@ export function ReadingResultView({
    * 넘기지 않으면 직접 뽑기를 청하지 않고 답만 나옵니다 (기록 화면 등).
    */
   onDrawRequest?: (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => void
+  /** 해석을 다시 받고 싶을 때 (새로고침). 없으면 그 버튼이 안 나옵니다 */
+  onRegenerate?: () => void
 }) {
   const [draft, setDraft] = useState("")
   const {
-    turns: newTurns,
+    turns,
     streamingText,
     busy,
     error: chatError,
     pendingDraw,
     send,
+    retryLast,
     submitDrawnCards,
-  } = useReadingChat({ question, cards, positions, reading: result, onTurn })
-
-  // 기록에서 다시 연 예전 대화 + 이번에 새로 나눈 대화
-  const turns: Turn[] = [...initialTurns, ...newTurns]
+  } = useReadingChat({
+    question,
+    cards,
+    positions,
+    reading: result,
+    priorTurns: initialTurns,
+    onTurn,
+    onTurnsReplace,
+  })
 
   // 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다.
   useEffect(() => {
@@ -205,7 +255,7 @@ export function ReadingResultView({
 
         {/* 해석 본문 */}
         <article className="mt-6">
-          <MiniSpread cards={cards} />
+          <MiniSpread cards={cards} layoutKey={layoutKey} />
 
           {error && (
             <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
@@ -264,6 +314,9 @@ export function ReadingResultView({
               text={`${result.title}\n\n${result.summary ?? ""}\n\n${(result.sections ?? [])
                 .map((s) => `${s.heading}\n${s.body}`)
                 .join("\n\n")}`}
+              // 이어지는 대화가 시작되면 해석만 다시 만들 수 없습니다
+              // (뒤 이야기가 앞의 해석을 딛고 있으니까요)
+              onRegenerate={turns.length === 0 ? onRegenerate : undefined}
             />
           )}
         </article>
@@ -287,7 +340,12 @@ export function ReadingResultView({
                   <MiniSpread cards={turn.cards} />
                 </div>
               )}
-              <AnswerActions text={turn.text} />
+              <AnswerActions
+                text={turn.text}
+                // 새로고침은 마지막 답에만. 중간 답을 다시 만들면 그 뒤에
+                // 이어진 대화와 앞뒤가 안 맞습니다.
+                onRegenerate={i === turns.length - 1 && !busy ? retryLast : undefined}
+              />
             </div>
           )
         )}

@@ -33,6 +33,10 @@ export interface SavedReading {
   /** 언제 봤는지 (ISO 문자열 — JSON 으로 오갈 수 있도록) */
   at: string
   cards: PickedCard[]
+  /** 샨티가 고른 배열 이름 — 다시 열었을 때도 그때 모양으로 놓이도록 */
+  layoutKey?: string
+  /** 그 배열의 자리 이름 — 다시 열어 이어 물을 때 함께 들려보냅니다 */
+  positions?: string[]
   result: ReadingResult
   /** 해석을 받은 뒤 이어서 나눈 대화 */
   turns: ReadingTurn[]
@@ -79,12 +83,28 @@ export function saveReading(input: {
   question: string
   topicLabel: string
   cards: PickedCard[]
+  layoutKey?: string
+  positions?: string[]
   result: ReadingResult
 }): string {
   const id = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
   const record: SavedReading = { id, at: new Date().toISOString(), turns: [], ...input }
   writeAll([record, ...readAll()])
   return id
+}
+
+/**
+ * 대화를 통째로 갈아끼웁니다.
+ *
+ * 새로고침으로 마지막 답을 물렀을 때 씁니다 — 붙이기만 하면 버린 답이
+ * 기록에 남아, 다시 열었을 때 같은 물음에 답이 두 번 나옵니다.
+ */
+export function replaceTurns(id: string, turns: ReadingTurn[]) {
+  const list = readAll()
+  const found = list.find((r) => r.id === id)
+  if (!found) return
+  found.turns = turns
+  writeAll(list)
 }
 
 /** 이어서 나눈 대화를 그 타로점에 붙입니다 (다시 열면 그대로 남아 있도록) */
