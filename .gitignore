@@ -6,7 +6,10 @@ __v0_jsx-dev-runtime.ts
 # Common ignores
 node_modules
 .next/
-.env*.local
+# 비밀키가 들어가는 파일 — 절대 커밋되면 안 됩니다
+.env
+.env.*
+!.env.example
 .DS_Store
 tsconfig.tsbuildinfo
 # Next.js가 dev/build 때 자동 생성하는 파일
