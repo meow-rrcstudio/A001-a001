@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
-import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
+import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
 
 export const dynamic = "force-dynamic"
 

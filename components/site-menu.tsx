@@ -22,7 +22,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Archive, FolderClosed, Layers, SlidersHorizontal, TerminalSquare } from "lucide-react"
 import { Wordmark } from "@/components/brand-mark"
-import { listRecent, type SavedReading } from "@/lib/reading-archive"
+import { listRecent } from "@/lib/reading-archive"
 
 /** 서랍이 드러나는 폭 — 페이지가 이만큼 왼쪽으로 밀립니다 */
 const DRAWER_WIDTH = "78%"
@@ -75,14 +75,42 @@ export function SiteMenuPreview() {
 
 export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname()
-  const [recent, setRecent] = useState<SavedReading[]>([])
+
+  // 지금 어느 메뉴에 있는지 — 딱 하나만 켜져야 합니다.
+  //
+  // ⚠️ startsWith 만 쓰면 안 됩니다. /my/settings 에서는 "/my"(기록)와
+  //    "/my/settings"(설정)가 둘 다 걸려서 두 개가 동시에 켜집니다.
+  //    걸리는 것 중 가장 긴 것(=가장 구체적인 것) 하나만 고릅니다.
+  const activeHref = menuItems
+    .filter((item) =>
+      item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`)
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
+  // 메뉴에 띄울 최근 타로점 (제목만 있으면 됩니다)
+  const [recent, setRecent] = useState<{ id: string; question: string }[]>([])
 
   // 메뉴가 열리면
   //   · 뒤 페이지 스크롤을 잠그고 (아이폰 사파리는 overflow:hidden 을 무시해서 몸통을 고정)
   //   · 페이지(app-shell)를 왼쪽으로 밀어 뒤에 있는 서랍이 드러나게 합니다
   useEffect(() => {
     if (!open) return
-    setRecent(listRecent())
+    // 서버에 기록이 있으면 그것을, 없으면 브라우저 보관함을 봅니다.
+    // (기록 화면과 같은 출처를 봐야 목록이 서로 어긋나지 않습니다)
+    void (async () => {
+      try {
+        const response = await fetch("/api/readings?limit=4", { cache: "no-store" })
+        const data = (await response.json()) as {
+          readings: { id: string; question: string }[] | null
+        }
+        setRecent(
+          data.readings
+            ? data.readings.slice(0, 4)
+            : listRecent().map((r) => ({ id: r.id, question: r.question }))
+        )
+      } catch {
+        setRecent(listRecent().map((r) => ({ id: r.id, question: r.question })))
+      }
+    })()
 
     const scrollY = window.scrollY
     const { style } = document.body
@@ -150,8 +178,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
 
         <ul className="mt-8 space-y-1">
           {menuItems.map((item) => {
-            const active =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+            const active = item.href === activeHref
             const Icon = item.icon
             return (
               <li key={item.label}>

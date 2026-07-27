@@ -4,12 +4,13 @@
 // 설정(계정·결제·알림)은 /my/settings 로 분리했습니다.
 // 기록은 "자주 보고 즐기는 것", 설정은 "가끔 고치러 들어가는 것"이라
 // 성격이 달라 한 화면에 두지 않습니다.
+// 설정으로 가는 길은 메뉴(☰)에 있습니다 — 여기서 또 권하지 않습니다.
 //
 // 로그인 여부는 lib/reading-entitlement.ts 한 곳에서 판단합니다.
 "use client"
 
 import Link from "next/link"
-import { LogIn, Settings } from "lucide-react"
+import { LogIn } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { Footer } from "@/components/footer"
@@ -56,17 +57,6 @@ export default function MyPage() {
       <main className={`mx-auto w-full max-w-md flex-1 ${HEADER_SPACE}`}>
         <ReadingHistory userName={displayName} />
 
-        <div className="px-6 py-8">
-          <Button
-            variant="hollow"
-            size="pill"
-            className="w-full"
-            render={<Link href="/my/settings" />}
-          >
-            <Settings className="h-4 w-4" aria-hidden="true" />
-            설정
-          </Button>
-        </div>
       </main>
 
       <Footer variant="lime" />

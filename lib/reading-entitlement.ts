@@ -20,24 +20,11 @@
 
 const STORAGE_KEY = "soulseoul.entitlement.v1"
 
-/** 가입하면 얹어주는 첫 크레딧 */
-export const WELCOME_CREDITS = 3
-
-/**
- * 크레딧 한 장에 딸려오는 "이어서 묻기" 횟수.
- *
- * 원가 때문에 두는 값이 아닙니다 — 한 판에 스무 번을 물어도 원가는
- * 백 원이 안 됩니다. 스크립트로 한 장에 수천 번 때리는 걸 막는
- * 방어선입니다. 보통은 서너 번 묻고 끝나서 이 숫자를 볼 일이 없습니다.
- *
- * 그래서 미터기처럼 보이면 안 됩니다. 남은 횟수는 끝이 가까울 때만
- * (FOLLOWUP_WARN_AT) 슬쩍 보여주고, 다 쓰면 막지 말고 "한 장 더 쓰고
- * 이어가기"를 권합니다. 물어보려던 걸 못 묻게 하는 게 제일 나쁩니다.
- */
-export const FOLLOWUPS_PER_CREDIT = 20
-
-/** 남은 횟수가 이보다 적어질 때부터 화면에 보여줍니다 */
-export const FOLLOWUP_WARN_AT = 5
+// 크레딧 규칙의 숫자들은 lib/credit-rules.ts 에 있습니다.
+// ⚠️ 이 파일은 "use client" 라서 서버가 여기서 숫자를 가져가면 스텁을
+//    받습니다. 서버 코드는 lib/credit-rules.ts 를 직접 보세요.
+export { WELCOME_CREDITS, FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/credit-rules"
+import { WELCOME_CREDITS } from "@/lib/credit-rules"
 
 export interface Entitlement {
   isLoggedIn: boolean

@@ -9,7 +9,7 @@
 // 없으면 로그아웃했다 다시 들어올 때마다 계속 받아갑니다.
 import { NextResponse } from "next/server"
 import { getCurrentUser, getSupabaseAdmin, getSupabaseServer } from "@/lib/supabase/server"
-import { WELCOME_CREDITS } from "@/lib/reading-entitlement"
+import { WELCOME_CREDITS } from "@/lib/credit-rules"
 
 export const dynamic = "force-dynamic"
 

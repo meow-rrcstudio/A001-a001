@@ -15,7 +15,7 @@ import {
 import { GEMINI_READING_MODEL } from "@/lib/ai/gemini"
 import { requireUser } from "@/lib/server/guard"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
-import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
+import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
