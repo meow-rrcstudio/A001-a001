@@ -456,7 +456,7 @@ export default function DesignSystemPage() {
           <section id="chrome" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>11. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              헤더 3종 + 메뉴 서랍 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은
+              헤더 4종 + 메뉴 서랍 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은
               리디자인 시안의 <strong className="font-semibold">라임 밴드</strong>입니다.
             </p>
 
@@ -469,10 +469,16 @@ export default function DesignSystemPage() {
               <code className="font-mono">fixed={"{false}"}</code> 로 넣은 것입니다.
             </p>
 
+            <p className="mt-4 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
+              ⚠️ 캐릭터(샨티)는 <strong className="font-semibold">타로를 보는 씬에만</strong>{" "}
+              나옵니다. 시안에서 나머지 하위 화면 헤더는 가운데가 비어 있습니다. 어디에나 두면
+              &quot;샨티가 말을 걸어오는 화면&quot;이라는 신호가 흐려집니다.
+            </p>
+
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ① variant=&quot;sub&quot; — 뒤로 + 샨티 + 더보기(⋯). 하위 화면 대부분이 씁니다.
-              타로보기 · 아카이빙 · 글 상세 · 기록 · 설정 · 리딩 전 과정. 가운데 샨티를 누르면
-              홈으로 갑니다 (components/page-header.tsx)
+              ① variant=&quot;sub&quot; — 뒤로 + 더보기(⋯). 하위 화면 대부분이 씁니다.
+              아카이빙 · 타로 목록 · 글 상세 · 기록 · 설정 · about · privacy
+              (components/page-header.tsx)
             </p>
             <div
               id="chrome-topbar-demo"
@@ -490,7 +496,16 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ② variant=&quot;home&quot; — 워드마크 + 햄버거. 홈 전용이고 유일하게 고정되지 않습니다.
+              ② variant=&quot;reading&quot; — 뒤로 + <strong className="font-semibold">샨티</strong>{" "}
+              + 더보기(⋯). 타로를 보는 동안에만 씁니다 — 질문 고르기 → 섞기 → 카드 뽑기 → 해석 →
+              대화. 가운데 샨티를 누르면 홈으로 갑니다
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border bg-background px-4 pb-8">
+              <PageHeader variant="reading" backHref="#" fixed={false} />
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ③ variant=&quot;home&quot; — 워드마크 + 햄버거. 홈 전용이고 유일하게 고정되지 않습니다.
               라임 배경 위에 놓이므로 스크림도 깔지 않습니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border bg-brand-lime px-4 pb-8">
@@ -498,7 +513,7 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ③ variant=&quot;minimal&quot; — 뒤로가기만. 로그인처럼 나갈 길만 있으면 되는 화면에서
+              ④ variant=&quot;minimal&quot; — 뒤로가기만. 로그인처럼 나갈 길만 있으면 되는 화면에서
               씁니다. 오른쪽은 자리만 비워 가운데 정렬이 흐트러지지 않게 합니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border bg-background px-4 pb-8">
@@ -506,7 +521,7 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ④ 메뉴 서랍 — 홈의 햄버거나 하위 화면의 ⋯ 를 누르면 열립니다
+              ⑤ 메뉴 서랍 — 홈의 햄버거나 하위 화면의 ⋯ 를 누르면 열립니다
               (components/site-menu.tsx). 서랍은 페이지보다{" "}
               <strong className="font-semibold">뒤 레이어(z-0)</strong>에 있고, 열리면 페이지
               (<code className="font-mono">#app-shell</code>, z-10)가 왼쪽으로 78% 밀리며 뒤의
@@ -517,7 +532,7 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ⑤ 사이트 헤더 — 로고+메뉴. 시안 외 추가 버전으로, 필요한 페이지에만 사용
+              ⑥ 사이트 헤더 — 로고+메뉴. 시안 외 추가 버전으로, 필요한 페이지에만 사용
               (components/header.tsx)
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border">
@@ -525,7 +540,7 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ⑥ 푸터 라임 — <strong className="font-semibold">현재 기본값</strong>. 홈 · Archive ·
+              ⑦ 푸터 라임 — <strong className="font-semibold">현재 기본값</strong>. 홈 · Archive ·
               MY · Tarot 하단에 쓰입니다. 라임 위에서는 회색 글자가 대비가 부족해서 카피라이트도
               --brand-ink 로 씁니다
             </p>
@@ -534,21 +549,21 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ④ 푸터 라이트 — 라임 이전의 크림 버전. 라임을 끌 때 되돌아갈 자리입니다
+              ⑧ 푸터 라이트 — 라임 이전의 크림 버전. 라임을 끌 때 되돌아갈 자리입니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="light" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ⑤ 푸터 다크 밴드 — 대비가 강한 밴드가 필요할 때 쓰는 예비 버전
+              ⑨ 푸터 다크 밴드 — 대비가 강한 밴드가 필요할 때 쓰는 예비 버전
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="dark" />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ⑥ 푸터 미니멀 — 블로그 본문 · about · privacy 하단. 세리프 로고 + 한 줄
+              ⑩ 푸터 미니멀 — 블로그 본문 · about · privacy 하단. 세리프 로고 + 한 줄
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="minimal" />

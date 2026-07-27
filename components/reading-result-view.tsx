@@ -147,7 +147,7 @@ export function ReadingResultView({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-32 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader backHref={backHref} showShare />
+        <PageHeader variant="reading" backHref={backHref} showShare />
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">

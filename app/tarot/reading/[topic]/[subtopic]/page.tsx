@@ -32,7 +32,7 @@ export default async function TarotReadingResultPage({
       <main
         className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
       >
-        <PageHeader backHref={`/tarot/reading/${matchedTopic.slug}`} />
+        <PageHeader variant="reading" backHref={`/tarot/reading/${matchedTopic.slug}`} />
 
         <CardReadingFlow
           topicLabel={matchedTopic.label}

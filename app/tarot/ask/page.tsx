@@ -80,7 +80,7 @@ export default function AskPage() {
       // 주소창을 뺀 높이보다 커서 스크롤이 생기므로 dvh 를 씁니다.
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
         <main className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
-          <PageHeader backHref="/tarot/ask" />
+          <PageHeader variant="reading" backHref="/tarot/ask" />
           <CardReadingFlow
             mode="inline"
             topicLabel={question}
@@ -126,7 +126,7 @@ export default function AskPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader backHref="/" />
+        <PageHeader variant="reading" backHref="/" />
 
         <ReadingCharacterBubble
           placement="top"
