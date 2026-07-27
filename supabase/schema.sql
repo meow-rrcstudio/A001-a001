@@ -83,7 +83,15 @@ create index if not exists credit_entries_user_idx
   on public.credit_entries (user_id, created_at desc);
 
 -- 남은 장수. 화면은 이걸 봅니다.
-create or replace view public.credit_balance as
+--
+-- ⚠️ security_invoker 를 빠뜨리면 안 됩니다.
+--    뷰는 기본적으로 "만든 사람"의 권한으로 돕니다. 그러면 credit_entries
+--    에 걸어둔 RLS 를 건너뛰어서, 로그인한 아무나 남의 잔액까지 다 볼 수
+--    있습니다. 이 옵션을 켜야 "보는 사람"의 권한으로 돌아 본인 것만
+--    보입니다. (PostgreSQL 15 이상)
+create or replace view public.credit_balance
+  with (security_invoker = true)
+  as
   select user_id, coalesce(sum(delta), 0)::integer as credits
   from public.credit_entries
   group by user_id;
@@ -204,6 +212,10 @@ create policy "본인 결제 보기" on public.purchases
 -- ═══════════════════════════════════════════════════════════════════
 -- 확인하고 나서 따로 깎으면, 그 사이에 두 번 눌린 요청이 둘 다 통과할 수
 -- 있습니다(한 장으로 두 판). 한 덩어리로 묶어 둡니다.
+--
+-- 여기의 security definer 는 일부러 그런 것입니다. credit_entries 는 넣기가
+-- 막혀 있어서(보기만 허용), 이 함수만 예외로 넣을 수 있어야 합니다.
+-- 대신 이 함수는 -1 밖에 못 넣습니다 — 충전은 결제 확인을 거친 서버만 합니다.
 create or replace function public.spend_credit(
   p_user_id uuid,
   p_reason  text,
