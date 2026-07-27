@@ -1,13 +1,14 @@
 // app/api/reading/try-1859/route.ts
 //
-// ⚠️ [임시] 문체 확인용입니다. 붙이기 전에 GPT 가 샨티 목소리를 얼마나
+// ⚠️ [임시] 문체 확인용입니다. 붙이기 전에 AI 가 샨티 목소리를 얼마나
 //    살리는지 눈으로 보려고 만든 경로입니다.
-//    · 부를 때마다 실제로 요금이 나갑니다 (1회 약 25원)
 //    · /design-1859 처럼 "주소를 아는 사람만" 들어오는 방식입니다
+//    · 제미나이는 무료 한도 안에서, GPT 는 부를 때마다 요금이 나갑니다
 //    · 문체가 정해지면 이 파일을 지우세요
 //
 // 쓰는 법 — 미리보기 주소 뒤에 붙여서 브라우저로 열면 됩니다.
-//   /api/reading/try-1859                     기본값(나 주제, 첫 질문)
+//   /api/reading/try-1859                     기본값(제미나이, 나 주제, 첫 질문)
+//   /api/reading/try-1859?ai=openai           GPT 로 (크레딧 충전 필요)
 //   /api/reading/try-1859?topic=love&q=1      주제·질문 바꾸기
 //   /api/reading/try-1859?raw=1               프롬프트만 보고 호출은 안 함(무료)
 import { NextResponse } from "next/server"
@@ -16,6 +17,7 @@ import { topicContent } from "@/lib/reading-content"
 import { readingTopics } from "@/lib/reading-topics"
 import { buildReadingMessages, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { runReading, READING_MODEL } from "@/lib/ai/openai"
+import { runReadingWithGemini, GEMINI_READING_MODEL } from "@/lib/ai/gemini"
 
 // 매번 새로 뽑아야 하므로 캐시하지 않습니다.
 export const dynamic = "force-dynamic"
@@ -40,6 +42,8 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const topicKey = (params.get("topic") ?? "self") as ReadingTopicKey
   const questionIndex = Number(params.get("q") ?? 0)
+  // 기본은 제미나이 — 무료 한도가 있어 문체 확인에 부담이 없습니다.
+  const provider = params.get("ai") === "openai" ? "openai" : "gemini"
 
   const topic = topicContent[topicKey]
   if (!topic) {
@@ -60,7 +64,7 @@ export async function GET(request: Request) {
     `주제   : ${topic.titleLabel} (${topicKey})\n` +
     `질문   : ${question.label}\n` +
     `카드   : ${cards.map((c) => `${c.name}(${c.orientation === "역방향" ? "역" : "정"})`).join(" · ")}\n` +
-    `모델   : ${READING_MODEL}\n`
+    `모델   : ${provider === "openai" ? READING_MODEL : GEMINI_READING_MODEL} (${provider})\n`
 
   // ?raw=1 — 호출 없이 프롬프트만 확인 (요금 안 나감)
   if (params.get("raw")) {
@@ -73,7 +77,10 @@ export async function GET(request: Request) {
 
   const startedAt = Date.now()
   try {
-    const result = await runReading({ topicKey, question, cards })
+    const result =
+      provider === "openai"
+        ? await runReading({ topicKey, question, cards })
+        : await runReadingWithGemini({ topicKey, question, cards })
     const seconds = ((Date.now() - startedAt) / 1000).toFixed(1)
     const { inputTokens, outputTokens, cachedInputTokens } = result.usage
 
