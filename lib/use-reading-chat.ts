@@ -52,6 +52,7 @@ export function useReadingChat({
   positions,
   reading,
   priorTurns = [],
+  readingId,
   onTurn,
   onTurnsReplace,
 }: {
@@ -68,6 +69,8 @@ export function useReadingChat({
    * 이게 없으면 다시 연 대화에서 샨티가 앞 얘기를 하나도 기억 못 합니다.
    */
   priorTurns?: ChatTurn[]
+  /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
+  readingId?: string
   /** 한 마디가 오갈 때마다 (보관용) */
   onTurn?: (turn: ChatTurn) => void
   /** 새로고침으로 마지막 답을 걷어냈을 때 — 보관본도 그만큼 되돌립니다 */
@@ -134,6 +137,7 @@ export function useReadingChat({
             reading: reading?.title ? reading : undefined,
             turns: turnsRef.current.map((t) => ({ role: t.role, text: t.text })),
             message,
+            readingId,
           }),
         })
 
@@ -220,7 +224,7 @@ export function useReadingChat({
         setBusy(false)
       }
     },
-    [question, reading, pushTurn]
+    [question, reading, pushTurn, readingId]
   )
 
   /** 사용자가 새 물음을 던집니다 */

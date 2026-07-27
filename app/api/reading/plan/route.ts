@@ -5,28 +5,21 @@
 // 실패해도 흐름이 끊기지 않도록 기본 배열로 되돌아갑니다.
 import { NextResponse } from "next/server"
 import { ACTIVE_CHARACTER } from "@/lib/character"
-import { PLAN_INSTRUCTION, PLAN_JSON_SCHEMA, SPREAD_CHOICES } from "@/lib/ai/reading-plan"
+import {
+  FALLBACK_PLAN,
+  PLAN_INSTRUCTION,
+  PLAN_JSON_SCHEMA,
+  SPREAD_CHOICES,
+  type ReadingPlan,
+} from "@/lib/ai/reading-plan"
 import { GEMINI_READING_MODEL } from "@/lib/ai/gemini"
+import { requireUser } from "@/lib/server/guard"
+import { getSupabaseAdmin } from "@/lib/supabase/server"
+import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
 
-export interface ReadingPlan {
-  layoutKey: string
-  intro: string
-  positions: { label: string; guide: string }[]
-}
-
-/** AI 가 실패하거나 이상한 값을 줬을 때 쓰는 기본 배열 */
-export const FALLBACK_PLAN: ReadingPlan = {
-  layoutKey: "three-arch",
-  intro: "흐음, 좋은 질문이구먼. 세 장으로 들여다보자꾸나. 마음을 담아 섞어보라냥.",
-  positions: [
-    { label: "지금 상황", guide: "지금 놓인 자리를 떠올리며 뽑아보라냥" },
-    { label: "그 아래 흐름", guide: "그렇게 된 까닭을 떠올리며 한 장 더 뽑아보라냥" },
-    { label: "조언", guide: "자 마지막이야. 지금 필요한 말을 떠올리며 뽑아보라냥" },
-  ],
-}
 
 export async function POST(request: Request) {
   let question = ""
@@ -39,8 +32,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
   }
 
+  // ── 여기가 타로점 한 판이 시작되는 자리입니다 ──────────────────────
+  // 크레딧을 깎는 것도, 판을 만드는 것도 여기 한 곳에서만 합니다.
+  // 예전에는 화면이 깎았는데, 그러면 이 호출을 건너뛰는 것만으로 공짜였습니다.
+  const guard = await requireUser()
+  if (!guard.ok) return guard.response
+  const user = guard.value
+
+  let readingId: string | undefined
+  if (user) {
+    const admin = getSupabaseAdmin()
+    if (!admin) return NextResponse.json({ error: "서버 설정이 아직 없어요." }, { status: 503 })
+
+    // 판을 먼저 만들고, 그 id 를 열쇠 삼아 크레딧을 깎습니다.
+    // 열쇠가 판마다 달라서 같은 판으로 두 번 깎이지 않습니다.
+    const { data: created, error: createError } = await admin
+      .from("readings")
+      .insert({
+        user_id: user.id,
+        question: question.slice(0, 500),
+        followups_allowed: FOLLOWUPS_PER_CREDIT,
+      })
+      .select("id")
+      .single()
+
+    if (createError || !created) {
+      console.error("[reading/plan] 판을 못 만들었습니다:", createError?.message)
+      return NextResponse.json({ error: "타로점을 시작하지 못했어요." }, { status: 500 })
+    }
+
+    readingId = created.id
+
+    const { data: left, error: spendError } = await admin.rpc("spend_credit", {
+      p_user_id: user.id,
+      p_reason: "reading",
+      p_reading_id: readingId,
+      p_key: `reading:${readingId}`,
+    })
+
+    if (spendError || typeof left !== "number" || left < 0) {
+      // 크레딧이 모자라면 방금 만든 판을 도로 지웁니다 —
+      // 시작도 못 한 판이 기록에 남으면 안 됩니다.
+      await admin.from("readings").delete().eq("id", readingId)
+      return NextResponse.json(
+        { error: "크레딧이 부족해요.", needCredits: true },
+        { status: 402 }
+      )
+    }
+  }
+
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json(FALLBACK_PLAN)
+  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId })
 
   try {
     const response = await fetch(
@@ -79,12 +121,24 @@ export async function POST(request: Request) {
           `positions=${Array.isArray(plan?.positions) ? plan.positions.length : "없음"}, ` +
           `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
       )
-      return NextResponse.json(FALLBACK_PLAN)
+      return NextResponse.json({ ...FALLBACK_PLAN, readingId })
     }
-    return NextResponse.json(plan)
+
+    // 고른 배열을 판에 적어둡니다 (다시 열었을 때 그때 모양 그대로 놓이도록)
+    if (readingId) {
+      await getSupabaseAdmin()
+        ?.from("readings")
+        .update({
+          layout_key: plan.layoutKey,
+          positions: plan.positions.map((p) => p.label),
+        })
+        .eq("id", readingId)
+    }
+
+    return NextResponse.json({ ...plan, readingId })
   } catch (error) {
     // 배열을 못 골랐다고 흐름을 멈추진 않습니다. 대신 까닭은 로그로 남깁니다.
     console.warn("[reading/plan] 배열 고르기 실패 — 기본값으로 갑니다:", error)
-    return NextResponse.json(FALLBACK_PLAN)
+    return NextResponse.json({ ...FALLBACK_PLAN, readingId })
   }
 }

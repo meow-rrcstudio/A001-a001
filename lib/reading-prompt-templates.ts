@@ -136,6 +136,8 @@ export interface ChatContext {
   turns: { role: "user" | "shanti"; text: string }[]
   /** 이번에 새로 던진 물음 */
   message: string
+  /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
+  readingId?: string
 }
 
 function describeCards(cards: ChatContext["cards"]): string {

@@ -5,6 +5,28 @@
 // 6장은 과하고, 자리 이름(지나온 흐름·상대의 마음…)도 질문과 안 맞았습니다.
 // 이제 질문을 읽고 장수와 자리 이름을 그때그때 정합니다.
 
+export interface ReadingPlan {
+  layoutKey: string
+  intro: string
+  positions: { label: string; guide: string }[]
+  /**
+   * 이번 판의 id. 해석·면담을 부를 때 함께 보내야 합니다.
+   * 서버는 이걸로 "크레딧을 낸 판인지"를 확인합니다.
+   */
+  readingId?: string
+}
+
+/** AI 가 실패하거나 이상한 값을 줬을 때 쓰는 기본 배열 */
+export const FALLBACK_PLAN: ReadingPlan = {
+  layoutKey: "three-arch",
+  intro: "흐음, 좋은 질문이구먼. 세 장으로 들여다보자꾸나. 마음을 담아 섞어보라냥.",
+  positions: [
+    { label: "지금 상황", guide: "지금 놓인 자리를 떠올리며 뽑아보라냥" },
+    { label: "그 아래 흐름", guide: "그렇게 된 까닭을 떠올리며 한 장 더 뽑아보라냥" },
+    { label: "조언", guide: "자 마지막이야. 지금 필요한 말을 떠올리며 뽑아보라냥" },
+  ],
+}
+
 /** 쓸 수 있는 배열과 장수. spreadLayouts 의 키와 같아야 합니다. */
 export const SPREAD_CHOICES: { key: string; count: number; when: string }[] = [
   { key: "one-card", count: 1, when: "예/아니오, 오늘 한마디처럼 아주 단순한 질문" },

@@ -22,11 +22,10 @@ import { ReadingResultView, type PickedCard } from "@/components/reading-result-
 import { SUGGESTED_QUESTIONS } from "@/lib/mock-reading"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { useReadingStream } from "@/lib/use-reading-stream"
-import { FALLBACK_PLAN, type ReadingPlan } from "@/app/api/reading/plan/route"
-import { layoutKeyForCount } from "@/lib/ai/reading-plan"
+import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
-import { canUseInsiteReading, consumeCredit } from "@/lib/reading-entitlement"
+import { canUseInsiteReading } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
@@ -76,28 +75,31 @@ export default function AskPage() {
     if (!q || planning) return
     setQuestion(q)
     setPlanning(true)
-    // 크레딧 한 장은 여기서만 깎습니다. 이어서 묻는 것과 카드를 더
-    // 뽑는 것은 같은 한 판이라 더 깎지 않습니다.
+    // 이 질문에 어떤 배열이 어울릴지 정합니다 (2초 안팎).
     //
-    // ⚠️ 아직 화면에서 깎습니다. 서버가 깎게 옮겨야 합니다 —
-    //    이 줄을 건너뛰면 크레딧 없이도 볼 수 있습니다.
-    await consumeCredit()
-    void refreshAccount()
-
-    // 이 질문에 어떤 배열이 어울릴지 먼저 정합니다 (2초 안팎).
-    // 실패해도 기본 배열로 흐름을 이어갑니다.
+    // 크레딧은 이 호출 안에서 서버가 깎습니다. 화면에서 깎던 예전 방식은
+    // 이 호출만 건너뛰면 공짜였습니다.
     try {
       const response = await fetch("/api/reading/plan", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: q }),
       })
+
+      // 크레딧이 모자라면 사러 가는 길로 보냅니다 (빈손으로 뽑게 두지 않습니다)
+      if (response.status === 402) {
+        setPlanning(false)
+        router.push("/my/credits")
+        return
+      }
+
       setPlan(response.ok ? ((await response.json()) as ReadingPlan) : FALLBACK_PLAN)
     } catch {
       setPlan(FALLBACK_PLAN)
     } finally {
       setPlanning(false)
       setStep("draw")
+      void refreshAccount()
     }
   }
 
@@ -112,6 +114,7 @@ export default function AskPage() {
       questionLabel: question,
       plan,
       cards: picked,
+      readingId: plan?.readingId,
     })
     // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
     if (built) {
@@ -169,6 +172,7 @@ export default function AskPage() {
           cards={cards}
           positions={plan?.positions.map((p) => p.label)}
           layoutKey={plan?.layoutKey}
+          readingId={plan?.readingId}
           streaming={streaming}
           error={error}
           onTurn={(turn) => readingId && appendTurn(readingId, turn)}

@@ -5,14 +5,15 @@
 // 보입니다. 그래서 만들어지는 대로 흘려보냅니다 — 받는 쪽은 제목부터
 // 차례로 채워 그립니다.
 //
-// ⚠️ 권한 검사가 아직 없습니다. 지금은 브라우저(localStorage)에서만
-//    막고 있어서 이 주소를 직접 부르면 통과합니다. 오픈 전에 로그인
-//    세션과 체험 횟수를 여기서 다시 확인해야 합니다.
+// 로그인한 사람이, 자기가 크레딧을 낸 판에 대해서만 부를 수 있습니다.
+// (크레딧은 /api/reading/plan 에서 이미 깎였습니다 — 한 판에 한 장)
 import { NextResponse } from "next/server"
 import { topicContent } from "@/lib/reading-content"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { streamReadingWithGemini } from "@/lib/ai/gemini"
 import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
+import { requireOwnedReading, requireUser } from "@/lib/server/guard"
+import { getSupabaseAdmin } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -26,6 +27,8 @@ interface ReadingRequestBody {
   /** 샨티가 고른 배열 — 뽑을 때 쓴 것과 같아야 해석의 자리 이름이 맞습니다 */
   plan?: { layoutKey: string; positions: { label: string; guide: string }[] }
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
+  /** /api/reading/plan 이 돌려준 판 id. 크레딧을 낸 판인지 확인합니다 */
+  readingId?: string
 }
 
 export async function POST(request: Request) {
@@ -35,6 +38,12 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 })
   }
+
+  // 이 판이 정말 이 사람 것인지 먼저 봅니다.
+  const guard = await requireUser()
+  if (!guard.ok) return guard.response
+  const owned = await requireOwnedReading(guard.value, body.readingId)
+  if (!owned.ok) return owned.response
 
   const topicKey = body.topicKey as ReadingTopicKey
   const topic = topicContent[topicKey]
@@ -73,8 +82,10 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
+      let last = ""
       try {
         for await (const accumulated of streamReadingWithGemini({ topicKey, question, cards })) {
+          last = accumulated
           // 지금까지 쌓인 JSON 을 통째로 보냅니다. 받는 쪽이 마지막 줄만
           // 읽으면 되도록 줄바꿈으로 끊습니다.
           controller.enqueue(encoder.encode(JSON.stringify({ partial: accumulated }) + "\n"))
@@ -84,6 +95,19 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(JSON.stringify({ error: message }) + "\n"))
       } finally {
         controller.close()
+        // 다 받은 해석을 판에 적어둡니다 (기록에서 다시 열 때 씁니다).
+        // 화면이 아니라 서버가 적어야 "브라우저를 지우면 기록이 사라지는"
+        // 지금 문제가 없어집니다.
+        if (owned.value && last) {
+          try {
+            await getSupabaseAdmin()
+              ?.from("readings")
+              .update({ cards, result: JSON.parse(last) })
+              .eq("id", owned.value.id)
+          } catch {
+            // 잘린 JSON 이면 적지 않습니다 — 반쪽짜리 기록보다 없는 게 낫습니다
+          }
+        }
       }
     },
   })

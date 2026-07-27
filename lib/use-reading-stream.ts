@@ -34,6 +34,7 @@ export function useReadingStream() {
       questionLabel,
       plan,
       cards,
+      readingId,
     }: {
       topicKey: string
       questionSlug: string
@@ -42,6 +43,8 @@ export function useReadingStream() {
       /** 샨티가 고른 배열 (자유 질문일 때) */
       plan?: { layoutKey: string; positions: { label: string; guide: string }[] } | null
       cards: PickedCard[]
+      /** 어느 판인지. 서버가 "크레딧을 낸 판인지" 확인합니다 */
+      readingId?: string
     }): Promise<ReadingResult | null> => {
       setState({ reading: null, streaming: true, error: null })
 
@@ -54,6 +57,7 @@ export function useReadingStream() {
             questionSlug,
             questionLabel,
             plan,
+            readingId,
             cards: cards.map((c) => ({
               name: c.name,
               orientation: c.reversed ? "역방향" : "정방향",

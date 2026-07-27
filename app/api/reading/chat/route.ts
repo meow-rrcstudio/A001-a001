@@ -8,13 +8,15 @@
 //   · mode="shanti" — 여기서 바로 뽑아 카드까지 실어 보냅니다
 //   · mode="user"   — 뽑을 자리만 알려주고, 고르는 건 화면이 맡습니다
 //
-// ⚠️ 권한 검사가 아직 없습니다 (/api/reading 과 같은 사정). 오픈 전에
-//    로그인 세션 확인을 여기에도 넣어야 합니다.
+// 로그인한 사람이, 자기 판에 대해서만 부를 수 있습니다.
+// 이어묻기 횟수도 여기서 셉니다 — 화면에서만 세면 그 셈을 건너뛸 수 있습니다.
 import { NextResponse } from "next/server"
 import { allTarotCards } from "@/lib/tarot-cards"
 import { buildChatMessages, type ChatContext } from "@/lib/reading-prompt-templates"
 import { streamGeminiJson } from "@/lib/ai/gemini"
 import { CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
+import { requireOwnedReading, requireUser } from "@/lib/server/guard"
+import { getSupabaseAdmin } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -51,6 +53,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "물음이 비어 있습니다." }, { status: 400 })
   }
 
+  const guard = await requireUser()
+  if (!guard.ok) return guard.response
+  const owned = await requireOwnedReading(guard.value, body.readingId)
+  if (!owned.ok) return owned.response
+
+  // 한 장 몫을 다 썼는지 — 세는 곳도 서버여야 합니다.
+  // 화면에서만 세면 새로고침 한 번으로 초기화됩니다.
+  if (owned.value) {
+    const admin = getSupabaseAdmin()
+    const { count } = (await admin
+      ?.from("reading_turns")
+      .select("id", { count: "exact", head: true })
+      .eq("reading_id", owned.value.id)
+      .eq("role", "user")) ?? { count: 0 }
+
+    if ((count ?? 0) >= owned.value.followupsAllowed) {
+      return NextResponse.json(
+        { error: "이 판으로는 여기까지예요.", needCredits: true },
+        { status: 402 }
+      )
+    }
+  }
+
   const context: ChatContext = {
     question: String(body.question ?? "").slice(0, 300),
     cards: Array.isArray(body.cards) ? body.cards.slice(0, 20) : [],
@@ -58,6 +83,7 @@ export async function POST(request: Request) {
     // 대화가 길어지면 앞쪽은 흘려보냅니다 (프롬프트가 무한정 자라지 않도록).
     turns: Array.isArray(body.turns) ? body.turns.slice(-12) : [],
     message: message.slice(0, 1000),
+    readingId: body.readingId,
   }
 
   const { system, user } = buildChatMessages(context)
@@ -83,9 +109,39 @@ export async function POST(request: Request) {
         // 다 받은 뒤에만 뽑기 요청을 살핍니다 — 흘러오는 도중의 반쪽짜리
         // draw 를 보고 카드를 뽑아버리면 안 되기 때문입니다.
         const draw = readDrawRequest(last)
+        let drawn: { name: string; reversed: boolean; imageUrl: string }[] | null = null
         if (draw?.mode === "shanti") {
           const exclude = context.cards.map((c) => c.name)
-          send({ drawnCards: drawCards(draw.positions.length, exclude) })
+          drawn = drawCards(draw.positions.length, exclude)
+          send({ drawnCards: drawn })
+        }
+
+        // 오간 말을 판에 남깁니다.
+        // ⚠️ 이게 없으면 위에서 세는 이어묻기 횟수가 영원히 0 이라
+        //    한 장 몫이 무한이 됩니다.
+        if (owned.value) {
+          const reply = (() => {
+            try {
+              return String((JSON.parse(last) as { reply?: string }).reply ?? "")
+            } catch {
+              return ""
+            }
+          })()
+          await getSupabaseAdmin()
+            ?.from("reading_turns")
+            .insert([
+              { reading_id: owned.value.id, role: "user", body: context.message },
+              ...(reply
+                ? [
+                    {
+                      reading_id: owned.value.id,
+                      role: "shanti",
+                      body: reply,
+                      cards: drawn,
+                    },
+                  ]
+                : []),
+            ])
         }
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)

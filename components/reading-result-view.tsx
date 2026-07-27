@@ -26,7 +26,7 @@ import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
-import { consumeCredit, FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/reading-entitlement"
+import { FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
 
 type Turn = ChatTurn
@@ -169,6 +169,7 @@ export function ReadingResultView({
   cards = [],
   positions,
   layoutKey,
+  readingId,
   streaming = false,
   error = null,
   backHref = "/tarot/ask",
@@ -187,6 +188,8 @@ export function ReadingResultView({
   positions?: string[]
   /** 그 배열의 이름 (예: "six-cross"). 주면 뽑을 때 본 모양 그대로 놓입니다 */
   layoutKey?: string
+  /** 어느 판인지. 서버가 주인과 이어묻기 횟수를 확인합니다 */
+  readingId?: string
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
   streaming?: boolean
   /** 해석을 못 받았을 때의 사유 */
@@ -226,6 +229,7 @@ export function ReadingResultView({
     positions,
     reading: result,
     priorTurns: initialTurns,
+    readingId,
     onTurn,
     onTurnsReplace,
   })
@@ -249,9 +253,18 @@ export function ReadingResultView({
   /** 한 장 더 써서 계속 묻기 */
   async function spendAnotherCredit() {
     if ((credits ?? 0) <= 0) return
-    // 깎이지 않았으면(잔액 부족·통신 실패) 늘려주지 않습니다.
-    const spent = await consumeCredit("extend")
-    if (!spent) return
+    // 깎는 것도 늘리는 것도 서버가 합니다. 화면에서 늘리면 새로고침
+    // 한 번으로 얼마든지 늘릴 수 있습니다.
+    try {
+      const response = await fetch("/api/reading/extend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ readingId }),
+      })
+      if (!response.ok) return
+    } catch {
+      return
+    }
     setExtraCredits((n) => n + 1)
     void refreshAccount()
   }
