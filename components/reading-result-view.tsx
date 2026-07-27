@@ -174,7 +174,7 @@ export function ReadingResultView({
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">
-          <p className="max-w-[85%] rounded-2xl bg-secondary px-4 py-2.5 text-[15px] text-secondary-foreground">
+          <p className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
             {question}
           </p>
         </div>
@@ -248,7 +248,7 @@ export function ReadingResultView({
         {turns.map((turn, i) =>
           turn.role === "user" ? (
             <div key={i} className="mt-6 flex justify-end">
-              <p className="max-w-[85%] rounded-2xl bg-secondary px-4 py-2.5 text-[15px] text-secondary-foreground">
+              <p className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
                 {turn.text}
               </p>
             </div>
@@ -276,15 +276,17 @@ export function ReadingResultView({
       {!streaming && (
       <form
         onSubmit={handleSend}
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-glass backdrop-blur-[var(--glass-blur)]"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-50"
       >
-        <div className="mx-auto w-full max-w-3xl px-6 py-3 sm:px-8">
+        {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
+            테두리 줄 없이 그림자로만 띄웁니다. */}
+        <div className="mx-auto w-full max-w-3xl px-4 pb-5 pt-10 sm:px-8">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Shānti에게 응답하기"
+            placeholder="Shānti-에게 응답하기"
             aria-label="샨티에게 응답하기"
-            className="h-12 w-full rounded-full border border-input bg-card px-5 font-script text-lg text-foreground outline-none placeholder:text-muted-foreground focus:border-accent"
+            className="pointer-events-auto h-14 w-full rounded-2xl bg-card px-5 font-script text-lg text-foreground shadow-raised outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40"
           />
         </div>
       </form>

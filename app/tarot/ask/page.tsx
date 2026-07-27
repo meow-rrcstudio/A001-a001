@@ -22,6 +22,7 @@ import { ReadingResultView, type PickedCard } from "@/components/reading-result-
 import { SUGGESTED_QUESTIONS } from "@/lib/mock-reading"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { useReadingStream } from "@/lib/use-reading-stream"
+import { FALLBACK_PLAN, type ReadingPlan } from "@/app/api/reading/plan/route"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
 import { appendTurn, saveReading } from "@/lib/reading-archive"
 
@@ -33,6 +34,9 @@ export default function AskPage() {
   const [step, setStep] = useState<Step>("ask")
   const [question, setQuestion] = useState("")
   const [cards, setCards] = useState<PickedCard[]>([])
+  // 샨티가 이 질문에 맞게 고른 배열 (몇 장 · 어떤 자리)
+  const [plan, setPlan] = useState<ReadingPlan | null>(null)
+  const [planning, setPlanning] = useState(false)
   // 해석은 흘려받습니다 — 제목부터 차례로 화면에 채워집니다.
   const { reading, streaming, error, run } = useReadingStream()
   // 보관된 타로점 id — 이어서 나눈 대화를 여기에 계속 쌓습니다
@@ -48,13 +52,29 @@ export default function AskPage() {
     router.replace(as ? `/?as=${as}` : "/")
   }, [router])
 
-  function submit(text: string) {
+  async function submit(text: string) {
     const q = text.trim()
-    if (!q) return
+    if (!q || planning) return
     setQuestion(q)
+    setPlanning(true)
     // 체험으로 보는 경우 여기서 1회 차감합니다 (유료 회원은 차감 안 함)
     consumeTrial()
-    setStep("draw")
+
+    // 이 질문에 어떤 배열이 어울릴지 먼저 정합니다 (2초 안팎).
+    // 실패해도 기본 배열로 흐름을 이어갑니다.
+    try {
+      const response = await fetch("/api/reading/plan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: q }),
+      })
+      setPlan(response.ok ? ((await response.json()) as ReadingPlan) : FALLBACK_PLAN)
+    } catch {
+      setPlan(FALLBACK_PLAN)
+    } finally {
+      setPlanning(false)
+      setStep("draw")
+    }
   }
 
   // 권한 확인 전에는 빈 화면 (무료 화면으로 되돌아가는 중일 수 있음)
@@ -72,8 +92,8 @@ export default function AskPage() {
             mode="inline"
             topicLabel={question}
             topicSlug="self"
-            question={buildFreeQuestion(question)}
-            introMessage={`"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
+            question={buildFreeQuestion(question, plan)}
+            introMessage={plan?.intro ?? `"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
             onComplete={async (picked) => {
               setCards(picked)
               setStep("result")
@@ -82,6 +102,7 @@ export default function AskPage() {
                 topicKey: "self",
                 questionSlug: FREE_QUESTION_SLUG,
                 questionLabel: question,
+                plan,
                 cards: picked,
               })
               // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
@@ -148,18 +169,17 @@ export default function AskPage() {
               e.preventDefault()
               submit(question)
             }}
-            className="mt-4 flex items-center gap-2"
+            className="mt-4"
           >
+            {/* 시안: 보내기 버튼 없이 둥근 흰 카드 하나. 키보드 엔터로 보냅니다. */}
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="무엇이든 물어보세요."
+              disabled={planning}
+              placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
               aria-label="질문 입력"
-              className="h-12 flex-1 rounded-full border border-input bg-card px-5 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-accent"
+              className="h-14 w-full rounded-2xl bg-card px-5 text-[15px] text-foreground shadow-raised outline-none transition-opacity placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
             />
-            <Button type="submit" variant="solid" size="pill" className="px-6">
-              물어보기
-            </Button>
           </form>
         </div>
       </main>

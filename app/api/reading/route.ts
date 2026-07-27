@@ -23,6 +23,8 @@ interface ReadingRequestBody {
   questionSlug?: string
   /** 자유 질문일 때 사용자가 직접 친 문구 */
   questionLabel?: string
+  /** 샨티가 고른 배열 — 뽑을 때 쓴 것과 같아야 해석의 자리 이름이 맞습니다 */
+  plan?: { layoutKey: string; positions: { label: string; guide: string }[] }
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
 }
 
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
     }
     // 프롬프트에 그대로 들어가므로 길이를 제한합니다.
-    question = buildFreeQuestion(label.slice(0, 200))
+    question = buildFreeQuestion(label.slice(0, 200), body.plan ?? null)
   } else {
     question = topic.questions.find((q) => q.slug === body.questionSlug)
     if (!question) {

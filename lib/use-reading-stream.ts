@@ -32,12 +32,15 @@ export function useReadingStream() {
       topicKey,
       questionSlug,
       questionLabel,
+      plan,
       cards,
     }: {
       topicKey: string
       questionSlug: string
       /** 자유 질문일 때 사용자가 친 문구 */
       questionLabel?: string
+      /** 샨티가 고른 배열 (자유 질문일 때) */
+      plan?: { layoutKey: string; positions: { label: string; guide: string }[] } | null
       cards: PickedCard[]
     }): Promise<ReadingResult | null> => {
       setState({ reading: null, streaming: true, error: null })
@@ -50,6 +53,7 @@ export function useReadingStream() {
             topicKey,
             questionSlug,
             questionLabel,
+            plan,
             cards: cards.map((c) => ({
               name: c.name,
               orientation: c.reversed ? "역방향" : "정방향",

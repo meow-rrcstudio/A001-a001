@@ -18,12 +18,20 @@ export const FREE_QUESTION_POSITIONS = [
 /** 서버가 이 슬러그를 보고 "미리 준비된 질문이 아니라 자유 질문"임을 압니다 */
 export const FREE_QUESTION_SLUG = "free"
 
-/** 사용자가 친 문구를 질문으로 만들어 줍니다 */
-export function buildFreeQuestion(label: string): ReadingQuestion {
+/**
+ * 사용자가 친 문구를 질문으로 만들어 줍니다.
+ *
+ * plan 을 넘기면 샨티가 이 질문에 맞게 고른 배열(장수·자리 이름)을 씁니다.
+ * 없으면 기본 6장 십자 배열입니다.
+ */
+export function buildFreeQuestion(
+  label: string,
+  plan?: { layoutKey: string; positions: { label: string; guide: string }[] } | null
+): ReadingQuestion {
   return {
     slug: FREE_QUESTION_SLUG,
     label,
-    layoutKey: "six-cross",
-    positions: FREE_QUESTION_POSITIONS,
+    layoutKey: (plan?.layoutKey ?? "six-cross") as ReadingQuestion["layoutKey"],
+    positions: plan?.positions ?? FREE_QUESTION_POSITIONS,
   }
 }

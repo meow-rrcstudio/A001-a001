@@ -183,6 +183,24 @@ export function CardReadingFlow({
     return () => clearTimeout(timer)
   }, [])
 
+  // 카드를 다 뒤집으면 버튼 없이 스스로 해석으로 넘어갑니다.
+  // (시안: "버튼 클릭 없이 자동으로 해석 내용이 나옴")
+  useEffect(() => {
+    if (mode !== "inline" || !onComplete) return
+    if (flippedIndices.length < requiredPicks) return
+    const timer = setTimeout(() => {
+      onComplete(
+        selected.map((cardIndex) => ({
+          name: shuffledDeck[cardIndex]?.nameKo ?? "",
+          reversed: cardOrientations[cardIndex] === "역방향",
+          imageUrl: shuffledDeck[cardIndex]?.imageUrl ?? "",
+        }))
+      )
+    }, 1400) // 마지막 카드를 눈으로 확인할 틈
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flippedIndices.length, requiredPicks, mode])
+
   useEffect(() => {
     return () => {
       if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current)
@@ -436,7 +454,7 @@ export function CardReadingFlow({
               ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
               : flippedIndices.length >= requiredPicks
                 ? mode === "inline"
-                  ? `카드 ${requiredPicks}장이 모였어냥. 내가 읽어줄게, 아래를 눌러보라냥!`
+                  ? "흠! 카드는 다 뽑혔구먼. 이 몸이 고심해서 들여다보는 중이니 잠깐만 기다려보라냥..."
                   : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
                 : "카드를 하나씩 뒤집어보는 중이야냥..."
         }
@@ -654,25 +672,6 @@ export function CardReadingFlow({
           )
         })}
       </div>
-      )}
-
-      {/* 해석 보기 — 사이트 내 해석 모드에서 카드를 다 뒤집었을 때 */}
-      {mode === "inline" && phase === "revealing" && flippedIndices.length >= requiredPicks && (
-        <button
-          type="button"
-          onClick={() =>
-            onComplete?.(
-              selected.map((cardIndex) => ({
-                name: shuffledDeck[cardIndex]?.nameKo ?? "",
-                reversed: cardOrientations[cardIndex] === "역방향",
-                imageUrl: shuffledDeck[cardIndex]?.imageUrl ?? "",
-              }))
-            )
-          }
-          className="fixed inset-x-6 bottom-6 z-[70] rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] sm:inset-x-8"
-        >
-          샨티의 해석 보기
-        </button>
       )}
 
       {/* 하단 슬라이더 — 부채를 호를 따라 굴립니다.
