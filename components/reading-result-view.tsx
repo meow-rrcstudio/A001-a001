@@ -15,6 +15,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw } from "lucide-react"
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
 import { CardSpread } from "@/components/card-spread"
@@ -24,6 +25,12 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
+import {
+  consumeCredit,
+  getEntitlement,
+  FOLLOWUPS_PER_CREDIT,
+  FOLLOWUP_WARN_AT,
+} from "@/lib/reading-entitlement"
 
 type Turn = ChatTurn
 
@@ -226,6 +233,29 @@ export function ReadingResultView({
     onTurnsReplace,
   })
 
+  // ── 한 장 몫을 얼마나 썼는지 ──────────────────────────────────────
+  //
+  // 크레딧 한 장에 이어묻기 FOLLOWUPS_PER_CREDIT 번이 딸려옵니다. 다 쓰면
+  // 대화를 끊지 않고 "한 장 더 쓰고 이어가기"를 권합니다.
+  //
+  // ⚠️ 이 셈은 브라우저에만 있습니다. 크레딧과 마찬가지로, 로그인이
+  //    붙으면 서버가 다시 세야 합니다 (지금은 새로고침하면 초기화됩니다).
+  const [extraCredits, setExtraCredits] = useState(0)
+  const [credits, setCredits] = useState<number | null>(null)
+  useEffect(() => setCredits(getEntitlement().credits), [extraCredits])
+
+  const asked = turns.filter((t) => t.role === "user").length
+  const allowance = FOLLOWUPS_PER_CREDIT * (1 + extraCredits)
+  const leftToAsk = allowance - asked
+  const outOfAsks = leftToAsk <= 0
+
+  /** 한 장 더 써서 계속 묻기 */
+  function spendAnotherCredit() {
+    if ((credits ?? 0) <= 0) return
+    consumeCredit()
+    setExtraCredits((n) => n + 1)
+  }
+
   // 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다.
   useEffect(() => {
     if (!pendingDraw || !onDrawRequest) return
@@ -389,15 +419,48 @@ export function ReadingResultView({
         {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
             테두리 줄 없이 그림자로만 띄웁니다. */}
         <div className="mx-auto w-full max-w-3xl px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
-          <ChatInput
-            value={draft}
-            onChange={setDraft}
-            onSubmit={handleSend}
-            disabled={busy}
-            placeholder={busy ? "샨티가 생각하는 중..." : "Shānti-에게 응답하기"}
-            ariaLabel="샨티에게 응답하기"
-            className="pointer-events-auto"
-          />
+          {outOfAsks ? (
+            // 한 장 몫을 다 썼습니다. 막지 않고 한 장 더 쓰길 권합니다.
+            <div className="pointer-events-auto rounded-2xl bg-card p-4 shadow-raised">
+              <p className="text-[15px] leading-relaxed text-foreground">
+                흐음, 이 한 판으로는 여기까지구먼. 더 묻고 싶으면 한 장 더 쓰면 된다냥.
+              </p>
+              {credits !== null && credits > 0 ? (
+                <button
+                  type="button"
+                  onClick={spendAnotherCredit}
+                  className="mt-3 w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  크레딧 한 장 더 쓰고 이어서 묻기 (남은 {credits}장)
+                </button>
+              ) : (
+                <Link
+                  href="/my/settings"
+                  className="mt-3 block rounded-full bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  크레딧 사러 가기
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* 남은 횟수는 끝이 가까울 때만 — 평소엔 세는 느낌이 나면 안 됩니다 */}
+              {leftToAsk <= FOLLOWUP_WARN_AT && (
+                <p className="pointer-events-auto mb-2 text-center text-xs text-muted-foreground">
+                  이 판으로 {leftToAsk}번 더 물어볼 수 있어냥
+                </p>
+              )}
+              <ChatInput
+                value={draft}
+                onChange={setDraft}
+                onSubmit={handleSend}
+                disabled={busy}
+                placeholder={busy ? "샨티가 생각하는 중..." : "Shānti-에게 응답하기"}
+                ariaLabel="샨티에게 응답하기"
+                className="pointer-events-auto"
+              />
+            </>
+          )}
         </div>
       </div>
       )}
