@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
-import { HEADER_SPACE } from "@/lib/layout"
+import { HEADER_SPACE, KEYBOARD_ONLY_INPUT_PROPS } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
@@ -86,7 +86,9 @@ export default function AskPage() {
       // 카드 고르기 화면은 딱 한 화면입니다. 100vh 는 모바일 사파리에서
       // 주소창을 뺀 높이보다 커서 스크롤이 생기므로 dvh 를 씁니다.
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
-        <main className={`relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
+        <main
+          className={`relative z-10 mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+        >
           <PageHeader variant="reading" backHref="/tarot/ask" />
           <CardReadingFlow
             mode="inline"
@@ -140,16 +142,23 @@ export default function AskPage() {
 
   // ── 1) 질문 입력 ──────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}>
+    // 진입 화면도 딱 한 화면입니다. 100vh 는 모바일 사파리 주소창 높이를
+    // 빼주지 않아서 아래(제안 칩 + 입력창)가 잘렸습니다.
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <main
+        className={`mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+      >
         <PageHeader variant="reading" backHref="/" />
 
-        <ReadingCharacterBubble
-          placement="top"
-          message="무엇이든 물어보라냥. 이 몸이 카드로 읽어줄게."
-        />
+        <div className="shrink-0">
+          <ReadingCharacterBubble
+            placement="top"
+            message="무엇이든 물어보라냥. 이 몸이 카드로 읽어줄게."
+          />
+        </div>
 
-        <div className="mt-auto pb-8">
+        {/* 아래 묶음은 화면 맨 아래에 붙박이입니다 — 잘리지 않습니다 */}
+        <div className="mt-auto shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <p className="mb-2 text-sm text-muted-foreground">제안</p>
           <div className="flex flex-col items-start gap-2">
             {SUGGESTED_QUESTIONS.map((q) => (
@@ -164,23 +173,25 @@ export default function AskPage() {
             ))}
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              submit(question)
-            }}
-            className="mt-4"
-          >
-            {/* 시안: 보내기 버튼 없이 둥근 흰 카드 하나. 키보드 엔터로 보냅니다. */}
+          {/* 시안: 보내기 버튼 없이 둥근 흰 카드 하나. 키보드 엔터로 보냅니다.
+              ⚠️ <form> 으로 감싸지 않습니다. iOS 는 폼 안의 입력칸을 보면
+                 키보드 위에 자동완성 줄(암호·카드·연락처)을 띄웁니다. */}
+          <div className="mt-4">
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || e.nativeEvent.isComposing) return
+                e.preventDefault()
+                submit(question)
+              }}
               disabled={planning}
               placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
               aria-label="질문 입력"
+              {...KEYBOARD_ONLY_INPUT_PROPS}
               className="h-14 w-full rounded-2xl bg-card px-5 text-[15px] text-foreground shadow-raised outline-none transition-opacity placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
             />
-          </form>
+          </div>
         </div>
       </main>
     </div>

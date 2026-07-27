@@ -54,7 +54,10 @@ export async function POST(request: Request) {
           },
           contents: [{ role: "user", parts: [{ text: `질문: ${question.slice(0, 200)}` }] }],
           generationConfig: {
-            maxOutputTokens: 1500,
+            maxOutputTokens: 3000,
+            // 생각 토큰도 maxOutputTokens 에서 깎입니다. 켜두면 생각만 하다
+            // 한도에 닿아 빈 응답이 오고, 무슨 질문이든 기본 배열로 떨어집니다.
+            thinkingConfig: { thinkingBudget: 0 },
             responseMimeType: "application/json",
             responseSchema: PLAN_JSON_SCHEMA,
           },
@@ -70,11 +73,18 @@ export async function POST(request: Request) {
     // AI 가 장수를 틀리게 줄 수 있으니 배열 정의와 대조합니다.
     const choice = SPREAD_CHOICES.find((s) => s.key === plan.layoutKey)
     if (!choice || !Array.isArray(plan.positions) || plan.positions.length !== choice.count) {
+      // 조용히 넘어가면 "무슨 질문이든 3장"이 되는데 원인을 알 길이 없습니다.
+      console.warn(
+        `[reading/plan] 배열이 어긋나 기본값으로 대체합니다 — layoutKey=${plan?.layoutKey}, ` +
+          `positions=${Array.isArray(plan?.positions) ? plan.positions.length : "없음"}, ` +
+          `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
+      )
       return NextResponse.json(FALLBACK_PLAN)
     }
     return NextResponse.json(plan)
-  } catch {
-    // 배열을 못 골랐다고 흐름을 멈추진 않습니다.
+  } catch (error) {
+    // 배열을 못 골랐다고 흐름을 멈추진 않습니다. 대신 까닭은 로그로 남깁니다.
+    console.warn("[reading/plan] 배열 고르기 실패 — 기본값으로 갑니다:", error)
     return NextResponse.json(FALLBACK_PLAN)
   }
 }

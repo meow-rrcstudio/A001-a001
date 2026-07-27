@@ -62,7 +62,15 @@ export function useReadingStream() {
         })
 
         if (!response.ok || !response.body) {
-          const message = await response.text().catch(() => "")
+          const raw = await response.text().catch(() => "")
+          // 서버는 {error:"..."} 로 사유를 담아 보냅니다. 통짜 JSON 을 그대로
+          // 보여주면 읽히지 않으니 사유만 꺼냅니다.
+          let message = raw
+          try {
+            message = (JSON.parse(raw) as { error?: string }).error ?? raw
+          } catch {
+            // JSON 이 아니면 원문 그대로
+          }
           throw new Error(message || `해석을 불러오지 못했습니다 (${response.status})`)
         }
 
@@ -91,6 +99,12 @@ export function useReadingStream() {
               setState({ reading: parsed, streaming: true, error: null })
             }
           }
+        }
+
+        // 아무것도 못 읽었으면 빈 화면으로 두지 않습니다 — 무엇이 잘못됐는지
+        // 보여야 고칠 수 있습니다.
+        if (!latest) {
+          throw new Error("해석이 한 글자도 오지 않았습니다. 잠시 뒤 다시 시도해 주세요.")
         }
 
         setState({ reading: latest, streaming: false, error: null })

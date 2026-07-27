@@ -14,7 +14,18 @@ import { READING_JSON_SCHEMA } from "@/lib/ai/reading-schema"
 /** 환경변수로 덮어쓸 수 있습니다 (배포 없이 모델 비교) */
 export const GEMINI_READING_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"
 
-const MAX_OUTPUT_TOKENS = 4000
+const MAX_OUTPUT_TOKENS = 8000
+
+/**
+ * ⚠️ 이게 없으면 해석이 통째로 사라집니다.
+ *
+ * gemini-2.5-flash 는 기본으로 "생각"을 합니다. 그런데 생각에 쓴 토큰도
+ * maxOutputTokens 에서 같이 깎입니다. 페르소나가 긴 데다 JSON 형식까지
+ * 강제하니 생각만 하다 한도에 닿아, 글자는 한 자도 안 내놓고
+ * finishReason=MAX_TOKENS 로 끝나버립니다 — 화면에는 오류도 글도 없이
+ * 빈 칸만 남습니다. 타로 해석은 추론보다 문체가 중요하니 생각을 끕니다.
+ */
+const NO_THINKING = { thinkingBudget: 0 }
 
 export async function runReadingWithGemini({
   topicKey,
@@ -47,7 +58,7 @@ export async function runReadingWithGemini({
         systemInstruction: { parts: [{ text: system }] },
         // 이번에 뽑은 카드만.
         contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+        generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, thinkingConfig: NO_THINKING },
       }),
     }
   )
@@ -109,6 +120,7 @@ export async function* streamReadingWithGemini({
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: {
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          thinkingConfig: NO_THINKING,
           // 화면이 바로 쓸 수 있는 조각으로 받습니다.
           responseMimeType: "application/json",
           responseSchema: READING_JSON_SCHEMA,
@@ -125,6 +137,9 @@ export async function* streamReadingWithGemini({
   const decoder = new TextDecoder()
   let buffer = ""
   let accumulated = ""
+  // 글자 없이 끝났을 때 "왜"를 말해주기 위해 마지막 상태를 들고 있습니다.
+  let finishReason = ""
+  let blockReason = ""
 
   while (true) {
     const { done, value } = await reader.read()
@@ -139,6 +154,8 @@ export async function* streamReadingWithGemini({
       if (!line) continue
       try {
         const data = JSON.parse(line.slice(5).trim())
+        finishReason = data?.candidates?.[0]?.finishReason ?? finishReason
+        blockReason = data?.promptFeedback?.blockReason ?? blockReason
         const piece: string =
           data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
         if (piece) {
@@ -149,5 +166,15 @@ export async function* streamReadingWithGemini({
         // 잘린 덩어리 — 다음 조각과 합쳐질 때 다시 시도됩니다
       }
     }
+  }
+
+  // 한 글자도 못 받았는데 조용히 끝나면 화면엔 빈 칸만 남습니다.
+  // 그럴 바엔 사유를 들고 실패하는 편이 낫습니다.
+  if (!accumulated.trim()) {
+    throw new Error(
+      `제미나이가 글자를 하나도 내놓지 않았습니다 ` +
+        `(finishReason=${finishReason || "없음"}${blockReason ? `, blockReason=${blockReason}` : ""}). ` +
+        `MAX_TOKENS 면 maxOutputTokens 를 올리거나 thinkingBudget 을 확인하세요.`
+    )
   }
 }

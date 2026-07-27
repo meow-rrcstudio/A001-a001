@@ -15,7 +15,7 @@
 import { useState } from "react"
 import { Copy, Volume2, ThumbsUp, Share2, Check, RotateCcw } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
-import { HEADER_SPACE } from "@/lib/layout"
+import { HEADER_SPACE, KEYBOARD_ONLY_INPUT_PROPS } from "@/lib/layout"
 import { buildMockReply, type ReadingResult } from "@/lib/mock-reading"
 
 type Turn = { role: "user" | "shanti"; text: string }
@@ -155,7 +155,9 @@ export function ReadingResultView({
     onTurn?.(turn)
   }
 
-  function handleSend(e: React.FormEvent) {
+  function handleSend(e: React.KeyboardEvent<HTMLInputElement>) {
+    // 한글은 조합 중에도 엔터가 올라옵니다. 조합이 끝난 뒤에만 보냅니다.
+    if (e.key !== "Enter" || e.nativeEvent.isComposing) return
     e.preventDefault()
     const text = draft.trim()
     if (!text) return
@@ -274,22 +276,23 @@ export function ReadingResultView({
 
       {/* 입력창 — 해석을 다 받은 뒤에만 (읽는 중엔 물어볼 수 없습니다) */}
       {!streaming && (
-      <form
-        onSubmit={handleSend}
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-50"
-      >
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
         {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
-            테두리 줄 없이 그림자로만 띄웁니다. */}
-        <div className="mx-auto w-full max-w-3xl px-4 pb-5 pt-10 sm:px-8">
+            테두리 줄 없이 그림자로만 띄웁니다.
+            ⚠️ <form> 으로 감싸지 않습니다 — iOS 가 키보드 위에 자동완성
+               줄(암호·카드·연락처)을 얹습니다. lib/layout.ts 참고. */}
+        <div className="mx-auto w-full max-w-3xl px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleSend}
             placeholder="Shānti-에게 응답하기"
             aria-label="샨티에게 응답하기"
+            {...KEYBOARD_ONLY_INPUT_PROPS}
             className="pointer-events-auto h-14 w-full rounded-2xl bg-card px-5 font-script text-lg text-foreground shadow-raised outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-accent/40"
           />
         </div>
-      </form>
+      </div>
       )}
     </div>
   )

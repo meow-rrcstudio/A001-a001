@@ -117,7 +117,9 @@ export function CardReadingFlow({
   const [entered, setEntered] = useState(false)
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null)
   const [shuffleStyle, setShuffleStyle] = useState<string | null>(null)
-  const [bubbleHeight, setBubbleHeight] = useState(160)
+  // 말풍선이 지금까지 차지한 가장 큰 높이. 글이 짧아져도 자리를 도로
+  // 내주지 않아서, 말이 바뀔 때마다 무대가 들썩이는 일이 없습니다.
+  const [bubbleReservedHeight, setBubbleReservedHeight] = useState(96)
   // 모바일에서 손가락을 대고 있는(빼꼼 중인) 카드
   const [peekedIndex, setPeekedIndex] = useState<number | null>(null)
   // 하단 슬라이더 — 부채를 호를 따라 좌우로 "굴립니다". 카드를 고르는 게 아니라
@@ -311,8 +313,8 @@ export function CardReadingFlow({
   // │   펼칩니다. 화면 밖으로 나가는 부분은 잘립니다.
   // └───────────────────────────────────────────────────────────────
   const CARD_RATIO = 1.678 //      카드 세로/가로 비율
-  const FAN_CARD_HEIGHT = 240 //   부채 카드 높이 (고정) — 크기는 이 한 줄로 조절합니다
-  const FAN_CARD_WIDTH = Math.round(FAN_CARD_HEIGHT / CARD_RATIO) // 143
+  const FAN_CARD_HEIGHT_MAX = 240 // 큰 화면에서의 부채 카드 높이
+  const FAN_CARD_HEIGHT_MIN = 168 // 작은 화면에서도 이보다 작아지진 않습니다
   const BOARD_GAP = 20 //          보드 위아래 여백 (고정)
   const BOARD_HEIGHT_MAX = 300 //  보드 최대 높이
   const BOARD_HEIGHT_MIN = 140 //  이보다 좁아지지는 않습니다
@@ -325,6 +327,17 @@ export function CardReadingFlow({
   // 무대는 말풍선 아래부터 화면 맨 아래까지를 flex 로 받아갑니다.
   // 손잡이는 그 위에 떠 있으므로 무대 높이에 포함됩니다.
   const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageBoxHeight
+
+  // 부채 카드도 화면에 맞춰 줄어듭니다.
+  //
+  // 예전에는 240px 고정이었습니다. 큰 화면에선 맞지만 작은 화면에선 카드가
+  // 무대의 절반을 넘게 먹어 보드가 위로 밀려 붙고, 그 위 말풍선과 겹쳐
+  // "한 화면에 안 들어오는" 모양이 됐습니다. 무대 높이의 42% 안에서만
+  // 자라게 두면 어느 화면에서든 보드·부채·손잡이가 함께 들어갑니다.
+  const FAN_CARD_HEIGHT = Math.round(
+    Math.max(FAN_CARD_HEIGHT_MIN, Math.min(FAN_CARD_HEIGHT_MAX, stageHeight * 0.42))
+  )
+  const FAN_CARD_WIDTH = Math.round(FAN_CARD_HEIGHT / CARD_RATIO)
 
   // 보드만 반응형으로 줄어듭니다. 부채 카드는 고정이라 여기서 빼지 않습니다.
   const boardHeightSelect = Math.max(
@@ -441,10 +454,14 @@ export function CardReadingFlow({
     // 말풍선은 글의 흐름을 따라 상단에 놓입니다(고정 아님).
     // 아래 여백은 화면에 떠 있는 것 — 고르기의 슬라이더, 결과의 "해석 보기" 버튼 — 만큼만.
     <div
-      className="flex flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col"
       // 고르기 화면은 무대가 이미 화면 맨 아래까지 내려가 있어 비울 필요가 없습니다.
       style={{ paddingBottom: phase === "revealing" ? 88 : 0 }}
     >
+      {/* 말풍선은 위에 붙박이입니다 — 줄어들지도(shrink-0), 무대를 밀어내지도
+          않아야 합니다. 글자가 한 자씩 찍히는 동안 높이가 들썩이면 그때마다
+          무대가 다시 재어지고 부채 좌표가 튀어 화면이 깨져 보입니다. */}
+      <div className="shrink-0" style={{ minHeight: bubbleReservedHeight }}>
       <ReadingCharacterBubble
         placement="top"
         message={
@@ -463,12 +480,15 @@ export function CardReadingFlow({
             ? buildPrompt()
             : undefined
         }
-        onHeightChange={setBubbleHeight}
+        onHeightChange={(h) => setBubbleReservedHeight((prev) => (h > prev ? h : prev))}
       />
+      </div>
 
       {/* ── 섞기 단계: 화면 가득 흩어진 카드 더미 (셔플 시안) ── */}
       {isShuffling && (
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* 더미는 남는 자리를 그대로 받아갑니다. 예전엔 52dvh 고정이라
+              작은 화면에서 말풍선·버튼과 겹쳐 화면 밖으로 밀렸습니다. */}
           <motion.div
             onPan={handlePan}
             onMouseMove={handleMouseMove}
@@ -476,7 +496,7 @@ export function CardReadingFlow({
               lastMouseX.current = null
             }}
             onClick={handleShuffleClick}
-            className="relative mx-auto h-[52dvh] min-h-80 w-full max-w-md cursor-pointer touch-none"
+            className="relative mx-auto min-h-0 w-full max-w-md flex-1 cursor-pointer touch-none"
           >
             {shuffledDeck.map((card, i) => {
               const startLayout = getScatteredLayout(i)
