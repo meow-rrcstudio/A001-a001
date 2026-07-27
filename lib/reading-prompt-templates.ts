@@ -75,18 +75,26 @@ ${inputLines}`
  * system 은 요청마다 같은 주제면 글자 하나까지 동일해서 캐싱이 걸리고,
  * user 에만 이번에 뽑은 카드가 들어갑니다.
  *
+ * surface — 이 해석을 어디서 보여주는지. 맺음말(사이트로 돌아오라는 링크)이
+ *   붙을지 말지가 갈립니다.
+ *   · "prompt" (기본) 무료 흐름. 사용자가 복사해 외부 AI 에 붙여넣으므로
+ *                     돌아올 링크가 필요합니다.
+ *   · "inline"        사이트 안에서 읽어줄 때. 이미 사이트에 있으니 링크 없음.
+ *
  * ⚠️ 재미 리딩(readingStyle="variety_show")은 페르소나 자체가 다른 모드라
- *    지금은 통짜 프롬프트를 그대로 씁니다. prompt 필드로 돌려줍니다.
+ *    지금은 통짜 프롬프트를 그대로 씁니다.
  */
 export function buildReadingMessages({
   topicKey,
   question,
   cards,
+  surface = "prompt",
   character = ACTIVE_CHARACTER,
 }: {
   topicKey: ReadingTopicKey
   question: ReadingQuestion
   cards: { name: string; orientation: "정방향" | "역방향" }[]
+  surface?: "prompt" | "inline"
   character?: typeof ACTIVE_CHARACTER
 }): { system: string; user: string } {
   if (question.readingStyle === "variety_show") {
@@ -97,9 +105,14 @@ export function buildReadingMessages({
     }
   }
 
+  // 캐릭터 → (맺음말) → 주제 순서. 이 앞부분이 캐싱됩니다.
+  // 맺음말은 surface 마다 고정이라 앞쪽에 둬도 캐싱이 깨지지 않습니다.
+  const layers = [character.persona]
+  if (surface === "prompt") layers.push(character.outro)
+  layers.push(buildTopicLayer(topicKey))
+
   return {
-    // 캐릭터 → 주제 순서. 이 앞부분이 캐싱됩니다.
-    system: `${character.persona}\n\n${buildTopicLayer(topicKey)}`,
+    system: layers.join("\n\n"),
     user: buildReadingLayer({ question, cards }),
   }
 }

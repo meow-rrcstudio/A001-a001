@@ -10,6 +10,7 @@
 //   /api/reading/try-1859                     기본값(제미나이, 나 주제, 첫 질문)
 //   /api/reading/try-1859?ai=openai           GPT 로 (크레딧 충전 필요)
 //   /api/reading/try-1859?topic=love&q=1      주제·질문 바꾸기
+//   /api/reading/try-1859?surface=prompt      무료 복사용(맺음말 링크 포함)
 //   /api/reading/try-1859?raw=1               프롬프트만 보고 호출은 안 함(무료)
 import { NextResponse } from "next/server"
 import { allTarotCards } from "@/lib/tarot-cards"
@@ -44,6 +45,9 @@ export async function GET(request: Request) {
   const questionIndex = Number(params.get("q") ?? 0)
   // 기본은 제미나이 — 무료 한도가 있어 문체 확인에 부담이 없습니다.
   const provider = params.get("ai") === "openai" ? "openai" : "gemini"
+  // 기본은 사이트 안(inline) — 맺음말 링크 없음.
+  // ?surface=prompt 로 하면 무료 복사용(링크 포함)을 볼 수 있습니다.
+  const surface = params.get("surface") === "prompt" ? "prompt" : "inline"
 
   const topic = topicContent[topicKey]
   if (!topic) {
@@ -58,13 +62,14 @@ export async function GET(request: Request) {
   }
 
   const cards = drawCards(question.positions.length)
-  const { system, user } = buildReadingMessages({ topicKey, question, cards })
+  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface })
 
   const header =
     `주제   : ${topic.titleLabel} (${topicKey})\n` +
     `질문   : ${question.label}\n` +
     `카드   : ${cards.map((c) => `${c.name}(${c.orientation === "역방향" ? "역" : "정"})`).join(" · ")}\n` +
-    `모델   : ${provider === "openai" ? READING_MODEL : GEMINI_READING_MODEL} (${provider})\n`
+    `모델   : ${provider === "openai" ? READING_MODEL : GEMINI_READING_MODEL} (${provider})\n` +
+    `쓰임새 : ${surface === "inline" ? "사이트 안 — 맺음말 링크 없음" : "복사용 — 맺음말 링크 있음"}\n`
 
   // ?raw=1 — 호출 없이 프롬프트만 확인 (요금 안 나감)
   if (params.get("raw")) {
@@ -79,8 +84,8 @@ export async function GET(request: Request) {
   try {
     const result =
       provider === "openai"
-        ? await runReading({ topicKey, question, cards })
-        : await runReadingWithGemini({ topicKey, question, cards })
+        ? await runReading({ topicKey, question, cards, surface })
+        : await runReadingWithGemini({ topicKey, question, cards, surface })
     const seconds = ((Date.now() - startedAt) / 1000).toFixed(1)
     const { inputTokens, outputTokens, cachedInputTokens } = result.usage
 

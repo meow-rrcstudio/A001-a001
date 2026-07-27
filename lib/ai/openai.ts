@@ -40,10 +40,13 @@ export async function runReading({
   topicKey,
   question,
   cards,
+  surface = "inline",
 }: {
   topicKey: ReadingTopicKey
   question: ReadingQuestion
   cards: { name: string; orientation: "정방향" | "역방향" }[]
+  /** 사이트 안에서 읽어주므로 기본은 "inline" — 맺음말 링크가 붙지 않습니다. */
+  surface?: "prompt" | "inline"
 }): Promise<ReadingRunResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
@@ -53,7 +56,7 @@ export async function runReading({
   }
 
   const client = new OpenAI({ apiKey })
-  const { system, user } = buildReadingMessages({ topicKey, question, cards })
+  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface })
 
   const completion = await client.chat.completions.create({
     model: READING_MODEL,
