@@ -22,6 +22,12 @@ import { spreadLayouts } from "@/lib/spread-layouts"
 type Phase = "shuffling" | "selecting" | "revealing"
 
 const FAN_COUNT = 78 // 덱 크기와 동일 (섞기 더미의 z순서 계산용)
+
+// ── 섞기 화면의 카드 크기 ────────────────────────────────────────────
+// 화면 폭에 비례해 커지되 상한을 둡니다. 세 값을 함께 조절하세요.
+const SHUFFLE_CARD_WIDTH_START = "23vw" //  흩어져 들어올 때
+const SHUFFLE_CARD_WIDTH = "25vw" //        더미에 모였을 때
+const SHUFFLE_CARD_MAX_WIDTH = 101 //       큰 화면에서의 상한 (px)
 const SHUFFLE_TARGET_DISTANCE = 2400
 const SHUFFLE_STEPS = 4 // 최대 4번 섞으면 자동으로 다음 화면으로
 const MIN_STEPS_FOR_QUICK_DRAW = 1 // 1번만 섞어도 "고르러 가기" 가능
@@ -445,7 +451,6 @@ export function CardReadingFlow({
       {/* ── 섞기 단계: 화면 가득 흩어진 카드 더미 (셔플 시안) ── */}
       {isShuffling && (
         <div className="flex flex-1 flex-col">
-          <p className="mb-2 text-center text-base font-bold text-foreground">카드를 섞어주세요</p>
           <motion.div
             onPan={handlePan}
             onMouseMove={handleMouseMove}
@@ -466,7 +471,7 @@ export function CardReadingFlow({
                     top: startLayout.top,
                     left: startLayout.left,
                     rotate: startLayout.rotate,
-                    width: "38vw",
+                    width: SHUFFLE_CARD_WIDTH_START,
                     x: "-50%",
                     zIndex: 0,
                   }}
@@ -474,12 +479,12 @@ export function CardReadingFlow({
                     top: entered ? pileTarget.top : startLayout.top,
                     left: entered ? pileTarget.left : startLayout.left,
                     rotate: entered ? pileTarget.rotate : startLayout.rotate,
-                    width: "42vw",
+                    width: SHUFFLE_CARD_WIDTH,
                     x: "-50%",
                     zIndex: entered ? pileTarget.z : 0,
                   }}
                   transition={{ duration: 0.7, ease: "easeInOut" }}
-                  style={{ maxWidth: 168 }}
+                  style={{ maxWidth: SHUFFLE_CARD_MAX_WIDTH }}
                 >
                   <CardBack flipped={!entered} faceImageUrl={card.imageUrl} faceAlt={card.nameKo} />
                 </motion.div>
