@@ -64,22 +64,23 @@ const tocGroups: TocGroup[] = [
       { id: "brand", label: "2. 브랜드 크롬" },
       { id: "typography", label: "3. 타이포그래피" },
       { id: "radius", label: "4. 모서리 둥글기" },
+      { id: "elevation", label: "5. 그림자 · 선 · 유리면" },
     ],
   },
   {
     label: "컴포넌트",
     items: [
-      { id: "buttons", label: "5. 버튼 · 링크" },
-      { id: "menu", label: "6. 목록 행" },
-      { id: "settings", label: "7. 설정 행" },
-      { id: "home-cards", label: "8. 홈 카테고리" },
-      { id: "chips", label: "9. 필터 칩" },
-      { id: "prose", label: "10. 블로그 본문" },
-      { id: "chrome", label: "11. 헤더 · 푸터" },
-      { id: "board", label: "12. 카드 아카이브" },
-      { id: "cards", label: "13. 타로 카드" },
-      { id: "spreads", label: "14. 카드 스프레드" },
-      { id: "backgrounds", label: "15. 배경" },
+      { id: "buttons", label: "6. 버튼 · 링크" },
+      { id: "menu", label: "7. 목록 행" },
+      { id: "settings", label: "8. 설정 행" },
+      { id: "home-cards", label: "9. 홈 카테고리" },
+      { id: "chips", label: "10. 필터 칩" },
+      { id: "prose", label: "11. 블로그 본문" },
+      { id: "chrome", label: "12. 헤더 · 푸터" },
+      { id: "board", label: "13. 카드 아카이브" },
+      { id: "cards", label: "14. 타로 카드" },
+      { id: "spreads", label: "15. 카드 스프레드" },
+      { id: "backgrounds", label: "16. 배경" },
     ],
   },
 ]
@@ -288,11 +289,90 @@ export default function DesignSystemPage() {
             </div>
           </section>
 
+          {/* ── 5. 그림자 · 선 · 유리면 ───────────────── */}
+          <section id="elevation" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>5. 그림자 · 선 · 유리면</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              시안 이미지에서 그림자 가장자리와 구분선의 색을 한 줄씩 읽어 만든 값입니다. 여기
+              세 가지 말고는 새로 만들지 말고, 맞는 것을 골라 쓰세요.
+            </p>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ① 그림자 2단계 — <code className="font-mono">shadow-raised</code> ·{" "}
+              <code className="font-mono">shadow-overlay</code>
+            </p>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-border bg-muted p-6">
+                <div className="rounded-2xl bg-card px-4 py-6 text-center shadow-raised">
+                  <p className="text-sm text-foreground">raised</p>
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                    0 2px 8px rgba(0,0,0,.14)
+                  </p>
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  배경 위로 조금 떠 있는 것 — 샨티 말풍선, 라임 위 둥근 버튼, 제안 칩.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted p-6">
+                <div className="rounded-2xl bg-card px-4 py-6 text-center shadow-overlay">
+                  <p className="text-sm text-foreground">overlay</p>
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                    0 0 16px rgba(0,0,0,.36)
+                  </p>
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  다른 면을 덮고 있는 것 — 메뉴 서랍 위로 밀려난 페이지.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ② 선 2단계 — 시안의 구분선은 배경 대비 약 11% 잉크입니다. 예전 값(#ededed)은 그
+              절반이라 화면에서 선이 거의 사라져 보였습니다
+            </p>
+            <div className="mt-2 overflow-hidden rounded-xl border border-border bg-card">
+              <div className="px-5 py-4 text-sm text-foreground">border — 목록 구분선·카드 테두리</div>
+              <div className="border-t border-border px-5 py-4 text-sm text-foreground">
+                border — 같은 성격의 행이 이어질 때
+              </div>
+              <div className="border-t border-border-strong px-5 py-4 text-sm text-foreground">
+                border-strong — 구획이 바뀔 때
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ③ 유리면 — <code className="font-mono">bg-glass</code> +{" "}
+              <code className="font-mono">backdrop-blur-[var(--glass-blur)]</code>. 라임 스크림
+              위에 뜨는 둥근 버튼, 하단 손잡이 줄, 입력창 줄에 씁니다. 불투명하게 두면 뒤의
+              그라데이션이 그 자리에서 끊겨 보입니다
+            </p>
+            <div
+              className="mt-2 flex items-center justify-center gap-4 rounded-xl border border-border p-6"
+              style={{ backgroundImage: "var(--scrim)" }}
+            >
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-glass text-brand-ink shadow-raised backdrop-blur-[var(--glass-blur)]">
+                <Sparkle className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="rounded-full bg-background px-4 py-2.5 text-xs text-muted-foreground">
+                불투명 (비교용)
+              </span>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ④ 라임 스크림 — 고정 헤더 뒤에 깔려 글이 헤더를 지날 때 읽히게 해줍니다.
+              높이 <code className="font-mono">--scrim-height</code> (100px)
+            </p>
+            <div
+              className="mt-2 rounded-xl border border-border"
+              style={{ height: "var(--scrim-height)", backgroundImage: "var(--scrim)" }}
+            />
+          </section>
+
           <p className={groupLabelClass}>컴포넌트</p>
 
-          {/* ── 4. 버튼 & 링크 ────────────────────── */}
+          {/* ── 6. 버튼 & 링크 ────────────────────── */}
           <section id="buttons" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>5. 버튼 · 링크</h2>
+            <h2 className={h2Class}>6. 버튼 · 링크</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               모든 버튼은 components/ui/button.tsx 한 곳에서 정의됩니다. 페이지에서 직접
               className 으로 버튼을 만들지 말고 여기 variant 를 쓰세요.
@@ -334,7 +414,7 @@ export default function DesignSystemPage() {
 
           {/* ── 5. 메뉴 리스트 (홈 화면 스타일) ────── */}
           <section id="menu" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>6. 목록 행</h2>
+            <h2 className={h2Class}>7. 목록 행</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               번호 + 이름(+설명·꼬리표) + 화살표 한 줄. 메뉴 패널과 MY 메뉴가 같은 공용
               컴포넌트(components/ui/row-list.tsx)를 씁니다. 여기를 고치면 모든 목록이
@@ -376,7 +456,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 설정 행 ─────────────────────────── */}
           <section id="settings" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>7. 설정 행</h2>
+            <h2 className={h2Class}>8. 설정 행</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               설정 화면의 그룹과 행입니다 (components/ui/settings-list.tsx).
               목록 행(RowList)과 구분되는 이유는 성격이 달라서입니다 — 목록은
@@ -402,7 +482,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 홈 카테고리 ─────────────────────── */}
           <section id="home-cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>8. 홈 카테고리</h2>
+            <h2 className={h2Class}>9. 홈 카테고리</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               홈의 카드 6개와 아카이빙 배너입니다
               (components/home-category-card.tsx · home-archive-banner.tsx).
@@ -425,7 +505,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 필터 칩 ─────────────────────────── */}
           <section id="chips" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>9. 필터 칩</h2>
+            <h2 className={h2Class}>10. 필터 칩</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               목록을 좁혀 보는 알약 버튼 줄. 아카이브의 덱 필터가 이걸 씁니다
               (components/ui/filter-chips.tsx). 선택된 칩은 검정 채움,
@@ -438,7 +518,7 @@ export default function DesignSystemPage() {
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}
           <section id="prose" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>10. 블로그 본문</h2>
+            <h2 className={h2Class}>11. 블로그 본문</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               글 상세 페이지의 본문(.prose-blog) 스타일.
             </p>
@@ -454,7 +534,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 헤더 · 푸터 ─────────────────────── */}
           <section id="chrome" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>11. 헤더 · 푸터</h2>
+            <h2 className={h2Class}>12. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               헤더 4종 + 메뉴 서랍 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은
               리디자인 시안의 <strong className="font-semibold">라임 밴드</strong>입니다.
@@ -572,7 +652,7 @@ export default function DesignSystemPage() {
 
           {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
           <section id="board" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>12. 카드 아카이브 보드</h2>
+            <h2 className={h2Class}>13. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               /archive 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
               노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
@@ -609,7 +689,7 @@ export default function DesignSystemPage() {
 
           {/* ── 9. 타로 카드 ───────────────────────── */}
           <section id="cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>13. 타로 카드</h2>
+            <h2 className={h2Class}>14. 타로 카드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               앞면 · 뒷면 · 번호 슬롯 3종. (components/tarot-card.tsx)
             </p>
@@ -637,7 +717,7 @@ export default function DesignSystemPage() {
 
           {/* ── 10. 카드 스프레드 ──────────────────── */}
           <section id="spreads" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>14. 카드 스프레드</h2>
+            <h2 className={h2Class}>15. 카드 스프레드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Site design.pdf의 리딩 화면 배열 전체. 좌표의 원본은 lib/spread-layouts.ts
               하나뿐이라, 거기를 고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
@@ -683,7 +763,7 @@ export default function DesignSystemPage() {
 
           {/* ── 11. 배경 ───────────────────────────── */}
           <section id="backgrounds" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>15. 배경</h2>
+            <h2 className={h2Class}>16. 배경</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               푸터처럼 페이지 성격에 맞게 골라 쓰는 공용 배경입니다.
               (components/page-background.tsx) 현재: 홈·타로·리딩 = 오로라, 목록·본문 = 단색.

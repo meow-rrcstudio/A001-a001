@@ -139,7 +139,7 @@ export function CardDetailView({
 
       {/* 솔리드 헤더 (스크롤 완료 상태) — 뒤로 · 공유 · 목록 */}
       <div
-        className={`fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur transition-opacity duration-200 ${
+        className={`fixed inset-x-0 top-0 z-40 border-b border-border bg-glass backdrop-blur-[var(--glass-blur)] transition-opacity duration-200 ${
           scrolled ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >

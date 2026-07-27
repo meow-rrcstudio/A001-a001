@@ -673,7 +673,8 @@ export function CardReadingFlow({
       {/* 하단 슬라이더 — 부채를 호를 따라 굴립니다.
           카드를 고르는 건 카드 위를 눌러 좌우로 문지르는 동작입니다(초록 강조). */}
       {phase === "selecting" && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/95 px-6 py-4 backdrop-blur-sm sm:px-8">
+        /* 손잡이 줄 — 부채가 이 뒤로 이어지므로 반투명 유리면으로 둡니다 */
+        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-glass px-6 py-4 backdrop-blur-[var(--glass-blur)] sm:px-8">
           <input
             type="range"
             min={0}

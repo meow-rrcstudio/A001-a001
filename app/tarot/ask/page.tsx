@@ -142,7 +142,7 @@ export default function AskPage() {
                 key={q}
                 type="button"
                 onClick={() => submit(q)}
-                className="rounded-full bg-card px-4 py-2.5 text-left text-sm text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:bg-muted"
+                className="rounded-full bg-card px-4 py-2.5 text-left text-sm text-foreground shadow-raised transition-colors hover:bg-muted"
               >
                 {q}
               </button>

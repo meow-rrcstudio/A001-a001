@@ -97,7 +97,7 @@ export function ReadingCharacterBubble({
   // 상단 배치 — 시안의 리딩 화면. 흰 말풍선에 글만 들어갑니다.
   if (placement === "top") {
     return (
-      <div ref={bubbleRef} className="rounded-2xl bg-card px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <div ref={bubbleRef} className="rounded-2xl bg-card px-4 py-3.5 shadow-raised">
         <p className="min-h-[1.5em] text-[15px] leading-relaxed text-foreground">
           <TypewriterText text={message} />
         </p>
@@ -110,7 +110,7 @@ export function ReadingCharacterBubble({
       ref={bubbleRef}
       className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-3xl px-6 pb-6 transition-[height] duration-300 ease-out sm:px-8"
     >
-      <div className="rounded-[20px] border border-white bg-[rgba(250,249,245,0.7)] px-4 pb-4 pt-2 shadow-lg backdrop-blur-[7px]">
+      <div className="rounded-[20px] border border-white bg-glass px-4 pb-4 pt-2 shadow-raised backdrop-blur-[var(--glass-blur)]">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CharacterAvatar size={44} character={character} />

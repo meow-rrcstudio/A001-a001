@@ -36,8 +36,10 @@ import { Wordmark } from "@/components/brand-mark"
 // 값은 lib/layout.ts 에 있습니다 — 서버 컴포넌트도 읽어야 하기 때문입니다.
 // 여기서 다시 내보내면 서버 쪽에서 스텁이 잡히므로 다시 내보내지 않습니다.
 
+// 라임 스크림 위에 뜨는 둥근 버튼 — 반투명 유리면 + 아래로 살짝 지는 그림자.
+// 값은 globals.css 의 --glass / --elevation-raised 에서 옵니다.
 const roundButton =
-  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-brand-ink backdrop-blur-sm transition-colors hover:bg-background"
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-glass text-brand-ink shadow-raised backdrop-blur-[var(--glass-blur)] transition-colors hover:bg-background"
 
 export function PageHeader({
   backHref,
@@ -76,7 +78,8 @@ export function PageHeader({
       {isFixed && (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-x-0 top-0 z-40 h-24 bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent"
+          className="pointer-events-none fixed inset-x-0 top-0 z-40"
+          style={{ height: "var(--scrim-height)", backgroundImage: "var(--scrim)" }}
         />
       )}
 

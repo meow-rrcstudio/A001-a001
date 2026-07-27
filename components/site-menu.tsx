@@ -44,7 +44,7 @@ export function SiteMenuPreview() {
   return (
     <div className="flex justify-end bg-background">
       {/* 왼쪽 = 밀려난 페이지, 오른쪽 = 드러난 서랍 */}
-      <div className="flex-1 rounded-r-3xl bg-card shadow-[0_0_40px_rgba(0,0,0,0.18)]" />
+      <div className="flex-1 rounded-r-3xl bg-card shadow-overlay" />
       <nav aria-label="사이트 메뉴 견본" className="w-[78%] max-w-[300px] bg-muted px-6 pb-10 pt-6">
         <Wordmark className="h-9" />
         <ul className="mt-8 space-y-1">
@@ -98,7 +98,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
       shell.style.transform = `translateX(-${DRAWER_WIDTH})`
       shell.style.borderTopRightRadius = "24px"
       shell.style.borderBottomRightRadius = "24px"
-      shell.style.boxShadow = "0 0 40px rgba(0,0,0,0.18)"
+      shell.style.boxShadow = "var(--elevation-overlay)"
       shell.style.overflow = "hidden"
     }
 

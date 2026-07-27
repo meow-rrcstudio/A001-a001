@@ -224,7 +224,7 @@ export function ReadingResultView({
       {/* 입력창 — 화면 하단 고정 */}
       <form
         onSubmit={handleSend}
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-glass backdrop-blur-[var(--glass-blur)]"
       >
         <div className="mx-auto w-full max-w-3xl px-6 py-3 sm:px-8">
           <input
