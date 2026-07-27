@@ -9,7 +9,7 @@
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 사용자 말풍선 : bg-secondary(연라임) · 오른쪽 정렬
 // │ · 샨티 답변     : 말풍선 없이 본문 그대로 (시안과 동일)
-// │ · 답변 액션     : 복사 · 읽어주기 · 좋아요 · 공유
+// │ · 답변 액션     : 복사 · 좋아요 · 싫어요 · 새로고침
 // │ · 입력창        : 화면 하단 고정
 // └──────────────────────────────────────────────────────────────────
 "use client"
@@ -25,6 +25,7 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
+import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import {
   consumeCredit,
   getEntitlement,
@@ -431,14 +432,14 @@ export function ReadingResultView({
                   onClick={spendAnotherCredit}
                   className="mt-3 w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
-                  크레딧 한 장 더 쓰고 이어서 묻기 (남은 {credits}장)
+                  {CREDIT_UNIT.one} 한 {CREDIT_UNIT.counter} 더 쓰고 이어서 묻기 (남은 {countCredits(credits)})
                 </button>
               ) : (
                 <Link
                   href="/my/settings"
                   className="mt-3 block rounded-full bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
-                  크레딧 사러 가기
+                  {CREDIT_UNIT.one} 사러 가기
                 </Link>
               )}
             </div>

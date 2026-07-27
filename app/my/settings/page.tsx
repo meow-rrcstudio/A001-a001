@@ -11,6 +11,7 @@ import { LogIn, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
+import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { SettingsGroup, type SettingsItem } from "@/components/ui/settings-list"
@@ -57,14 +58,15 @@ export default function SettingsPage() {
   const accountItems: SettingsItem[] = [
     { label: "프로필", href: "#" },
     {
-      // 건별(크레딧)이라 "플랜"이 없습니다. 남은 장수를 그대로 보여줍니다.
-      label: "크레딧",
+      // 건별이라 "플랜"이 없습니다. 남은 장수를 그대로 보여줍니다.
+      // 부르는 말은 lib/credit-packs.ts 한 곳에서 옵니다.
+      label: CREDIT_UNIT.one,
       href: "#",
-      value: `${entitlement.credits}장 남음`,
+      value: `${countCredits(entitlement.credits)} 남음`,
       accent:
         entitlement.credits > 0
-          ? { label: "크레딧 더 사기", href: "#" }
-          : { label: "크레딧 사러 가기", href: "#" },
+          ? { label: `${CREDIT_UNIT.one} 더 사기`, href: "#" }
+          : { label: `${CREDIT_UNIT.one} 사러 가기`, href: "#" },
     },
     { label: "알림", href: "#" },
     { label: "개인정보", href: "/privacy" },
