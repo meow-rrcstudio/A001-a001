@@ -7,9 +7,8 @@
 // │ 3) result — 사이트 안에서 해석 보기 + 이어서 대화하기
 // └──────────────────────────────────────────────────────────────────
 //
-// ⚠️ 해석과 답변은 아직 AI 에 연결되어 있지 않습니다.
-//    lib/mock-reading.ts 의 임시 데이터를 쓰고 있으며,
-//    연동할 때 그 파일의 두 함수만 실제 호출로 바꾸면 됩니다.
+// 해석은 /api/reading 이 흘려보내 주고, 도착하는 대로 화면에 채워집니다.
+// ⚠️ 이어지는 대화(답변)는 아직 lib/mock-reading.ts 의 임시 함수입니다.
 "use client"
 
 import { useEffect, useState } from "react"
@@ -20,25 +19,11 @@ import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { SUGGESTED_QUESTIONS, buildMockReading, type ReadingResult } from "@/lib/mock-reading"
-import type { ReadingQuestion } from "@/lib/reading-content"
+import { SUGGESTED_QUESTIONS } from "@/lib/mock-reading"
+import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { useReadingStream } from "@/lib/use-reading-stream"
 import { canUseInsiteReading, consumeTrial, getEntitlement } from "@/lib/reading-entitlement"
 import { appendTurn, saveReading } from "@/lib/reading-archive"
-
-// 자유 질문용 스프레드 — 시안의 6장 십자 배열
-const FREE_QUESTION: ReadingQuestion = {
-  slug: "free",
-  label: "자유 질문",
-  layoutKey: "six-cross",
-  positions: [
-    { label: "지나온 흐름", guide: "지나온 흐름을 떠올리며 골라보라냥" },
-    { label: "지금 마음", guide: "지금 네 마음을 떠올리며 골라보라냥" },
-    { label: "상대의 마음", guide: "상대의 마음을 떠올리며 골라보라냥" },
-    { label: "가로막는 것", guide: "가로막는 것을 떠올리며 골라보라냥" },
-    { label: "다가올 흐름", guide: "다가올 흐름을 떠올리며 골라보라냥" },
-    { label: "조언", guide: "지금 필요한 조언을 떠올리며 골라보라냥" },
-  ],
-}
 
 type Step = "ask" | "draw" | "result"
 
@@ -47,8 +32,9 @@ export default function AskPage() {
   const [allowed, setAllowed] = useState(false)
   const [step, setStep] = useState<Step>("ask")
   const [question, setQuestion] = useState("")
-  const [result, setResult] = useState<ReadingResult | null>(null)
   const [cards, setCards] = useState<PickedCard[]>([])
+  // 해석은 흘려받습니다 — 제목부터 차례로 화면에 채워집니다.
+  const { reading, streaming, error, run } = useReadingStream()
   // 보관된 타로점 id — 이어서 나눈 대화를 여기에 계속 쌓습니다
   const [readingId, setReadingId] = useState<string | null>(null)
 
@@ -86,17 +72,24 @@ export default function AskPage() {
             mode="inline"
             topicLabel={question}
             topicSlug="self"
-            question={FREE_QUESTION}
+            question={buildFreeQuestion(question)}
             introMessage={`"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
-            onComplete={(picked) => {
-              const built = buildMockReading(question, picked)
+            onComplete={async (picked) => {
               setCards(picked)
-              setResult(built)
-              // 여기서 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
-              setReadingId(
-                saveReading({ question, topicLabel: question, cards: picked, result: built })
-              )
               setStep("result")
+              // 결과 화면으로 먼저 넘어간 뒤 해석을 받습니다 (빈 화면 대기 없이)
+              const built = await run({
+                topicKey: "self",
+                questionSlug: FREE_QUESTION_SLUG,
+                questionLabel: question,
+                cards: picked,
+              })
+              // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
+              if (built) {
+                setReadingId(
+                  saveReading({ question, topicLabel: question, cards: picked, result: built })
+                )
+              }
             }}
           />
         </main>
@@ -105,16 +98,17 @@ export default function AskPage() {
   }
 
   // ── 3) 해석 + 대화 ────────────────────────────────────────────
-  if (step === "result" && result) {
+  if (step === "result") {
     return (
       <ReadingResultView
         question={question}
-        result={result}
+        result={reading ?? {}}
         cards={cards}
+        streaming={streaming}
+        error={error}
         onTurn={(turn) => readingId && appendTurn(readingId, turn)}
         onRestart={() => {
           setQuestion("")
-          setResult(null)
           setCards([])
           setReadingId(null)
           setStep("ask")

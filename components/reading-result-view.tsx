@@ -77,6 +77,21 @@ function AnswerActions({ text }: { text: string }) {
   )
 }
 
+/** 아직 글이 오는 중임을 보여주는 깜빡이는 커서 */
+function Cursor() {
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[0.15em] animate-pulse bg-foreground/60"
+    />
+  )
+}
+
+/** 아직 아무것도 안 왔을 때 자리를 잡아두는 회색 막대 */
+function Skeleton({ className = "" }: { className?: string }) {
+  return <span className={`block animate-pulse rounded bg-muted ${className}`} />
+}
+
 export type PickedCard = { name: string; reversed: boolean; imageUrl: string }
 
 /** 뽑은 카드 미니 배열 — 시안에서 해석 제목 위에 놓이는 작은 스프레드 */
@@ -108,14 +123,21 @@ export function ReadingResultView({
   question,
   result,
   cards = [],
+  streaming = false,
+  error = null,
   backHref = "/tarot/ask",
   initialTurns = [],
   onTurn,
   onRestart,
 }: {
   question: string
-  result: ReadingResult
+  /** 아직 만들어지는 중이면 조각이 비어 있을 수 있습니다 */
+  result: Partial<ReadingResult>
   cards?: PickedCard[]
+  /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
+  streaming?: boolean
+  /** 해석을 못 받았을 때의 사유 */
+  error?: string | null
   /** 뒤로가기가 갈 곳. 기록에서 다시 열었을 때는 /my 로 돌아갑니다 */
   backHref?: string
   /** 예전에 나눈 대화 — 기록에서 다시 열면 그때 대화가 그대로 이어집니다 */
@@ -161,36 +183,65 @@ export function ReadingResultView({
         <article className="mt-6">
           <MiniSpread cards={cards} />
 
-          <h1 className="mt-4 text-xl font-bold leading-snug tracking-tight text-foreground">
-            {result.title}
-          </h1>
+          {error && (
+            <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
+              <p className="text-[15px] text-foreground">
+                흐음... 카드를 읽다가 막혔구먼. 잠시 뒤에 다시 청해보라냥.
+              </p>
+              <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{error}</p>
+            </div>
+          )}
 
-          <p className="mt-4 text-[15px] leading-relaxed text-foreground/90">{result.summary}</p>
+          {result.title ? (
+            <h1 className="mt-4 text-xl font-bold leading-snug tracking-tight text-foreground">
+              {result.title}
+              {streaming && !result.summary && <Cursor />}
+            </h1>
+          ) : (
+            streaming && <Skeleton className="mt-4 h-6 w-3/4" />
+          )}
 
-          <h2 className="mt-6 text-base font-semibold text-foreground">핵심 키워드</h2>
-          <ul className="mt-2 space-y-1">
-            {result.keywords.map((k) => (
-              <li key={k} className="flex gap-2 text-[15px] text-foreground/90">
-                <span aria-hidden="true" className="text-muted-foreground">
-                  ·
-                </span>
-                {k}
-              </li>
-            ))}
-          </ul>
+          {result.summary && (
+            <p className="mt-4 text-[15px] leading-relaxed text-foreground/90">
+              {result.summary}
+              {streaming && !result.keywords?.length && <Cursor />}
+            </p>
+          )}
 
-          {result.sections.map((s) => (
-            <section key={s.heading} className="mt-6">
+          {!!result.keywords?.length && (
+            <>
+              <h2 className="mt-6 text-base font-semibold text-foreground">핵심 키워드</h2>
+              <ul className="mt-2 space-y-1">
+                {result.keywords.map((k, i) => (
+                  <li key={`${k}-${i}`} className="flex gap-2 text-[15px] text-foreground/90">
+                    <span aria-hidden="true" className="text-muted-foreground">
+                      ·
+                    </span>
+                    {k}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {result.sections?.map((s, i) => (
+            <section key={`${s.heading}-${i}`} className="mt-6">
               <h2 className="text-base font-semibold text-foreground">{s.heading}</h2>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-foreground/90">{s.body}</p>
+              <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+                {s.body}
+                {streaming && i === (result.sections?.length ?? 0) - 1 && <Cursor />}
+              </p>
             </section>
           ))}
 
-          <AnswerActions
-            text={`${result.title}\n\n${result.summary}\n\n${result.sections
-              .map((s) => `${s.heading}\n${s.body}`)
-              .join("\n\n")}`}
-          />
+          {/* 다 받은 뒤에만 — 반쪽짜리 글을 복사하지 않도록 */}
+          {!streaming && result.title && (
+            <AnswerActions
+              text={`${result.title}\n\n${result.summary ?? ""}\n\n${(result.sections ?? [])
+                .map((s) => `${s.heading}\n${s.body}`)
+                .join("\n\n")}`}
+            />
+          )}
         </article>
 
         {/* 이어지는 대화 */}
@@ -221,7 +272,8 @@ export function ReadingResultView({
         )}
       </main>
 
-      {/* 입력창 — 화면 하단 고정 */}
+      {/* 입력창 — 해석을 다 받은 뒤에만 (읽는 중엔 물어볼 수 없습니다) */}
+      {!streaming && (
       <form
         onSubmit={handleSend}
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-glass backdrop-blur-[var(--glass-blur)]"
@@ -236,6 +288,7 @@ export function ReadingResultView({
           />
         </div>
       </form>
+      )}
     </div>
   )
 }

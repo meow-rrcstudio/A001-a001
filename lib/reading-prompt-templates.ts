@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------------
 import { ACTIVE_CHARACTER } from "@/lib/character"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
+import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
 
 // 하위 호환: 기존 코드가 쓰던 이름을 유지하되, 실체는 reading-topics의 슬러그 타입입니다.
@@ -108,7 +109,8 @@ export function buildReadingMessages({
   // 캐릭터 → (맺음말) → 주제 순서. 이 앞부분이 캐싱됩니다.
   // 맺음말은 surface 마다 고정이라 앞쪽에 둬도 캐싱이 깨지지 않습니다.
   const layers = [character.persona]
-  if (surface === "prompt") layers.push(character.outro)
+  // 복사용은 맺음말(사이트 링크), 사이트 안은 JSON 출력 형식을 덧붙입니다.
+  layers.push(surface === "prompt" ? character.outro : READING_JSON_INSTRUCTION)
   layers.push(buildTopicLayer(topicKey))
 
   return {
