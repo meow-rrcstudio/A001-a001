@@ -454,7 +454,11 @@ export function CardReadingFlow({
     // 말풍선은 글의 흐름을 따라 상단에 놓입니다(고정 아님).
     // 아래 여백은 화면에 떠 있는 것 — 고르기의 슬라이더, 결과의 "해석 보기" 버튼 — 만큼만.
     <div
-      className="flex min-h-0 flex-1 flex-col"
+      // 섞기·고르기는 딱 한 화면이라 스크롤이 없습니다. 다 뒤집고 난 화면만
+      // 스크롤됩니다 — 무료 흐름은 여기에 긴 프롬프트가 붙기 때문입니다.
+      className={`flex min-h-0 flex-1 flex-col ${
+        phase === "revealing" ? "overflow-y-auto" : ""
+      }`}
       // 고르기 화면은 무대가 이미 화면 맨 아래까지 내려가 있어 비울 필요가 없습니다.
       style={{ paddingBottom: phase === "revealing" ? 88 : 0 }}
     >

@@ -95,12 +95,47 @@ export function ReadingCharacterBubble({
   }
 
   // 상단 배치 — 시안의 리딩 화면. 흰 말풍선에 글만 들어갑니다.
+  //
+  // ⚠️ promptText 를 빠뜨리지 마세요. 무료 흐름은 카드를 다 뒤집고 나면
+  //    여기에 뜨는 프롬프트를 복사해서 외부 AI 에 붙여넣는 것이 전부입니다.
+  //    이 블록이 없으면 무료 사용자는 아무것도 할 수 없습니다.
   if (placement === "top") {
     return (
       <div ref={bubbleRef} className="rounded-2xl bg-card px-4 py-3.5 shadow-raised">
-        <p className="min-h-[1.5em] text-[15px] leading-relaxed text-foreground">
-          <TypewriterText text={message} />
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-h-[1.5em] flex-1 text-[15px] leading-relaxed text-foreground">
+            <TypewriterText text={message} />
+          </p>
+          {promptText && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label="프롬프트 복사"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={copied ? "복사되었습니다!" : "프롬프트를 클립보드에 복사"}
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
+
+        {promptText && (
+          <>
+            {/* 클립보드가 막힌 환경(iOS 사파리 등)에서는 여기를 길게 눌러
+                직접 선택해 복사합니다. 그래서 글이 다 보여야 합니다. */}
+            <div className="mt-3 max-h-56 select-all overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed text-muted-foreground">
+              {promptText}
+            </div>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "복사했어냥!" : "프롬프트 복사하기"}
+            </button>
+          </>
+        )}
       </div>
     )
   }
