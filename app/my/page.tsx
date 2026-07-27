@@ -20,6 +20,10 @@ import { useAccount } from "@/lib/use-account"
 export default function MyPage() {
   const { account: entitlement, ready } = useAccount()
 
+  // 이름이 없으면 이메일 앞부분으로, 그것도 없으면 그냥 "반가워요"
+  const displayName =
+    entitlement.displayName ?? entitlement.email?.split("@")[0] ?? null
+
   if (!ready) return <div className="min-h-screen bg-background" />
 
   // ── 비로그인 ─────────────────────────────────────────────────────
@@ -50,7 +54,7 @@ export default function MyPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <PageHeader backHref="/" />
       <main className={`mx-auto w-full max-w-md flex-1 ${HEADER_SPACE}`}>
-        <ReadingHistory userName="꼼마님" />
+        <ReadingHistory userName={displayName} />
 
         <div className="px-6 py-8">
           <Button

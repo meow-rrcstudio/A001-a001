@@ -1,13 +1,13 @@
 // components/reading-history.tsx
 // 마이 히스토리 — 월 단위로 내 리딩 기록을 돌아보는 화면입니다.
 //
-// ⚠️ 기록을 저장하는 곳이 아직 없어서 lib/mock-reading-history.ts 의
-//    임시 데이터를 씁니다. 연동 시 getHistory() 만 실제 조회로 바꾸면 됩니다.
+// 기록은 서버에서 옵니다 (lib/reading-history.ts → /api/readings).
+// 연결 전이거나 비로그인이면 브라우저 보관함을 봅니다.
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 월 이동 줄 : 위아래 검정 선 (border-y border-foreground)
 // │ · 날짜 숫자  : 왼쪽 고정 폭 w-10, 첫 기록에만 표시
-// │ · 주제 이름  : font-myeongjo text-xl font-bold (홈 카드와 같은 명조)
+// │ · 질문 제목  : font-myeongjo text-xl font-bold (홈 카드와 같은 명조)
 // │ · 카드 썸네일: h-14 w-9, 이미지가 없으면 회색 자리로 그립니다
 // └──────────────────────────────────────────────────────────────────
 "use client"
@@ -15,9 +15,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { getHistory, type HistoryDay } from "@/lib/mock-reading-history"
+import { getHistory, type HistoryDay } from "@/lib/reading-history"
 
-export function ReadingHistory({ userName }: { userName: string }) {
+export function ReadingHistory({ userName }: { userName?: string | null }) {
   // 보고 있는 달 (1일로 고정해두고 달만 옮깁니다)
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
@@ -29,8 +29,17 @@ export function ReadingHistory({ userName }: { userName: string }) {
   const [days, setDays] = useState<HistoryDay[]>([])
   const [ready, setReady] = useState(false)
   useEffect(() => {
-    setDays(getHistory(cursor.getFullYear(), cursor.getMonth()))
-    setReady(true)
+    let alive = true
+    setReady(false)
+    void getHistory(cursor.getFullYear(), cursor.getMonth()).then((list) => {
+      // 달을 빠르게 넘기면 늦게 온 응답이 화면을 덮을 수 있습니다
+      if (!alive) return
+      setDays(list)
+      setReady(true)
+    })
+    return () => {
+      alive = false
+    }
   }, [cursor])
 
   function moveMonth(delta: number) {
@@ -40,7 +49,7 @@ export function ReadingHistory({ userName }: { userName: string }) {
   return (
     <>
       <h1 className="px-6 pb-5 pt-2 font-myeongjo text-2xl font-bold text-foreground">
-        안녕, {userName}
+        {userName ? `안녕, ${userName}님` : "안녕"}
       </h1>
 
       {/* 월 이동 */}

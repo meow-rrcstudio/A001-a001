@@ -51,25 +51,35 @@ export async function GET() {
     { onConflict: "id", ignoreDuplicates: true }
   )
 
-  // 가입 선물 — 아직 안 받았으면 지금 한 번.
+  // 가입 선물 — 크레딧을 먼저 넣고, 그다음에 표시를 남깁니다.
   //
-  // 표시를 먼저 남기고 크레딧을 넣습니다. 순서를 반대로 하면 사이에
-  // 요청이 하나 더 들어왔을 때 두 번 받아갈 수 있습니다. is("welcomed_at",
-  // null) 조건이 붙어 있어 먼저 도착한 요청 하나만 통과합니다.
-  const { data: claimed } = await admin
-    .from("profiles")
-    .update({ welcomed_at: new Date().toISOString() })
-    .eq("id", user.id)
-    .is("welcomed_at", null)
-    .select("id")
-
-  if (claimed?.length) {
-    await admin.from("credit_entries").insert({
+  // ⚠️ 순서가 중요합니다. 예전에는 표시를 먼저 남기고 크레딧을 넣었는데,
+  //    크레딧 넣기가 실패하면 표시만 남아서 그 사람은 영영 못 받았습니다.
+  //    되돌릴 방법도 없었고요.
+  //
+  //    두 번 받아가는 걸 막는 건 표시가 아니라 idempotency_key 입니다.
+  //    같은 열쇠로는 한 줄만 들어가므로, 몇 번을 불러도 한 번만 받습니다.
+  //    그래서 매번 시도해도 안전하고, 예전에 표시만 남은 계정도 여기서
+  //    저절로 복구됩니다.
+  const { error: grantError } = await admin.from("credit_entries").upsert(
+    {
       user_id: user.id,
       delta: WELCOME_CREDITS,
       reason: "welcome",
       idempotency_key: `welcome:${user.id}`,
-    })
+    },
+    { onConflict: "idempotency_key", ignoreDuplicates: true }
+  )
+
+  if (grantError) {
+    // 조용히 넘어가면 "가입했는데 크레딧이 없는" 상태가 됩니다.
+    console.error("[account] 가입 크레딧을 못 넣었습니다:", grantError.message)
+  } else {
+    await admin
+      .from("profiles")
+      .update({ welcomed_at: new Date().toISOString() })
+      .eq("id", user.id)
+      .is("welcomed_at", null)
   }
 
   // 잔액은 admin 으로 읽습니다. 위에서 이미 "이 요청이 누구인지" 확인했고

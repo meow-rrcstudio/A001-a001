@@ -12,17 +12,31 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingResultView } from "@/components/reading-result-view"
 import { Button } from "@/components/ui/button"
 import { appendTurn, getReading, replaceTurns, type SavedReading } from "@/lib/reading-archive"
-import { sampleReading } from "@/lib/mock-reading-history"
 
 export default function SavedReadingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [reading, setReading] = useState<SavedReading | null>(null)
   const [ready, setReady] = useState(false)
 
-  // 보관함은 브라우저에 있어서 화면이 뜬 뒤에 읽습니다
+  // 서버에 있으면 서버 것을, 없으면 브라우저 보관함을 봅니다.
+  // (연결 전에 본 타로점은 아직 브라우저에만 있습니다)
   useEffect(() => {
-    setReading(getReading(id) ?? (sampleReading(id) as SavedReading | null))
-    setReady(true)
+    let alive = true
+    void (async () => {
+      try {
+        const response = await fetch(`/api/readings/${id}`, { cache: "no-store" })
+        const data = (await response.json()) as { reading: SavedReading | null }
+        if (!alive) return
+        setReading(data.reading ?? getReading(id))
+      } catch {
+        if (alive) setReading(getReading(id))
+      } finally {
+        if (alive) setReady(true)
+      }
+    })()
+    return () => {
+      alive = false
+    }
   }, [id])
 
   if (!ready) return <div className="min-h-screen bg-background" />
