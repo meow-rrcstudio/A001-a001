@@ -204,6 +204,11 @@ async function withTimeout<T>(promise: Promise<T>): Promise<T | "timeout"> {
 
 /** Supabase 가 영어로 주는 사유를 사람 말로 */
 function translate(raw: string): string {
+  // "after 57 seconds" 처럼 기다릴 시간을 알려줄 때가 있습니다.
+  // "잠시 뒤"보다 "57초 뒤"가 훨씬 낫습니다 — 얼마나 기다릴지 알 수 있으니까요.
+  const wait = raw.match(/after (\d+) seconds?/i)
+  if (wait) return `${wait[1]}초 뒤에 다시 시도해 주세요.`
+
   const map: [RegExp, string][] = [
     [/invalid login credentials/i, "이메일이나 비밀번호가 맞지 않아요."],
     [/user already registered|already been registered/i, "이미 가입된 이메일이에요. 로그인해 주세요."],
