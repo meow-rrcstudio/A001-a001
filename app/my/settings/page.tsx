@@ -70,7 +70,7 @@ export default function SettingsPage() {
         <h1 className="pb-4 pt-2 font-myeongjo text-2xl font-bold text-foreground">설정</h1>
 
         <p className="rounded-xl bg-muted px-5 py-4 text-base font-semibold text-foreground">
-          {entitlement.email ?? "이메일 없음"}
+          {entitlement.email ?? entitlement.displayName ?? "로그인됨"}
         </p>
 
         <SettingsGroup label="계정" items={accountItems} />

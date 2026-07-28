@@ -3,8 +3,14 @@
 //
 // 시안의 세 가지를 그대로 둡니다. 국내 서비스라 카카오가 맨 위입니다.
 //
-// ⚠️ 카카오는 버튼 모양에 브랜드 규정이 있습니다(노란 바탕 #FEE500 + 지정
-//    로고). 지금은 시안대로 검정 버튼이니, 카카오 심사 전에 확인이 필요합니다.
+// 카카오 버튼만 시안(검정 알약)에서 벗어나 노란색입니다.
+// 카카오가 로그인 버튼 색을 #FEE500 으로 규정하고 있어서, 검정으로 두면
+// 심사에서 걸릴 수 있습니다. 대신 알약 모양·높이는 시안 그대로라 나머지
+// 버튼들과 나란히 놓입니다.
+//
+// TODO(카카오): 공식 심볼(말풍선)을 /public/kakao-symbol.svg 로 받아
+//   넣고 아래 버튼 안에 <Image> 로 얹으세요. 로고를 비슷하게 그려 넣는
+//   것은 상표라 하면 안 됩니다 — 지금은 글자만 있습니다.
 "use client"
 
 import { useState } from "react"
@@ -159,15 +165,15 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
 
   return (
     <div className="space-y-3">
-      <Button
-        variant="solid"
-        size="pill"
-        className="w-full"
+      {/* 카카오 규정색 #FEE500 · 글자는 85% 검정 (카카오 가이드) */}
+      <button
+        type="button"
         disabled={busy}
         onClick={() => signInWith("kakao")}
+        className="flex h-12 w-full items-center justify-center rounded-full bg-[#FEE500] text-[15px] font-semibold text-black/85 transition-opacity hover:opacity-90 disabled:opacity-60"
       >
         카카오로 계속하기
-      </Button>
+      </button>
       <Button
         variant="solid"
         size="pill"

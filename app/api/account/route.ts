@@ -13,6 +13,22 @@ import { WELCOME_CREDITS } from "@/lib/credit-rules"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * 로그인 공급자가 주는 이름을 찾습니다.
+ *
+ * 공급자마다 담는 자리가 다릅니다 — 구글은 name/full_name, 카카오는
+ * 닉네임이 preferred_username 이나 user_name 으로 오기도 합니다.
+ * 하나만 보면 "이름 없는 사람"이 자꾸 생깁니다.
+ */
+function nameOf(user: { user_metadata?: Record<string, unknown> }): string | null {
+  const meta = user.user_metadata ?? {}
+  for (const key of ["name", "full_name", "preferred_username", "user_name", "nickname"]) {
+    const value = meta[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+  }
+  return null
+}
+
 export interface AccountInfo {
   isLoggedIn: boolean
   credits: number
@@ -40,16 +56,22 @@ export async function GET() {
   //    가입 트리거가 못 돌았거나, 트리거를 만들기 전에 가입한 사람이
   //    그렇습니다. 여기서 먼저 만들어 두고 시작합니다.
   await admin.from("profiles").upsert(
-    {
-      id: user.id,
-      email: user.email ?? null,
-      display_name:
-        (user.user_metadata?.name as string | undefined) ??
-        (user.user_metadata?.full_name as string | undefined) ??
-        null,
-    },
+    { id: user.id, email: user.email ?? null, display_name: nameOf(user) },
     { onConflict: "id", ignoreDuplicates: true }
   )
+
+  // 이름이 비어 있으면 채워 넣습니다.
+  // 카카오는 계정마다 주는 항목이 달라서(닉네임만 오기도 하고 이메일이
+  // 아예 안 오기도 합니다) 처음 만들 때 비었던 자리가 나중에 채워질 수
+  // 있습니다. 이미 있는 이름은 건드리지 않습니다.
+  const fallbackName = nameOf(user)
+  if (fallbackName) {
+    await admin
+      .from("profiles")
+      .update({ display_name: fallbackName })
+      .eq("id", user.id)
+      .is("display_name", null)
+  }
 
   // 가입 선물 — 크레딧을 먼저 넣고, 그다음에 표시를 남깁니다.
   //
