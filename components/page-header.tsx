@@ -50,6 +50,15 @@ export function PageHeader({
   variant = "sub",
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
+  /**
+   * 헤더 뒤에 라임 스크림을 깔지.
+   *
+   * 스크림은 "크림색 본문이 헤더 밑을 지날 때도 버튼이 읽히게" 하려고
+   * 있는 것입니다. 그래서 배경이 이미 라임인 화면(로그인처럼)에서는
+   * 깔면 안 됩니다 — 라임 위에 연라임 띠가 얹혀 위쪽에만 이상한
+   * 그라데이션 자국이 생깁니다. 홈이 스크림을 안 까는 이유도 같습니다.
+   */
+  scrim,
   className = "",
 }: {
   backHref?: string
@@ -58,10 +67,13 @@ export function PageHeader({
   title?: string
   variant?: "sub" | "reading" | "home" | "minimal"
   fixed?: boolean
+  scrim?: boolean
   className?: string
 }) {
   // 홈은 고정하지 않는 것이 기본입니다 (시안 기준)
   const isFixed = fixed ?? variant !== "home"
+  // 떠 있지 않으면 스크림도 쓸 데가 없습니다 (본문이 헤더 밑을 지나지 않으니까요)
+  const showScrim = isFixed && (scrim ?? true)
   const [menuOpen, setMenuOpen] = useState(false)
 
   async function handleShare() {
@@ -80,7 +92,7 @@ export function PageHeader({
     <>
       {/* 라임 스크림 — 헤더 뒤에 깔려 위에서 아래로 투명해집니다.
           화면 폭에 정확히 맞추려고 fixed + inset-x-0 을 씁니다. */}
-      {isFixed && (
+      {showScrim && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-x-0 top-0 z-40"

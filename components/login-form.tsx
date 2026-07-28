@@ -38,6 +38,27 @@ type Mode = "buttons" | "email"
  */
 const KAKAO_SCOPES = "profile_nickname"
 
+/**
+ * 어떤 로그인 방식을 보여줄지.
+ *
+ * 카카오·구글은 바깥 설정(카카오 콘솔·Google Cloud)이 맞아야만 동작합니다.
+ * 설정이 어긋난 채로 버튼을 남겨두면, 누른 사람은 우리 화면이 아니라
+ * 카카오·구글의 오류 화면을 만나고 "이 사이트 고장났네"로 읽습니다.
+ * 그래서 고쳐질 때까지는 아예 감춥니다 — 눌러서 실패하는 버튼보다
+ * 없는 버튼이 낫습니다.
+ *
+ * ⚠️ 코드를 고치지 않고 Vercel 환경변수만으로 다시 켤 수 있습니다.
+ *    NEXT_PUBLIC_LOGIN_KAKAO=on   ·   NEXT_PUBLIC_LOGIN_GOOGLE=on
+ *    (환경변수는 빌드에 박히므로 값을 바꾼 뒤 재배포해야 합니다)
+ *
+ * 지금 상태:
+ *   카카오 — 동의항목(KOE205) 고친 것을 확인하면 켭니다
+ *   구글   — Supabase 에 들어간 클라이언트 ID 가 구글에 없습니다
+ *            (401 invalid_client). ID 를 바로잡아야 켤 수 있습니다
+ */
+const SHOW_KAKAO = process.env.NEXT_PUBLIC_LOGIN_KAKAO === "on"
+const SHOW_GOOGLE = process.env.NEXT_PUBLIC_LOGIN_GOOGLE === "on"
+
 export function LoginForm({ next = "/my" }: { next?: string }) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("buttons")
@@ -188,20 +209,27 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
     )
   }
 
+  // 이메일만 남으면 그게 유일한 길이라 보조가 아닙니다 — 검정으로 올립니다
+  const emailBtn = SHOW_KAKAO || SHOW_GOOGLE ? softBtn : solidBtn
+
   return (
     <div className="space-y-3">
-      <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>
-        <KakaoMark />
-        카카오로 계속하기
-      </button>
+      {SHOW_KAKAO && (
+        <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>
+          <KakaoMark />
+          카카오로 계속하기
+        </button>
+      )}
 
-      <button type="button" disabled={busy} onClick={() => signInWith("google")} className={solidBtn}>
-        <GoogleMark />
-        Google로 계속하기
-      </button>
+      {SHOW_GOOGLE && (
+        <button type="button" disabled={busy} onClick={() => signInWith("google")} className={solidBtn}>
+          <GoogleMark />
+          Google로 계속하기
+        </button>
+      )}
 
       {/* 이메일은 보조 — 연라임 바탕에 검정 글씨 (시안) */}
-      <button type="button" onClick={() => setMode("email")} className={softBtn}>
+      <button type="button" onClick={() => setMode("email")} className={emailBtn}>
         이메일로 계속하기
       </button>
 

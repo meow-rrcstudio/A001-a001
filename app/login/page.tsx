@@ -34,8 +34,10 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime text-brand-ink">
-      {/* 뒤로 — 로그인은 막다른 길이면 안 됩니다. 항상 나갈 구멍을 둡니다. */}
-      <PageHeader variant="minimal" backHref="/" />
+      {/* 뒤로 — 로그인은 막다른 길이면 안 됩니다. 항상 나갈 구멍을 둡니다.
+          scrim={false}: 이 화면은 배경이 이미 라임이라 스크림을 깔면
+          위쪽에만 연라임 띠가 얹혀 이상한 그라데이션 자국이 생깁니다. */}
+      <PageHeader variant="minimal" backHref="/" scrim={false} />
 
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 ${HEADER_SPACE}`}>
         <h1>
