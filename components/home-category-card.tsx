@@ -1,39 +1,39 @@
 // components/home-category-card.tsx
-// 홈의 카테고리 줄 — 이름 + 그 달의 인용구 + 출처 + 화살표.
+// 홈의 카테고리 줄.
 //
-// 6개가 모두 이 컴포넌트를 쓰므로, 모양을 바꿀 일이 생기면 여기만 고치면
-// 홈 전체가 함께 바뀝니다. (내용은 lib/home-categories.ts)
+// 모양은 components/ui/list-item-card.tsx 가 맡고, 여기서는 내용과
+// 누름 반응만 다룹니다.
 //
-// ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
-// │ · 배치      : 앞의 넷은 한 줄 가득, 뒤의 둘은 2열 (시안)
-// │ · 이름      : font-myeongjo text-xl font-bold
-// │ · 인용구    : text-sm, 두 줄까지만 (line-clamp-2)
-// │ · 구분선    : 아래 HomeCategoryGrid 에서 그립니다
-// │ · 누르는 중 : 검정 반전 + 우리말 번역으로 바뀝니다
+// ┌─ 누르면 ──────────────────────────────────────────────────────────
+// │ 검정이 왼쪽에서 오른쪽으로 차오르고, 지나간 자리의 글이 우리말로
+// │ 바뀝니다.
+// │
+// │ 만드는 법: 같은 줄을 두 겹 겹칩니다.
+// │   아래 겹 — 원문 (검정 글씨)
+// │   위  겹 — 우리말 (검정 바탕 + 흰 글씨), clip-path 로 왼쪽부터 열림
+// │ 글자를 하나씩 물들일 수는 없으니, 두 겹을 같은 자리에 두고 위 겹을
+// │ 잘라 여는 것입니다. 경계선에서 색과 글이 정확히 같이 바뀝니다.
+// │
+// │ ⚠️ 이 반응 자체가 효과라, 마우스 올렸을 때의 기본 배경 효과는
+// │    넣지 않습니다 (두 개가 겹치면 지저분합니다).
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
 import { homeCategories, quoteOfMonth } from "@/lib/home-categories"
+import { ListItemCard } from "@/components/ui/list-item-card"
 
 export function HomeCategoryCard({
   category,
-  /** 2열로 놓이는 줄인지 (아래 두 칸) */
-  narrow = false,
   /** 미리보기용 — 다른 달의 문구를 보고 싶을 때만 넘깁니다 */
   date,
 }: {
   category: (typeof homeCategories)[number]
-  narrow?: boolean
   date?: Date
 }) {
   const quote = quoteOfMonth(category, date)
 
-  // 누르고 있는 동안 우리말로 바뀝니다.
-  // 원문을 지우는 게 아니라 잠깐 바꿔 보여주는 것뿐이라, 손을 떼면
-  // 원문이 그대로 돌아옵니다.
   const [pressed, setPressed] = useState(false)
   const release = () => setPressed(false)
 
@@ -44,46 +44,27 @@ export function HomeCategoryCard({
       onPointerUp={release}
       onPointerLeave={release}
       onPointerCancel={release}
-      // 키보드로 넘어온 사람도 같은 것을 볼 수 있게
+      // 키보드로 넘어온 사람도 같은 것을 봅니다
       onFocus={() => setPressed(true)}
       onBlur={release}
-      className={`group flex flex-col px-6 transition-colors ${
-        narrow ? "py-6" : "py-5"
-      } ${pressed ? "bg-black" : "hover:bg-black/5"}`}
+      className="relative block overflow-hidden text-black"
     >
-      <p
-        className={`font-myeongjo text-xl font-bold leading-tight ${
-          pressed ? "text-white" : "text-black"
-        }`}
-      >
-        {category.label}
-      </p>
-
-      <div className="mt-2 min-w-0 flex-1">
-        {pressed ? (
-          <>
-            <p className="line-clamp-2 text-sm leading-snug text-white/90">{quote.ko}</p>
-            <p className="mt-0.5 text-[11px] text-white/80">-{quote.koSource}-</p>
-          </>
-        ) : (
-          <>
-            {/* dir 을 지정해 히브리어 같은 오른쪽→왼쪽 글도 바르게 정렬됩니다 */}
-            <p dir={quote.dir ?? "auto"} className="line-clamp-2 text-sm leading-snug text-black/80">
-              {quote.text}
-            </p>
-            <p dir={quote.dir ?? "auto"} className="mt-0.5 text-[11px] text-black/80">
-              -{quote.source}-
-            </p>
-          </>
-        )}
-      </div>
-
-      <ArrowRight
-        aria-hidden="true"
-        className={`ml-auto mt-3 h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
-          pressed ? "text-white" : "text-black"
-        }`}
+      {/* 아래 겹 — 원문 */}
+      <ListItemCard
+        title={category.label}
+        description={quote.text}
+        source={quote.source}
+        dir={quote.dir}
       />
+
+      {/* 위 겹 — 우리말. 왼쪽부터 차오릅니다 */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-black text-white transition-[clip-path] duration-300 ease-out"
+        style={{ clipPath: pressed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)" }}
+      >
+        <ListItemCard title={category.label} description={quote.ko} source={quote.koSource} />
+      </div>
     </Link>
   )
 }
@@ -111,7 +92,7 @@ export function HomeCategoryGrid({ date }: { date?: Date }) {
         <div className="grid grid-cols-2 border-t border-black">
           {pair.map((category, i) => (
             <div key={category.slug} className={`min-w-0 ${i === 1 ? "border-l border-black" : ""}`}>
-              <HomeCategoryCard category={category} narrow date={date} />
+              <HomeCategoryCard category={category} date={date} />
             </div>
           ))}
         </div>

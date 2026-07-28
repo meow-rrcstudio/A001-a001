@@ -86,7 +86,7 @@ export function PageHeader({
       <div
         className={`${
           isFixed ? "fixed inset-x-0 top-4 z-50" : "relative pt-4"
-        } mx-auto w-full max-w-md px-6 ${className}`}
+        } mx-auto w-full max-w-site px-6 ${className}`}
       >
         <div className="flex items-center justify-between gap-3">
           {/* 왼쪽 — 홈은 워드마크, 나머지는 뒤로가기 */}
