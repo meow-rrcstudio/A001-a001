@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Search } from "lucide-react"
+import { ChevronRight, Search } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FilterChips } from "@/components/ui/filter-chips"
 import type { ArchiveDeck } from "@/lib/card-archive"
@@ -166,8 +166,21 @@ export function ArchiveDeckSection({
         <div className={`flex w-max min-w-full ${bleed ? "px-4" : ""}`}>
           {/* 패널 상자 — 제목·컬럼이 상자째로 스크롤. px-2/pt-4/pb-2가 상자 안 여백(시안 8px) */}
           <section className="grow rounded-2xl bg-muted/50 px-2 pb-2 pt-4">
+            {/* 덱 제목은 그 덱의 카드 78장을 그림으로 보는 화면(/tarot)으로
+                가는 길입니다. 화살표를 달아 "누를 수 있는 제목"임을 알립니다.
+                제목 크기에 맞춰 자라도록 화살표 크기는 1em 입니다. */}
             <h2 className="mb-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              {deck.label}
+              <Link
+                href="/tarot"
+                className="inline-flex items-center gap-1 transition-colors hover:text-primary"
+              >
+                {deck.label}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="h-[0.8em] w-[0.8em] shrink-0"
+                  strokeWidth={2}
+                />
+              </Link>
             </h2>
 
             {/* 대분류 컬럼 — 컬럼 폭 200px 고정, 간격 8px (시안 기준) */}
