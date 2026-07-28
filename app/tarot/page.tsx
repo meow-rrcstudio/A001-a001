@@ -21,7 +21,7 @@ export default async function TarotListPage() {
     <div className="flex min-h-screen flex-col">
       <PageBackground variant="aurora" />
       {/* 하단 여백은 광고 띠배너 래퍼(py-10)가 담당 — 40px 간격 유지 */}
-      <main className={`relative z-10 mx-auto w-full max-w-3xl flex-1 px-6 sm:px-8 ${HEADER_SPACE}`}>
+      <main className={`relative z-10 mx-auto w-full max-w-site flex-1 px-6 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader backHref="/archive" showShare />
 
         <div className="mb-8">
@@ -64,7 +64,7 @@ export default async function TarotListPage() {
       </main>
 
       {/* 광고(카카오 애드핏) — 푸터 위, 본문(카드 그리드)과 같은 좌우 여백(px-6). 위아래 40px */}
-      <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-site px-6 py-10 sm:px-8">
         <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />
       </div>
 

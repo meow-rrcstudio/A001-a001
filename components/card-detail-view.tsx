@@ -143,7 +143,7 @@ export function CardDetailView({
           scrolled ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
-        <div className="mx-auto w-full max-w-3xl px-6 py-3 sm:px-8">
+        <div className="mx-auto w-full max-w-site px-6 py-3 sm:px-8">
           <PageHeader backHref={backHref} showShare fixed={false} />
         </div>
       </div>
@@ -154,7 +154,7 @@ export function CardDetailView({
       {/* 이미지를 덮으며 올라오는 설명 패널 */}
       <div ref={panelRef} className="relative z-10 rounded-t-3xl bg-background">
 
-        <div className="mx-auto w-full max-w-3xl px-6 pt-16 sm:px-8">
+        <div className="mx-auto w-full max-w-site px-6 pt-16 sm:px-8">
           <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl">
             {title}
           </h1>
@@ -206,7 +206,7 @@ export function CardDetailView({
         </div>
 
         {/* 카카오 광고 — 푸터 위, 본문과 같은 좌우 여백(px-6). 위아래 40px (adNode에 AdBand가 들어옵니다) */}
-        <div className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">{adNode}</div>
+        <div className="mx-auto w-full max-w-site px-6 py-10 sm:px-8">{adNode}</div>
 
         <Footer variant="minimal" />
       </div>

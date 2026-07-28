@@ -31,7 +31,7 @@ export default async function TarotReadingResultPage({
     <div className="relative flex h-dvh flex-col overflow-hidden">
       <PageBackground variant="aurora" />
       <main
-        className={`relative z-10 mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+        className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
       >
         <PageHeader variant="reading" backHref={`/tarot/reading/${matchedTopic.slug}`} />
 

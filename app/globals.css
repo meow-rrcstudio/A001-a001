@@ -26,6 +26,9 @@
   --color-brand-lime: var(--brand-lime);
   --color-brand-lime-soft: var(--brand-lime-soft);
   --color-brand-ink: var(--brand-ink);
+  /* 사이트 최대 너비 — max-w-site 로 씁니다.
+     여기를 고치면 모든 화면의 본문 폭이 함께 바뀝니다. */
+  --container-site: 740px;
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -269,4 +272,25 @@ a[href*="built-with-v0"] {
   opacity: 0 !important;
   width: 0 !important;
   height: 0 !important;
+}
+/* ═══════════════════════════════════════════════════════════════════
+   메뉴(서랍)를 열었을 때
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 페이지를 흰 막으로 덮어 메뉴에 눈이 가게 합니다.
+   서랍은 페이지 뒤(z-0)에 있어서 서랍 안에 막을 깔면 페이지를 못 덮습니다.
+   그래서 페이지 상자 자신에게 막을 씌웁니다. */
+#app-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+body.menu-open #app-shell::after {
+  opacity: 1;
 }

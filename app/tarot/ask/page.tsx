@@ -141,7 +141,7 @@ export default function AskPage() {
       // 주소창을 뺀 높이보다 커서 스크롤이 생기므로 dvh 를 씁니다.
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
         <main
-          className={`relative z-10 mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+          className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
         >
           <PageHeader variant="reading" backHref="/tarot/ask" />
           <CardReadingFlow
@@ -191,7 +191,7 @@ export default function AskPage() {
         {followup && (
           <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-background">
             <main
-              className={`relative z-10 mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+              className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
             >
               <PageHeader variant="reading" backHref="/tarot/ask" />
               <CardReadingFlow
@@ -225,7 +225,7 @@ export default function AskPage() {
     // 빼주지 않아서 아래(제안 칩 + 입력창)가 잘렸습니다.
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <main
-        className={`mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+        className={`mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
       >
         <PageHeader variant="reading" backHref="/" />
 

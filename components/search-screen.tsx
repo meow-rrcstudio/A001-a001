@@ -126,7 +126,7 @@ export function SearchScreen({ posts }: { posts: SearchPost[] }) {
     : []
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
+    <main className="mx-auto w-full max-w-site flex-1 px-5 pt-8 sm:px-8 sm:pt-10">
       {/* 상단 바: 뒤로가기 + 검색창 */}
       <form
         onSubmit={(e) => {

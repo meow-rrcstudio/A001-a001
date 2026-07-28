@@ -33,7 +33,7 @@ export default async function ArchivePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <main className={`mx-auto w-full max-w-3xl flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
+      <main className={`mx-auto w-full max-w-site flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
         <CardArchiveBoard decks={decks} />
 
         {/* 78장 카드 그림으로 훑어보고 싶은 사람을 위한 진입점 —
@@ -48,7 +48,7 @@ export default async function ArchivePage() {
       </main>
 
       {/* 광고(카카오 애드핏) — 푸터 위 띠배너. 좌우 16px, 위아래 40px */}
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
+      <div className="mx-auto w-full max-w-site px-4 py-10">
         <AdBand adUnit="DAN-Cbt3AipfM4hs85GG" width={320} height={100} />
       </div>
 

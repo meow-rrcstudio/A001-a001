@@ -54,7 +54,7 @@ export function TopicQuestionList({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <main className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-10 sm:px-8 ${HEADER_SPACE}`}>
+      <main className={`mx-auto flex w-full max-w-site flex-1 flex-col px-6 pb-10 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader variant="reading" backHref="/" />
 
         <ReadingCharacterBubble placement="top" message={reactionLine} />

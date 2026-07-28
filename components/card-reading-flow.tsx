@@ -711,7 +711,7 @@ export function CardReadingFlow({
             value={fanRoll}
             onChange={(e) => setFanRoll(Number(e.target.value))}
             aria-label="카드 굴리기"
-            className="mx-auto block h-1 w-full max-w-3xl cursor-pointer appearance-none rounded-full bg-foreground/20
+            className="mx-auto block h-1 w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
               [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none
               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
           />

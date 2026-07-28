@@ -18,7 +18,7 @@ const h2Class = "mt-10 font-serif text-xl font-semibold text-foreground"
 export default function PrivacyPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <main className={`mx-auto w-full max-w-3xl flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
+      <main className={`mx-auto w-full max-w-site flex-1 px-5 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader backHref="/" />
 
         <h1 className="font-serif text-4xl leading-tight text-foreground">

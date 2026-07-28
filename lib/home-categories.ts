@@ -20,12 +20,20 @@
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
 
 export interface Quote {
-  /** 인용구 본문 */
+  /** 인용구 본문 — 원문 그대로 */
   text: string
   /** 출처 표기 (원문 언어로 적습니다) */
   source: string
   /** 글자 방향. 히브리어·아랍어처럼 오른쪽에서 왼쪽으로 읽는 글은 "rtl" */
   dir?: "rtl"
+  /**
+   * 우리말 옮김. 카드를 누르고 있는 동안 원문 대신 보입니다.
+   * ⚠️ 원문(text·source)을 대체하는 것이 아니라 따로 두는 값입니다.
+   *    원문은 어떤 경우에도 손대지 않습니다.
+   */
+  ko: string
+  /** 우리말로 적은 출처 */
+  koSource: string
 }
 
 export interface HomeCategory {
@@ -41,60 +49,60 @@ export const homeCategories: HomeCategory[] = [
     slug: "self",
     label: "나",
     quotes: [
-      { text: "Γνῶθι σεαυτόν.", source: "Δελφοί" },
-      { text: "知人者智，自知者明.", source: "老子" },
-      { text: "The unexamined life is not worth living.", source: "Socrates" },
-      { text: "吾日三省吾身.", source: "論語" },
+      { text: "Γνῶθι σεαυτόν.", source: "Δελφοί" , ko: "너 자신을 알라.", koSource: "델포이" },
+      { text: "知人者智，自知者明.", source: "老子" , ko: "남을 아는 자는 지혜롭고, 자신을 아는 자는 밝다.", koSource: "노자" },
+      { text: "The unexamined life is not worth living.", source: "Socrates" , ko: "살피지 않는 삶은 살 가치가 없다.", koSource: "소크라테스" },
+      { text: "吾日三省吾身.", source: "論語" , ko: "나는 날마다 세 가지로 나를 돌아본다.", koSource: "논어" },
     ],
   },
   {
     slug: "daily",
     label: "일상",
     quotes: [
-      { text: "古池や 蛙飛びこむ 水の音。", source: "松尾芭蕉" },
-      { text: "平常心是道.", source: "馬祖道一" },
-      { text: "Carpe diem.", source: "Horatius" },
-      { text: "日日是好日.", source: "雲門" },
+      { text: "古池や 蛙飛びこむ 水の音。", source: "松尾芭蕉" , ko: "오래된 못, 개구리 뛰어드는 물소리.", koSource: "마쓰오 바쇼" },
+      { text: "平常心是道.", source: "馬祖道一" , ko: "평상심이 곧 도이다.", koSource: "마조도일" },
+      { text: "Carpe diem.", source: "Horatius" , ko: "오늘을 붙잡아라.", koSource: "호라티우스" },
+      { text: "日日是好日.", source: "雲門" , ko: "날마다 좋은 날.", koSource: "운문" },
     ],
   },
   {
     slug: "love",
     label: "사랑",
     quotes: [
-      { text: "月が綺麗ですね。", source: "夏目漱石" },
-      { text: "Ἔρως ἀνίκατε μάχαν.", source: "Σοφοκλῆς" },
-      { text: "Ubi amor, ibi oculus.", source: "Ricardus" },
-      { text: "사랑은 서로를 바라보는 것이 아니라 같은 곳을 보는 것.", source: "Saint-Exupéry" },
+      { text: "月が綺麗ですね。", source: "夏目漱石" , ko: "달이 참 예쁘네요.", koSource: "나쓰메 소세키" },
+      { text: "Ἔρως ἀνίκατε μάχαν.", source: "Σοφοκλῆς" , ko: "사랑이여, 싸움에서 진 적 없는 이여.", koSource: "소포클레스" },
+      { text: "Ubi amor, ibi oculus.", source: "Ricardus" , ko: "사랑이 있는 곳에 눈이 있다.", koSource: "리카르두스" },
+      { text: "사랑은 서로를 바라보는 것이 아니라 같은 곳을 보는 것.", source: "Saint-Exupéry" , ko: "사랑은 서로를 바라보는 것이 아니라 같은 곳을 보는 것.", koSource: "생텍쥐페리" },
     ],
   },
   {
     slug: "friend",
     label: "친구",
     quotes: [
-      { text: "Ὁ φίλος αλλος αυτός.", source: "Ἀριστοτέλης" },
-      { text: "有朋自遠方來，不亦樂乎.", source: "論語" },
-      { text: "Amicus certus in re incerta cernitur.", source: "Ennius" },
-      { text: "A friend may well be reckoned the masterpiece of nature.", source: "Emerson" },
+      { text: "Ὁ φίλος αλλος αυτός.", source: "Ἀριστοτέλης" , ko: "친구는 또 하나의 나다.", koSource: "아리스토텔레스" },
+      { text: "有朋自遠方來，不亦樂乎.", source: "論語" , ko: "벗이 먼 곳에서 찾아오니 어찌 즐겁지 아니한가.", koSource: "논어" },
+      { text: "Amicus certus in re incerta cernitur.", source: "Ennius" , ko: "참된 친구는 불확실한 때에 드러난다.", koSource: "엔니우스" },
+      { text: "A friend may well be reckoned the masterpiece of nature.", source: "Emerson" , ko: "친구는 자연이 빚은 걸작이라 할 만하다.", koSource: "에머슨" },
     ],
   },
   {
     slug: "career",
     label: "생산적인 일.",
     quotes: [
-      { text: "Stay hungry. Stay foolish.", source: "Steve Jobs" },
-      { text: "天行健，君子以自強不息.", source: "易經" },
-      { text: "Festina lente.", source: "Augustus" },
-      { text: "Nulla dies sine linea.", source: "Plinius" },
+      { text: "Stay hungry. Stay foolish.", source: "Steve Jobs" , ko: "늘 갈망하고, 늘 어리석어라.", koSource: "스티브 잡스" },
+      { text: "天行健，君子以自強不息.", source: "易經" , ko: "하늘의 운행은 굳세니, 군자는 스스로 힘씀을 쉬지 않는다.", koSource: "주역" },
+      { text: "Festina lente.", source: "Augustus" , ko: "천천히 서둘러라.", koSource: "아우구스투스" },
+      { text: "Nulla dies sine linea.", source: "Plinius" , ko: "한 줄도 긋지 않은 날은 없다.", koSource: "플리니우스" },
     ],
   },
   {
     slug: "money",
-    label: "그저 돈.",
+    label: "생산적인 돈.",
     quotes: [
-      { text: "איזהו עשיר? השמח בחלקו.", source: "בן זומא", dir: "rtl" },
-      { text: "知足者富.", source: "老子" },
-      { text: "Non qui parum habet, sed qui plus cupit, pauper est.", source: "Seneca" },
-      { text: "Money often costs too much.", source: "Emerson" },
+      { text: "איזהו עשיר? השמח בחלקו.", source: "בן זומא", dir: "rtl" , ko: "누가 부자인가? 자기 몫에 기뻐하는 사람이다.", koSource: "벤 조마" },
+      { text: "知足者富.", source: "老子" , ko: "만족할 줄 아는 자가 부유하다.", koSource: "노자" },
+      { text: "Non qui parum habet, sed qui plus cupit, pauper est.", source: "Seneca" , ko: "적게 가진 자가 아니라 더 바라는 자가 가난하다.", koSource: "세네카" },
+      { text: "Money often costs too much.", source: "Emerson" , ko: "돈은 흔히 너무 비싼 값을 치른다.", koSource: "에머슨" },
     ],
   },
 ]

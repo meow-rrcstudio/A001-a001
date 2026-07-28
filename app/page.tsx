@@ -24,7 +24,7 @@ import { SITE } from "@/lib/site"
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime">
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col">
+      <main className="mx-auto flex w-full max-w-site flex-1 flex-col">
         {/* 1) 헤더 — 워드마크 + 햄버거 (화면 위 16px 고정) */}
         <PageHeader variant="home" />
 

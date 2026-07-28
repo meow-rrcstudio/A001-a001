@@ -96,7 +96,7 @@ export default function DesignSystemPage() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 gap-10 px-4 py-12 sm:px-6">
-        <main className="min-w-0 max-w-3xl flex-1">
+        <main className="min-w-0 max-w-site flex-1">
           <p className="mb-2 font-serif text-sm text-primary">Private Styleguide</p>
           <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground">
             Soul Seoul 디자인시스템

@@ -143,7 +143,7 @@ export function ReadingCharacterBubble({
   return (
     <div
       ref={bubbleRef}
-      className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-3xl px-6 pb-6 transition-[height] duration-300 ease-out sm:px-8"
+      className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-site px-6 pb-6 transition-[height] duration-300 ease-out sm:px-8"
     >
       <div className="rounded-[20px] border border-white bg-glass px-4 pb-4 pt-2 shadow-raised backdrop-blur-[var(--glass-blur)]">
         <div className="mb-3 flex items-center justify-between">

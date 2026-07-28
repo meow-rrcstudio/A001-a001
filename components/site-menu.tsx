@@ -46,7 +46,8 @@ export function SiteMenuPreview() {
       {/* 왼쪽 = 밀려난 페이지, 오른쪽 = 드러난 서랍 */}
       <div className="flex-1 rounded-r-3xl bg-card shadow-overlay" />
       <nav aria-label="사이트 메뉴 견본" className="w-[78%] max-w-[300px] bg-muted px-6 pb-10 pt-6">
-        <Wordmark className="h-9" />
+        {/* self-start 가 없으면 flex 가 폭을 늘려 로고가 옆으로 퍼집니다 */}
+        <Wordmark className="h-9 self-start" />
         <ul className="mt-8 space-y-1">
           {menuItems.map((item, i) => {
             const Icon = item.icon
@@ -120,6 +121,9 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
     style.right = "0"
     style.width = "100%"
 
+    // 페이지 위에 흰 막을 씌워 메뉴에 눈이 가게 합니다 (globals.css)
+    document.body.classList.add("menu-open")
+
     const shell = document.getElementById("app-shell")
     if (shell) {
       shell.style.transition = "transform 0.28s ease, border-radius 0.28s ease"
@@ -137,6 +141,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
       style.right = ""
       style.width = ""
       window.scrollTo(0, scrollY)
+      document.body.classList.remove("menu-open")
       if (shell) {
         shell.style.transform = ""
         shell.style.borderTopRightRadius = ""
@@ -160,7 +165,11 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-0">
+    <div className="fixed inset-0 z-0 bg-muted">
+      {/* 뒤판을 메뉴와 같은 색(bg-muted)으로 깔아둡니다.
+          페이지가 왼쪽으로 밀릴 때 둥근 모서리 안쪽으로 이 색이 비칩니다 —
+          다른 색이면 모서리에 엉뚱한 색 조각이 보입니다. */}
+
       {/* 바깥을 누르면 닫힘 */}
       <button
         type="button"
@@ -174,7 +183,8 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
         aria-label="사이트 메뉴"
         className="absolute inset-y-0 right-0 flex w-[78%] flex-col overflow-y-auto bg-muted px-6 pb-10 pt-6"
       >
-        <Wordmark className="h-9" />
+        {/* self-start 가 없으면 flex 가 폭을 늘려 로고가 옆으로 퍼집니다 */}
+        <Wordmark className="h-9 self-start" />
 
         <ul className="mt-8 space-y-1">
           {menuItems.map((item) => {

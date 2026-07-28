@@ -33,7 +33,7 @@ type Tone = {
 /** 푸터 내용 한 벌 — 모든 variant 가 이걸 공유합니다. */
 function FooterContent({ tone }: { tone: Tone }) {
   return (
-    <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 px-4 py-10 text-center sm:px-6">
+    <div className="mx-auto flex max-w-site flex-col items-center gap-2 px-4 py-10 text-center sm:px-6">
       <p
         className={`inline-flex items-center gap-2.5 font-mono text-xs font-medium uppercase tracking-[0.15em] ${tone.url}`}
       >
@@ -100,7 +100,7 @@ export function Footer({
   if (variant === "minimal") {
     return (
       <footer className="mt-16">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-10 text-center sm:px-6">
+        <div className="mx-auto flex max-w-site flex-col items-center gap-3 px-4 py-10 text-center sm:px-6">
           <Wordmark className="h-8" />
           <p className="font-mono text-xs text-muted-foreground">{copyrightLine()}</p>
           <p className="text-xs text-muted-foreground">
