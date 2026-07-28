@@ -243,7 +243,10 @@ export default function AskPage() {
             키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
             (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다). */}
         <div
-          className="mt-auto shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))] transition-[margin] duration-150"
+          className={`mt-auto shrink-0 transition-[margin] duration-150 ${
+            // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
+            keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
+          }`}
           style={{ marginBottom: keyboardInset }}
         >
           <p className="mb-2 text-sm text-muted-foreground">제안</p>

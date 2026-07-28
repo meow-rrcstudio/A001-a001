@@ -14,10 +14,14 @@
      (Pretendard 는 애초에 애플 시스템 글꼴의 웹 대체용으로 만들어진 글꼴입니다) */
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
     'Apple SD Gothic Neo', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
-  /* 제목도 같은 SF Pro 를 씁니다. font-serif 클래스는 기존 코드가 많이 쓰고 있어
-     이름만 남겨두고 실제 글꼴은 본문과 같게 연결했습니다. */
-  --font-serif: var(--font-sans);
-  --font-heading: var(--font-sans);
+  /* ── 제목 글꼴 ─────────────────────────────────────────────────────
+     제목은 명조입니다. 큰 제목도 섹션 제목도 모두 여기서 옵니다.
+     font-serif 클래스를 이미 여기저기서 쓰고 있어서 이름은 그대로 두고
+     연결만 명조로 바꿨습니다 — 이 한 줄이 about · privacy · 글 상세 ·
+     스타일가이드의 제목을 한꺼번에 바꿉니다.
+     본문(SF Pro)으로 되돌리려면 var(--font-sans) 로 바꾸면 됩니다. */
+  --font-serif: var(--font-myeongjo);
+  --font-heading: var(--font-myeongjo);
   /* 손글씨 — "Love / Career / Money", "Connect with Shanti" 같은 영문 강조에만 */
   --font-script: var(--font-shadows), 'Shadows Into Light', cursive;
   /* 명조 — 홈 카테고리 카드·아카이빙 배너 제목. 다국어 인용구의 폴백도 겸합니다 */

@@ -552,7 +552,14 @@ export function ReadingResultView({
       >
         {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
             테두리 줄 없이 그림자로만 띄웁니다. */}
-        <div className="mx-auto w-full max-w-site px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
+        {/* 키보드가 올라와 있을 때는 아래 여백을 10px 로 줄여 키보드에
+            바짝 붙입니다. 키보드가 없을 때는 홈 인디케이터를 피해야 하므로
+            원래대로 넉넉히 둡니다. */}
+        <div
+          className={`mx-auto w-full max-w-site px-4 pt-10 sm:px-8 ${
+            keyboardInset > 0 ? "pb-2.5" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          }`}
+        >
           {outOfAsks ? (
             // 한 장 몫을 다 썼습니다. 막지 않고 한 장 더 쓰길 권합니다.
             <div className="pointer-events-auto rounded-2xl bg-card p-4 shadow-raised">

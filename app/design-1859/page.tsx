@@ -201,8 +201,15 @@ export default function DesignSystemPage() {
           <section id="typography" className="mt-14 scroll-mt-24">
             <h2 className={h2Class}>3. 타이포그래피</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              시안 지정 글꼴은 두 가지입니다 — 한글·영문 본문과 제목은 <strong className="font-semibold">SF Pro</strong>,
-              캘리그라피 영문은 <strong className="font-semibold">Shadows Into Light</strong>.
+              본문은 <strong className="font-semibold">SF Pro</strong>, 제목은{" "}
+              <strong className="font-semibold">명조(Nanum Myeongjo)</strong>, 캘리그라피 영문은{" "}
+              <strong className="font-semibold">Shadows Into Light</strong>.
+            </p>
+            <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
+              제목 글꼴은 <code className="font-mono">--font-serif</code> 한 줄에서 옵니다. 그 줄을
+              명조로 연결해 두어서, about · privacy · 글 상세 · 이 스타일가이드의 큰 제목과 섹션
+              제목이 한꺼번에 명조가 됩니다. 본문(SF Pro)으로 되돌리려면 그 줄만{" "}
+              <code className="font-mono">var(--font-sans)</code> 로 바꾸면 됩니다.
             </p>
             <p className="mt-2 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               SF Pro 는 애플 글꼴이라 웹으로 배포할 수 없습니다. 그래서 시스템 글꼴로 불러옵니다 —
@@ -221,10 +228,13 @@ export default function DesignSystemPage() {
               </div>
               <div>
                 <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  큰 제목 (SF Pro · Bold) — 메뉴 이름, 페이지 제목
+                  큰 제목 · 섹션 제목 (명조 · font-serif) — 페이지 제목, 글 제목
                 </p>
-                <p className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                <p className="font-serif text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
                   Reading
+                </p>
+                <p className="mt-2 font-serif text-2xl font-semibold text-foreground">
+                  이곳에서 만날 수 있는 것
                 </p>
               </div>
               <div>
