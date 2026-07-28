@@ -10,6 +10,7 @@ import { AdBand } from "@/components/ad-band"
 // gemini 수정: Button 스타일 재사용을 위한 import
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ACTIVE_CHARACTER } from "@/lib/character"
 
 export const revalidate = 3600
 
@@ -71,14 +72,23 @@ export default async function TarotListPage() {
       {/* gemini 수정: 기존 Floating 버튼 삭제 후 하단 고정 버튼 구현
           (이 버튼 컴포넌트는 asChild를 지원하지 않아, 같은 스타일을 Link에 직접 입힘) */}
       <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 px-6">
+        {/* 이름은 캘리그라피(font-script), 뒤의 우리말은 본문 글꼴(SF Pro).
+            이름은 lib/character.ts 한 곳에서 옵니다 — 캐릭터를 바꾸면
+            이 버튼도 따라 바뀝니다.
+            ⚠️ 캘리그라피는 같은 크기라도 훨씬 작아 보여서, 이름만 한 단계
+               크게 잡아야 우리말과 눈높이가 맞습니다. */}
         <Link
           href="/"
           className={cn(
             buttonVariants({ variant: "connect", size: "lg" }),
-            "h-14 rounded-full px-8 font-script text-2xl shadow-lg"
+            "h-14 gap-0 rounded-full px-8 shadow-lg"
           )}
         >
-          go to a tarot reading
+          <span className="font-script text-2xl leading-none">{ACTIVE_CHARACTER.name}</span>
+          {/* connect 변형이 버튼 전체에 캘리그라피를 걸어두어서, 우리말은
+              font-sans 로 되돌려야 합니다 (한글은 캘리그라피 글자가 없어
+              그대로 두면 이상하게 대체됩니다) */}
+          <span className="font-sans text-base font-medium leading-none">에게 물어보기</span>
         </Link>
       </div>
 
