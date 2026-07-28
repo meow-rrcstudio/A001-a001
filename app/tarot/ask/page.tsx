@@ -27,6 +27,7 @@ import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
 import { canUseInsiteReading } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
+import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
 type Step = "ask" | "draw" | "result"
@@ -37,6 +38,8 @@ export default function AskPage() {
   const [allowed, setAllowed] = useState(false)
   const [step, setStep] = useState<Step>("ask")
   const [question, setQuestion] = useState("")
+  // 키보드가 가린 높이 — 입력창을 그만큼 올려 키보드에 붙입니다
+  const keyboardInset = useKeyboardInset()
   const [cards, setCards] = useState<PickedCard[]>([])
   // 샨티가 이 질문에 맞게 고른 배열 (몇 장 · 어떤 자리)
   const [plan, setPlan] = useState<ReadingPlan | null>(null)
@@ -236,8 +239,13 @@ export default function AskPage() {
           />
         </div>
 
-        {/* 아래 묶음은 화면 맨 아래에 붙박이입니다 — 잘리지 않습니다 */}
-        <div className="mt-auto shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {/* 아래 묶음은 화면 맨 아래에 붙박이입니다 — 잘리지 않습니다.
+            키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
+            (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다). */}
+        <div
+          className="mt-auto shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))] transition-[margin] duration-150"
+          style={{ marginBottom: keyboardInset }}
+        >
           <p className="mb-2 text-sm text-muted-foreground">제안</p>
           <div className="flex flex-col items-start gap-2">
             {SUGGESTED_QUESTIONS.map((q) => (

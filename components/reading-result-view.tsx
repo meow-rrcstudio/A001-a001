@@ -22,6 +22,7 @@ import { CardSpread } from "@/components/card-spread"
 import { BlinkingShanti } from "@/components/pixel-sprite"
 import { PageHeader } from "@/components/page-header"
 import { ChatInput } from "@/components/chat-input"
+import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
@@ -312,6 +313,8 @@ export function ReadingResultView({
   const chatElapsed = useElapsed(streamingText !== null)
   // 지금 글이 만들어지는 중인가 — 이때만 샨티가 뜁니다
   const busyNow = streaming || streamingText !== null
+  // 키보드가 가린 높이 — 입력창을 그만큼 올려 키보드에 붙입니다
+  const keyboardInset = useKeyboardInset()
 
   // 샨티 답이 몇 번째인지 미리 세어둡니다.
   // 평가를 남길 때 이 번호로 "어느 답인지"를 가리킵니다 — 대화는 뒤에
@@ -394,7 +397,7 @@ export function ReadingResultView({
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">
-          <p className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
+          <p className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-reading text-foreground">
             {question}
           </p>
         </div>
@@ -405,7 +408,7 @@ export function ReadingResultView({
 
           {error && (
             <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
-              <p className="text-[15px] text-foreground">
+              <p className="text-reading text-foreground">
                 흐음... 카드를 읽다가 막혔구먼. 잠시 뒤에 다시 청해보라냥.
               </p>
               <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{error}</p>
@@ -413,7 +416,7 @@ export function ReadingResultView({
           )}
 
           {result.title ? (
-            <h1 className="mt-4 text-xl font-bold leading-snug tracking-tight text-foreground">
+            <h1 className="mt-4 text-reading-xl font-bold leading-snug tracking-tight text-foreground">
               {result.title}
               {streaming && !result.summary && <Cursor />}
             </h1>
@@ -422,7 +425,7 @@ export function ReadingResultView({
           )}
 
           {result.summary && (
-            <p className="mt-4 text-[15px] leading-relaxed text-foreground/90">
+            <p className="mt-4 text-reading leading-relaxed text-foreground/90">
               {result.summary}
               {streaming && !result.keywords?.length && <Cursor />}
             </p>
@@ -430,10 +433,10 @@ export function ReadingResultView({
 
           {!!result.keywords?.length && (
             <>
-              <h2 className="mt-6 text-base font-semibold text-foreground">핵심 키워드</h2>
+              <h2 className="mt-6 text-reading-lg font-semibold text-foreground">핵심 키워드</h2>
               <ul className="mt-2 space-y-1">
                 {result.keywords.map((k, i) => (
-                  <li key={`${k}-${i}`} className="flex gap-2 text-[15px] text-foreground/90">
+                  <li key={`${k}-${i}`} className="flex gap-2 text-reading text-foreground/90">
                     <span aria-hidden="true" className="text-muted-foreground">
                       ·
                     </span>
@@ -446,8 +449,8 @@ export function ReadingResultView({
 
           {result.sections?.map((s, i) => (
             <section key={`${s.heading}-${i}`} className="mt-6">
-              <h2 className="text-base font-semibold text-foreground">{s.heading}</h2>
-              <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+              <h2 className="text-reading-lg font-semibold text-foreground">{s.heading}</h2>
+              <p className="mt-1.5 whitespace-pre-line text-reading leading-relaxed text-foreground/90">
                 {s.body}
                 {streaming && i === (result.sections?.length ?? 0) - 1 && <Cursor />}
               </p>
@@ -473,13 +476,13 @@ export function ReadingResultView({
         {turns.map((turn, i) =>
           turn.role === "user" ? (
             <div key={i} className="mt-6 flex justify-end">
-              <p className="max-w-[85%] whitespace-pre-line rounded-2xl bg-muted px-4 py-2.5 text-[15px] text-foreground">
+              <p className="max-w-[85%] whitespace-pre-line rounded-2xl bg-muted px-4 py-2.5 text-reading text-foreground">
                 {turn.text}
               </p>
             </div>
           ) : (
             <div key={i} className="mt-5">
-              <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+              <p className="whitespace-pre-line text-reading leading-relaxed text-foreground/90">
                 {turn.text}
               </p>
               {/* 이 마디에서 카드를 더 뽑았으면 말 아래에 깔아 보여줍니다 */}
@@ -504,19 +507,19 @@ export function ReadingResultView({
         {streamingText !== null && (
           <div className="mt-5">
             {streamingText ? (
-              <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+              <p className="whitespace-pre-line text-reading leading-relaxed text-foreground/90">
                 {streamingText}
                 <Cursor />
               </p>
             ) : (
-              <p className="text-[15px] text-muted-foreground">샨티가 카드를 다시 들여다보는 중...</p>
+              <p className="text-reading text-muted-foreground">샨티가 카드를 다시 들여다보는 중...</p>
             )}
           </div>
         )}
 
         {chatError && (
           <div className="mt-5 rounded-xl border border-border bg-muted px-4 py-4">
-            <p className="text-[15px] text-foreground">흐음... 말이 막혔구먼. 다시 물어보라냥.</p>
+            <p className="text-reading text-foreground">흐음... 말이 막혔구먼. 다시 물어보라냥.</p>
             <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{chatError}</p>
           </div>
         )}
@@ -540,14 +543,20 @@ export function ReadingResultView({
 
       {/* 입력창 — 해석을 다 받은 뒤에만 (읽는 중엔 물어볼 수 없습니다) */}
       {!streaming && (
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 transition-transform duration-150"
+        // 키보드가 올라오면 그만큼 위로 올려 키보드에 딱 붙입니다.
+        // (아이폰 사파리는 키보드가 화면을 덮을 뿐 크기를 줄이지 않아서,
+        //  bottom-0 에 두면 키보드 뒤로 숨습니다)
+        style={{ transform: `translateY(-${keyboardInset}px)` }}
+      >
         {/* 시안: 화면 위에 떠 있는 둥근 흰 카드. 본문이 그 아래로 흘러 지나갑니다.
             테두리 줄 없이 그림자로만 띄웁니다. */}
         <div className="mx-auto w-full max-w-site px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
           {outOfAsks ? (
             // 한 장 몫을 다 썼습니다. 막지 않고 한 장 더 쓰길 권합니다.
             <div className="pointer-events-auto rounded-2xl bg-card p-4 shadow-raised">
-              <p className="text-[15px] leading-relaxed text-foreground">
+              <p className="text-reading leading-relaxed text-foreground">
                 흐음, 이 한 판으로는 여기까지구먼. 더 묻고 싶으면 한 장 더 쓰면 된다냥.
               </p>
               {credits !== null && credits > 0 ? (

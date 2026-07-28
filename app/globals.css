@@ -29,6 +29,15 @@
   /* 사이트 최대 너비 — max-w-site 로 씁니다.
      여기를 고치면 모든 화면의 본문 폭이 함께 바뀝니다. */
   --container-site: 740px;
+  /* ── 해석·대화 글씨 크기 ───────────────────────────────────────────
+     타로 해석과 이어지는 대화에만 쓰는 크기입니다. 오래 읽는 글이라
+     화면 여기저기의 15px 안내 문구보다 커야 합니다.
+     text-reading / text-reading-lg / text-reading-xl 로 씁니다 —
+     여기 세 줄만 고치면 해석 화면 전체가 함께 커지고 작아집니다.
+     (읽기 어렵다는 말을 듣고 15 → 17 로 올렸습니다) */
+  --text-reading: 17px;
+  --text-reading-lg: 18px; /*  소제목 */
+  --text-reading-xl: 22px; /*  큰 제목 */
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -253,6 +262,20 @@
 }
 
 @layer components {
+  /* 입력 상자(components/chat-input.tsx)의 안내 문구.
+     contenteditable 에는 placeholder 속성이 없어서 직접 그립니다.
+     비어 있을 때만 보이고, 글자를 고를 수 없어 커서에 걸리지 않습니다. */
+  .chat-composer:empty::before {
+    content: attr(data-placeholder);
+    color: var(--muted-foreground);
+    pointer-events: none;
+  }
+  /* 글을 쓰는 곳이므로 길게 눌러 고르는 것을 막지 않습니다 */
+  .chat-composer {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   /* 블로그 포스팅 본문 스타일
      · 글자 17px, 행간 1.7(전보다 촘촘), 자간 -0.015em(한글 또렷하게), 색 /90(덜 흐리게) */
   .prose-blog {

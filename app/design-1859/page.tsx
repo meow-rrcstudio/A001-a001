@@ -23,6 +23,7 @@ import { PixelSprite, BlinkingShanti } from "@/components/pixel-sprite"
 import { SHANTI_BASE, SHANTI_BLINK } from "@/lib/pixel-sprites"
 import { PageHeader } from "@/components/page-header"
 import { SiteMenuPreview } from "@/components/site-menu"
+import { ComposerPreview } from "@/components/composer-preview"
 import { ArchiveDeckSection } from "@/components/card-archive-board"
 import { TarotCardFront, TarotCardBack, TarotCardSlot } from "@/components/tarot-card"
 import { CardSpread } from "@/components/card-spread"
@@ -681,6 +682,22 @@ export default function DesignSystemPage() {
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border [&>footer]:mt-0">
               <Footer variant="minimal" />
+            </div>
+
+            <p className="mt-8 text-xs font-medium text-muted-foreground">
+              ⑪ 입력 상자 (components/chat-input.tsx) — 질문 화면과 해석 화면이 함께 씁니다.
+              글이 길어지면 8줄까지 늘어나고 그 뒤로는 안에서 스크롤됩니다
+            </p>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ textarea 가 아니라 <code className="font-mono">contenteditable</code> 입니다.
+              아이폰 사파리가 입력칸 위에 자동완성 줄(열쇠 · 카드 · 위치 + 키보드 닫기)을
+              얹는데, <code className="font-mono">autocomplete=&quot;off&quot;</code> 로는 없어지지
+              않습니다. 그 줄이 붙는 대상은 &quot;폼 컨트롤&quot;이고 contenteditable 은 폼
+              컨트롤이 아니라서 아예 대상이 아닙니다. 한글 조합이 깨지지 않도록 React 가 글자를
+              다시 그리지 않는 방식으로 만들었습니다.
+            </p>
+            <div className="mt-2 rounded-xl border border-border bg-background p-4">
+              <ComposerPreview />
             </div>
           </section>
 

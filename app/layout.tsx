@@ -70,6 +70,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: 'light',
   themeColor: '#f4f1e8',
+  // ⚠️ 키보드가 올라올 때 화면(레이아웃 뷰포트)을 함께 줄여달라는 뜻입니다.
+  //    이게 없으면 화면 크기는 그대로인 채 키보드가 그 위를 덮어서,
+  //    "화면 맨 아래"에 붙인 입력창이 키보드 뒤로 숨습니다.
+  //    아직 이 값을 안 듣는 브라우저가 있어 lib/use-keyboard-inset.ts 가
+  //    같은 일을 한 번 더 합니다 (둘이 겹쳐도 어긋나지 않습니다).
+  interactiveWidget: 'resizes-content',
 }
 
 export default function RootLayout({
