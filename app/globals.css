@@ -194,6 +194,38 @@
     -webkit-tap-highlight-color: transparent; /* 모바일 기본 회색 깜빡임 제거 */
     transition: transform 0.08s ease, opacity 0.08s ease;
   }
+
+  /* ── 길게 눌렀을 때 뜨는 브라우저 메뉴 없애기 ─────────────────────
+     아이폰에서 링크를 조금만 오래 누르면 "새 탭에서 열기 · 링크 복사 ·
+     공유..." 메뉴가 뜨고, 그림은 "사진 저장"이 뜹니다. 우리는 누르고
+     있는 동안 색이 차오르는 카드가 있어서, 그 메뉴가 뜨면 손을 떼기도
+     전에 화면이 가려집니다.
+
+     ⚠️ 글에는 걸지 않습니다. 해석을 복사해 가는 사람이 있고, 무료
+        흐름은 프롬프트를 통째로 골라 복사하는 것이 전부입니다.
+        여기 적힌 것은 누르는 것(링크·버튼)과 그림뿐입니다. */
+  a, button, [role="button"], summary, img {
+    -webkit-touch-callout: none;
+  }
+  a, button, [role="button"], summary {
+    -webkit-user-select: none;
+    user-select: none;
+    /* 두 번 톡톡 쳤을 때 화면이 확대되는 것도 막습니다 */
+    touch-action: manipulation;
+  }
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  /* 골라서 복사해야 하는 곳은 위 규칙에서 되돌립니다 (프롬프트 복사 영역 등) */
+  .select-text, .select-all, [data-selectable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .select-all {
+    -webkit-user-select: all;
+    user-select: all;
+  }
   /* ⚠️ 스스로 누름 효과를 가진 것은 여기서 빼야 합니다.
      data-press-fx="off" 를 달면 아래 기본 효과가 걸리지 않습니다.
      안 빼면 두 효과가 겹칩니다 — 홈 카드가 검정으로 차오르는데 이

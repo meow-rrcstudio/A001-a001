@@ -368,10 +368,14 @@ export function CardReadingFlow({
   // 카드의 아랫끝이 화면 안에서 보이면 부채가 잘린 게 아니라 "짧은 카드"로
   // 보입니다. FAN_BLEED 만큼 화면 아래로 더 내려서 끝을 감춥니다.
   const FAN_BLEED = 60
-  const fanApexY = Math.max(
-    boardHeightSelect + BOARD_GAP * 2 + FAN_CARD_HEIGHT / 2,
-    stageHeight + FAN_BLEED - FAN_CARD_HEIGHT / 2
-  )
+  // 부채 전체를 이만큼 위로 올립니다 — 화면 아래로 잠기는 부분이 줄어
+  // 카드가 그만큼 더 보입니다. 카드를 키우는 것과는 다릅니다(크기는 그대로).
+  const FAN_LIFT = 20
+  const fanApexY =
+    Math.max(
+      boardHeightSelect + BOARD_GAP * 2 + FAN_CARD_HEIGHT / 2,
+      stageHeight + FAN_BLEED - FAN_CARD_HEIGHT / 2
+    ) - FAN_LIFT
   const fanCenterY = fanApexY + fanRadius
   // 부채 맨 위 카드의 윗변 — 보드가 쓸 수 있는 아래 한계선입니다
   const fanCardTop = fanApexY - FAN_CARD_HEIGHT / 2
