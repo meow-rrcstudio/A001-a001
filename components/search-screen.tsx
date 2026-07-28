@@ -172,7 +172,7 @@ export function SearchScreen({ posts }: { posts: SearchPost[] }) {
       {!submitted && (
         <section className="mt-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">최근 검색어</h2>
+            <h2 className="font-sans text-sm font-semibold text-foreground">최근 검색어</h2>
             {recent.length > 0 && (
               <button
                 type="button"
@@ -228,7 +228,7 @@ export function SearchScreen({ posts }: { posts: SearchPost[] }) {
           <div className="divide-y divide-border">
             {results.map((post) => (
               <Link key={post.slug} href={`/blog/${post.slug}`} className="block py-5">
-                <h3 className="text-base font-semibold leading-snug text-foreground">
+                <h3 className="font-sans text-base font-semibold leading-snug text-foreground">
                   <Highlight text={post.title} term={query} />
                 </h3>
                 {post.summary && (

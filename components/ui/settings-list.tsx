@@ -34,7 +34,7 @@ export function SettingsGroup({
 }) {
   return (
     <section className="mt-6">
-      {label && <h2 className="mb-2 text-sm text-muted-foreground">{label}</h2>}
+      {label && <h2 className="mb-2 font-sans text-sm text-muted-foreground">{label}</h2>}
 
       <div className="overflow-hidden rounded-xl bg-muted">
         {items.map((item, i) => (
