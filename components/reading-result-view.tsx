@@ -133,7 +133,7 @@ function AnswerActions({
  */
 function ShantiMark({ busy = false, elapsed }: { busy?: boolean; elapsed?: string }) {
   return (
-    <div className="mt-3 flex items-center gap-2 text-foreground">
+    <div className="mt-6 flex items-center gap-2 text-foreground">
       <BlinkingShanti className="h-5" title="샨티" busy={busy} />
       {elapsed && <span className="text-xs text-muted-foreground">{elapsed}</span>}
     </div>
@@ -514,16 +514,17 @@ export function ReadingResultView({
           </div>
         )}
 
-        {/* 샨티는 여기 하나뿐입니다 — 가장 최근에 만들어진 말의 바로 아래.
-            해석이든 이어지는 대화든, 마지막 말 끝에 붙어 따라 내려옵니다. */}
-        <ShantiMark busy={busyNow} elapsed={busyNow ? chatElapsed ?? readingElapsed : undefined} />
-
         {chatError && (
           <div className="mt-5 rounded-xl border border-border bg-muted px-4 py-4">
             <p className="text-[15px] text-foreground">흐음... 말이 막혔구먼. 다시 물어보라냥.</p>
             <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{chatError}</p>
           </div>
         )}
+
+        {/* 샨티는 여기 하나뿐입니다 — 대화의 맨 끝, 입력창 바로 위.
+            클로드가 마지막 답 아래·입력창 위에 표식을 하나만 두는 자리와
+            같습니다. 대화가 길어져도 늘어나지 않고 끝을 따라 내려옵니다. */}
+        <ShantiMark busy={busyNow} elapsed={busyNow ? chatElapsed ?? readingElapsed : undefined} />
 
         {onRestart && (
           <button
