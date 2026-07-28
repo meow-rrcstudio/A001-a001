@@ -122,15 +122,18 @@ function AnswerActions({
 }
 
 /**
- * 답 위에 놓이는 샨티 표식.
+ * 샨티 표식 — 화면에 딱 하나뿐입니다.
  *
- * 헤더에 있던 픽셀 고양이가 여기로 내려왔습니다 — 클로드가 답변 옆에
- * 로고를 두는 자리와 같습니다. 눈은 늘 깜빡이고, 글이 만들어지는
- * 중에는 통통 뜁니다.
+ * 헤더에 있던 픽셀 고양이가 여기로 내려왔습니다. 말 한 마디마다 붙이지
+ * 않습니다 — 대화가 길어지면 고양이가 줄줄이 늘어서서 표식이 아니라
+ * 무늬가 됩니다. 가장 최근에 만들어진 말의 아래, 즉 대화의 맨 끝에만
+ * 놓아 "지금 여기까지 왔다"를 가리키게 합니다.
+ *
+ * 눈은 늘 깜빡이고, 글이 만들어지는 중에는 통통 뜁니다.
  */
 function ShantiMark({ busy = false, elapsed }: { busy?: boolean; elapsed?: string }) {
   return (
-    <div className="mb-2 flex items-center gap-2 text-foreground">
+    <div className="mt-3 flex items-center gap-2 text-foreground">
       <BlinkingShanti className="h-5" title="샨티" busy={busy} />
       {elapsed && <span className="text-xs text-muted-foreground">{elapsed}</span>}
     </div>
@@ -307,6 +310,8 @@ export function ReadingResultView({
   // 기다리는 동안 흐른 시간 (해석 · 면담 따로)
   const readingElapsed = useElapsed(streaming)
   const chatElapsed = useElapsed(streamingText !== null)
+  // 지금 글이 만들어지는 중인가 — 이때만 샨티가 뜁니다
+  const busyNow = streaming || streamingText !== null
 
   // 샨티 답이 몇 번째인지 미리 세어둡니다.
   // 평가를 남길 때 이 번호로 "어느 답인지"를 가리킵니다 — 대화는 뒤에
@@ -398,10 +403,6 @@ export function ReadingResultView({
         <article className="mt-6">
           <MiniSpread cards={cards} layoutKey={layoutKey} />
 
-          <div className="mt-4">
-            <ShantiMark busy={streaming} elapsed={readingElapsed} />
-          </div>
-
           {error && (
             <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
               <p className="text-[15px] text-foreground">
@@ -478,7 +479,6 @@ export function ReadingResultView({
             </div>
           ) : (
             <div key={i} className="mt-5">
-              <ShantiMark />
               <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
                 {turn.text}
               </p>
@@ -503,7 +503,6 @@ export function ReadingResultView({
         {/* 지금 흘러들어오는 중인 답 */}
         {streamingText !== null && (
           <div className="mt-5">
-            <ShantiMark busy elapsed={chatElapsed} />
             {streamingText ? (
               <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
                 {streamingText}
@@ -514,6 +513,10 @@ export function ReadingResultView({
             )}
           </div>
         )}
+
+        {/* 샨티는 여기 하나뿐입니다 — 가장 최근에 만들어진 말의 바로 아래.
+            해석이든 이어지는 대화든, 마지막 말 끝에 붙어 따라 내려옵니다. */}
+        <ShantiMark busy={busyNow} elapsed={busyNow ? chatElapsed ?? readingElapsed : undefined} />
 
         {chatError && (
           <div className="mt-5 rounded-xl border border-border bg-muted px-4 py-4">

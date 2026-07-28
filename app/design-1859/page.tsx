@@ -562,8 +562,9 @@ export default function DesignSystemPage() {
 
             <p className="mt-4 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
               ⚠️ 캐릭터(샨티)는 <strong className="font-semibold">헤더에 있지 않습니다.</strong>{" "}
-              대화 영역으로 내려가, 답변 왼쪽 위에 붙습니다 (클로드가 답변 옆에 로고를 두는 것과
-              같은 자리). 헤더 가운데는 <strong className="font-semibold">제목</strong> 자리이고,
+              대화 영역으로 내려갔고, 화면에 <strong className="font-semibold">딱 하나</strong>만
+              둡니다 — 가장 최근에 만들어진 말의 바로 아래입니다. 말 한 마디마다 붙이면 대화가
+              길어질수록 고양이가 줄줄이 늘어서서 표식이 아니라 무늬가 됩니다. 헤더 가운데는 <strong className="font-semibold">제목</strong> 자리이고,
               제목은 글 상세와 타로 리딩에만 넣습니다. 나머지 하위 화면은 비어 있습니다.
             </p>
 
