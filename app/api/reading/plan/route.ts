@@ -14,6 +14,7 @@ import {
 } from "@/lib/ai/reading-plan"
 import { GEMINI_READING_MODEL } from "@/lib/ai/gemini"
 import { requireUser } from "@/lib/server/guard"
+import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
 
@@ -38,6 +39,11 @@ export async function POST(request: Request) {
   const guard = await requireUser()
   if (!guard.ok) return guard.response
   const user = guard.value
+
+  // 판을 시작하는 자리라 크레딧이 이미 막아주지만, 크레딧이 없는 상태로
+  // 두드리는 것(402 만 계속 받는 호출)까지 세어 막습니다.
+  const limited = rateLimit(rateKey("plan", user?.id, request), 12, 10 * 60_000)
+  if (limited) return limited
 
   let readingId: string | undefined
   if (user) {

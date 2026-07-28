@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation"
 import { GoogleMark, KakaoMark } from "@/components/provider-marks"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
 
-type Mode = "buttons" | "email"
+type Mode = "buttons" | "email" | "forgot"
 
 /**
  * 카카오에 요청할 동의항목.
@@ -87,6 +87,45 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
       setMessage(error.message)
     }
     // 성공하면 이 창이 그대로 로그인 페이지로 넘어갑니다 (busy 유지)
+  }
+
+  /**
+   * 비밀번호 재설정 메일 보내기.
+   *
+   * ⚠️ 없는 계정이어도 "보냈어요"라고 답합니다. "그런 계정 없습니다"는
+   *    친절해 보이지만, 아무 주소나 넣어보며 누가 가입했는지 알아내는
+   *    길이 됩니다. 메일함을 여는 사람만 결과를 알면 됩니다.
+   */
+  async function submitForgot(e: React.FormEvent) {
+    e.preventDefault()
+    const supabase = getSupabaseBrowser()
+    if (!supabase) return setMessage("아직 로그인 설정이 안 되어 있어요.")
+    if (!email.trim()) return
+
+    setBusy(true)
+    setMessage(null)
+
+    const result = await withTimeout(
+      supabase.auth.resetPasswordForEmail(email.trim(), {
+        // 메일의 링크를 누르면 여기로 돌아오고, callback 이 세션을 끼운 뒤
+        // 새 비밀번호를 정하는 화면으로 보냅니다.
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
+    )
+
+    setBusy(false)
+
+    if (result === "timeout") {
+      setMessage("응답이 없어요. 잠시 뒤 다시 시도해 주세요.")
+      return
+    }
+    // 너무 자주 보내면 Supabase 가 막습니다 — 그건 알려줘야 합니다.
+    if (result.error && /rate limit|for security purposes|too many/i.test(result.error.message)) {
+      setMessage(translate(result.error.message))
+      return
+    }
+
+    setMessage("메일함을 확인해 주세요. 비밀번호를 새로 정하는 링크를 보냈어요.")
   }
 
   async function submitEmail(e: React.FormEvent) {
@@ -205,6 +244,63 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
             뒤로
           </button>
         </div>
+
+        {/* 비밀번호 찾기는 로그인할 때만 필요합니다 (가입 중에는 아직 없으니까요) */}
+        {!signUp && (
+          <p className="px-2 pt-1 text-center text-sm text-brand-ink/75">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot")
+                setPassword("")
+                setMessage(null)
+              }}
+              className="underline underline-offset-4"
+            >
+              비밀번호를 잊으셨나요?
+            </button>
+          </p>
+        )}
+      </form>
+    )
+  }
+
+  if (mode === "forgot") {
+    return (
+      <form onSubmit={submitForgot} className="space-y-3">
+        <p className="px-2 pb-1 text-sm leading-relaxed text-brand-ink/75">
+          가입할 때 쓴 이메일을 적어주세요. 비밀번호를 새로 정하는 링크를 보내드립니다.
+        </p>
+
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="이메일"
+          aria-label="이메일"
+          autoComplete="email"
+          required
+          className={field}
+        />
+
+        {message && <p className="px-2 text-sm text-brand-ink">{message}</p>}
+
+        <button type="submit" disabled={busy} className={solidBtn}>
+          {busy ? "보내는 중..." : "재설정 링크 보내기"}
+        </button>
+
+        <p className="px-2 pt-1 text-center text-sm text-brand-ink/75">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("email")
+              setMessage(null)
+            }}
+            className="underline underline-offset-4"
+          >
+            로그인으로 돌아가기
+          </button>
+        </p>
       </form>
     )
   }

@@ -16,6 +16,7 @@ import { buildChatMessages, type ChatContext } from "@/lib/reading-prompt-templa
 import { streamGeminiJson } from "@/lib/ai/gemini"
 import { CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
+import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -57,6 +58,11 @@ export async function POST(request: Request) {
   if (!guard.ok) return guard.response
   const owned = await requireOwnedReading(guard.value, body.readingId)
   if (!owned.ok) return owned.response
+
+  // 사람이 손으로 묻는 속도보다 훨씬 빠르면 사람이 아닙니다.
+  // 판당 횟수(FOLLOWUPS_PER_CREDIT)와 별개로 "속도"를 봅니다.
+  const limited = rateLimit(rateKey("chat", guard.value?.id, request), 20, 5 * 60_000)
+  if (limited) return limited
 
   // 한 장 몫을 다 썼는지 — 세는 곳도 서버여야 합니다.
   // 화면에서만 세면 새로고침 한 번으로 초기화됩니다.

@@ -9,13 +9,9 @@
 // 면담 중 카드를 더 뽑는 것은 같은 한 판이라 더 깎지 않습니다.
 // (물을 때마다 돈이 나가면 아무도 이어서 묻지 않습니다)
 //
-// ⚠️ 아직 로그인 기능이 없어서 상태를 브라우저(localStorage)에 임시로 둡니다.
-//    지금 구조로는 브라우저 데이터만 지우면 크레딧이 되살아납니다.
-//    인증을 붙일 때 getEntitlement()·consumeCredit() 안만 서버 조회로
-//    바꾸면 되고, 화면 코드는 그대로 둡니다.
-//
-// 미리보기: 주소에 ?as=paid / ?as=trial / ?as=free 를 붙이면 그 상태로 보입니다.
-//          (검토용이며, 인증 연결 시 readOverride 를 지우면 됩니다)
+// ⚠️ 잔액의 진짜 주인은 서버입니다 (credit_entries 원장 + spend_credit).
+//    여기 있는 브라우저 보관함은 Supabase 가 연결되지 않은 환경(로컬 개발)
+//    에서만 쓰이는 대체 경로입니다. 배포된 사이트는 언제나 서버를 봅니다.
 "use client"
 
 const STORAGE_KEY = "soulseoul.entitlement.v1"
@@ -24,7 +20,6 @@ const STORAGE_KEY = "soulseoul.entitlement.v1"
 // ⚠️ 이 파일은 "use client" 라서 서버가 여기서 숫자를 가져가면 스텁을
 //    받습니다. 서버 코드는 lib/credit-rules.ts 를 직접 보세요.
 export { WELCOME_CREDITS, FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/credit-rules"
-import { WELCOME_CREDITS } from "@/lib/credit-rules"
 
 export interface Entitlement {
   isLoggedIn: boolean
@@ -43,19 +38,13 @@ export function canUseInsiteReading(e: Entitlement) {
   return e.isLoggedIn && e.credits > 0
 }
 
-function readOverride(): Entitlement | null {
-  if (typeof window === "undefined") return null
-  const as = new URLSearchParams(window.location.search).get("as")
-  if (as === "paid") return { isLoggedIn: true, credits: 10 }
-  if (as === "trial") return { isLoggedIn: true, credits: WELCOME_CREDITS }
-  if (as === "free") return { isLoggedIn: false, credits: 0 }
-  return null
-}
-
-/** 현재 사용자의 권한. 인증을 붙이면 이 함수 안만 바꾸면 됩니다. */
+/**
+ * 브라우저에 남아 있는 권한.
+ *
+ * ⚠️ Supabase 가 연결된 환경에서는 아무도 이 함수를 부르지 않습니다
+ *    (lib/use-account.ts 를 보세요). 로컬 개발용 대체 경로입니다.
+ */
 export function getEntitlement(): Entitlement {
-  const override = readOverride()
-  if (override) return override
   if (typeof window === "undefined") return DEFAULT_ENTITLEMENT
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
@@ -74,59 +63,10 @@ export function getEntitlement(): Entitlement {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ⚠️ 테스트 계정 — 오픈 전에 반드시 지울 코드입니다.
-//
-// 실제 인증이 아닙니다. 브라우저에 상태를 저장할 뿐이라, 아이디·비밀번호가
-// 코드에 그대로 보이고 누구나 열어볼 수 있습니다.
-// 지금은 "유료 화면이 어떻게 보이는지" 확인하기 위한 검토용입니다.
-//
-// 인증을 붙일 때: 이 블록(TEST_ACCOUNTS · signInWithTestAccount)을 삭제하고
-// 로그인 화면에서 실제 공급자 호출로 교체하세요.
-// ═══════════════════════════════════════════════════════════════════
-
-export interface TestAccount {
-  id: string
-  password: string
-  label: string
-  entitlement: Entitlement
-}
-
-export const TEST_ACCOUNTS: TestAccount[] = [
-  {
-    id: "paid@soulseoul.xyz",
-    password: "soulseoul",
-    label: "크레딧 10장",
-    entitlement: { isLoggedIn: true, credits: 10 },
-  },
-  {
-    id: "trial@soulseoul.xyz",
-    password: "soulseoul",
-    label: "가입 크레딧이 남은 회원",
-    entitlement: { isLoggedIn: true, credits: WELCOME_CREDITS },
-  },
-  {
-    id: "free@soulseoul.xyz",
-    password: "soulseoul",
-    label: "크레딧을 다 쓴 회원",
-    entitlement: { isLoggedIn: true, credits: 0 },
-  },
-]
-
-/** 테스트 계정으로 로그인. 맞으면 true, 틀리면 false */
-export function signInWithTestAccount(id: string, password: string): boolean {
-  const found = TEST_ACCOUNTS.find(
-    (a) => a.id.toLowerCase() === id.trim().toLowerCase() && a.password === password
-  )
-  if (!found) return false
-  saveEntitlement(found.entitlement)
-  return true
-}
-
 /**
  * 로그아웃.
  *
- * Supabase 세션(쿠키)과 브라우저에 남은 검토용 상태를 함께 지웁니다.
+ * Supabase 세션(쿠키)과 브라우저에 남은 값을 함께 지웁니다.
  * 둘 중 하나만 지우면 "로그아웃했는데 여전히 로그인돼 보이는" 상태가 됩니다.
  */
 export async function signOut() {
@@ -180,7 +120,7 @@ export async function consumeCredit(
     }
   }
 
-  // 연결 전 — 검토용 테스트 계정 경로
+  // 연결 전 (로컬 개발) — 브라우저 보관함
   const e = getEntitlement()
   if (e.credits <= 0) return false
   saveEntitlement({ ...e, credits: e.credits - 1 })

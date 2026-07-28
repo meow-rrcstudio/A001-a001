@@ -13,6 +13,7 @@ import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { streamReadingWithGemini } from "@/lib/ai/gemini"
 import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
+import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -44,6 +45,12 @@ export async function POST(request: Request) {
   if (!guard.ok) return guard.response
   const owned = await requireOwnedReading(guard.value, body.readingId)
   if (!owned.ok) return owned.response
+
+  // 같은 판 id 로 몇 번이고 다시 부르면 그때마다 제미나이가 새로 돕니다
+  // (크레딧은 한 장만 냈는데). 해석은 판당 한 번이면 충분하고, 실패해
+  // 다시 받는 경우까지 넉넉히 잡아 10분에 8번으로 둡니다.
+  const limited = rateLimit(rateKey("reading", guard.value?.id, request), 8, 10 * 60_000)
+  if (limited) return limited
 
   const topicKey = body.topicKey as ReadingTopicKey
   const topic = topicContent[topicKey]
