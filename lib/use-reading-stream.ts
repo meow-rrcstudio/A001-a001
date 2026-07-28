@@ -58,9 +58,16 @@ export function useReadingStream() {
             questionLabel,
             plan,
             readingId,
+            // ⚠️ 그림 주소까지 함께 보냅니다. 서버가 받은 그대로 보관하기
+            //    때문에, 여기서 빼면 기록을 다시 열었을 때 카드가 회색
+            //    네모로만 나옵니다 (실제로 그렇게 됐었습니다).
+            //    AI 프롬프트는 name·orientation 만 읽으므로 나머지는
+            //    프롬프트에 섞이지 않습니다.
             cards: cards.map((c) => ({
               name: c.name,
               orientation: c.reversed ? "역방향" : "정방향",
+              reversed: c.reversed,
+              imageUrl: c.imageUrl,
             })),
           }),
         })

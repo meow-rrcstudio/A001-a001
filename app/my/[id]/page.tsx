@@ -25,6 +25,12 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
     void (async () => {
       try {
         const response = await fetch(`/api/readings/${id}`, { cache: "no-store" })
+        // 서버가 못 준 이유를 삼키지 않습니다. 예전에는 조용히 브라우저
+        // 보관함으로 넘어가 "찾을 수 없어요"만 떴고, 왜인지 알 길이
+        // 없었습니다 (실제 원인은 서버 쪽 조회 실패였습니다).
+        if (!response.ok) {
+          console.error("[my/:id] 서버가 타로점을 주지 않았습니다:", response.status)
+        }
         const data = (await response.json()) as { reading: SavedReading | null }
         if (!alive) return
         setReading(data.reading ?? getReading(id))

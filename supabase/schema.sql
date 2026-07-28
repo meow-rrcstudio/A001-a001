@@ -263,3 +263,49 @@ begin
   return v_balance - 1;
 end;
 $$;
+
+
+-- ═══════════════════════════════════════════════════════════════════
+-- 9. 나중에 더한 칸 (이미 만들어진 프로젝트를 따라오게 합니다)
+-- ═══════════════════════════════════════════════════════════════════
+--
+-- ⚠️ 위쪽의 create table 은 "없으면 만든다"라서, 이미 있는 표에는
+--    칸을 더해주지 않습니다. 그래서 새 칸은 반드시 여기에도 적습니다.
+--    이 파일을 통째로 다시 실행하면 옛 프로젝트도 최신 모양이 됩니다.
+--
+--    안 맞춰두면 조용히 이상하게 망가집니다. 실제로 rating 칸이 없는
+--    상태에서, 그 칸을 함께 읽던 "타로점 하나 열기"만 통째로 실패해
+--    "이 타로점은 찾을 수 없어요"가 떴습니다 — 목록은 그 칸을 안 읽어서
+--    멀쩡했기에 원인을 찾기가 더 어려웠습니다.
+
+-- 해석·대화에 남기는 좋아요(1) · 싫어요(-1)
+alter table public.readings
+  add column if not exists rating smallint;
+alter table public.reading_turns
+  add column if not exists rating smallint;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'readings_rating_check') then
+    alter table public.readings
+      add constraint readings_rating_check check (rating in (-1, 1));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'reading_turns_rating_check') then
+    alter table public.reading_turns
+      add constraint reading_turns_rating_check check (rating in (-1, 1));
+  end if;
+end $$;
+
+-- 이 판에 허락된 이어묻기 횟수 (한 장 더 쓸 때마다 늘어납니다)
+alter table public.readings
+  add column if not exists followups_allowed integer not null default 20;
+
+-- 다시 열었을 때 그때 배열 모양 그대로 놓기 위한 값
+alter table public.readings
+  add column if not exists layout_key text;
+alter table public.readings
+  add column if not exists positions text[];
+
+-- 면담 중 더 뽑은 카드
+alter table public.reading_turns
+  add column if not exists cards jsonb;

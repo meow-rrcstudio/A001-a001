@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/server/guard"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
+import { restoreCards } from "@/lib/server/reading-cards"
 
 export const dynamic = "force-dynamic"
 
@@ -50,13 +51,13 @@ export async function GET(request: Request) {
 
   const readings: ReadingSummary[] = (data ?? []).map((row) => {
     const result = row.result as { summary?: string } | null
-    const cards = (row.cards ?? []) as { imageUrl?: string }[]
     return {
       id: row.id,
       at: row.created_at,
       question: row.question,
       summary: result?.summary ?? "",
-      cardImages: cards.map((c) => c.imageUrl ?? ""),
+      // 그림 주소가 빠진 옛 기록은 카드 이름으로 채워 넣습니다
+      cardImages: restoreCards(row.cards).map((c) => c.imageUrl),
     }
   })
 
