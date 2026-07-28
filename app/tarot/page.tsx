@@ -22,7 +22,7 @@ export default async function TarotListPage() {
       <PageBackground variant="aurora" />
       {/* 하단 여백은 광고 띠배너 래퍼(py-10)가 담당 — 40px 간격 유지 */}
       <main className={`relative z-10 mx-auto w-full max-w-site flex-1 px-6 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader backHref="/archive" showShare />
+        <PageHeader backHref="/archive" />
 
         <div className="mb-8">
           <h1 className="text-5xl font-bold tracking-tight text-foreground">Tarot</h1>

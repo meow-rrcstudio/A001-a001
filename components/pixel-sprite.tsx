@@ -9,6 +9,7 @@
 // ┌─ 쓰는 법 ─────────────────────────────────────────────────────────
 // │ 가만히 있는 캐릭터 :  <PixelSprite frame={SHANTI_BASE} className="h-5" />
 // │ 눈을 깜빡이는 캐릭터:  <BlinkingShanti className="h-5" />
+// │ 생각하는 중        :  <BlinkingShanti className="h-5" busy />
 // │
 // │ · 크기   : className 에 높이(h-5 등)만 주면 가로는 비율대로 따라옵니다
 // │ · 색     : className 에 text-* 를 주면 그 색으로 칠해집니다 (기본은 글자색)
@@ -72,11 +73,18 @@ export function BlinkingShanti({
   interval = 4000,
   /** 눈을 감고 있는 시간(ms) */
   duration = 130,
+  /**
+   * 무언가 만들어지는 중인지. 켜면 통통 뜁니다 —
+   * 웅크렸다 튀어오르며 살짝 늘어났다 줄어드는 찰진 움직임입니다.
+   * (동작 정의는 app/globals.css 의 shanti-hop)
+   */
+  busy = false,
 }: {
   className?: string
   title?: string
   interval?: number
   duration?: number
+  busy?: boolean
 }) {
   const [blinking, setBlinking] = useState(false)
 
@@ -108,6 +116,9 @@ export function BlinkingShanti({
   }, [interval, duration])
 
   return (
-    <PixelSprite frame={blinking ? SHANTI_BLINK : SHANTI_BASE} className={className} title={title} />
+    // 뛰는 동안에도 눈은 계속 깜빡입니다 — 둘은 서로 다른 층이라 겹칩니다.
+    <span className={cn("inline-block", busy && "animate-shanti-hop")}>
+      <PixelSprite frame={blinking ? SHANTI_BLINK : SHANTI_BASE} className={className} title={title} />
+    </span>
   )
 }

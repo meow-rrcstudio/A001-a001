@@ -151,12 +151,23 @@ export default function DesignSystemPage() {
                 </span>
               </div>
               <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
-                <BlinkingShanti className="h-10" title="샨티" />
+                <div className="flex items-end gap-6">
+                  <BlinkingShanti className="h-10" title="샨티" />
+                  <BlinkingShanti className="h-10" title="샨티 (생각 중)" busy />
+                </div>
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  &lt;BlinkingShanti /&gt; · 도트 데이터
+                  &lt;BlinkingShanti /&gt; · &lt;BlinkingShanti busy /&gt;
                 </span>
               </div>
             </div>
+
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              눈은 <strong className="font-semibold text-foreground">언제나</strong> 깜박입니다.
+              글을 받아오는 동안에는 <code className="font-mono">busy</code> 를 켜면 제자리에서
+              통통 뜁니다 — 웅크렸다(납작) 뛰어올랐다(길쭉) 착지하며 다시 납작해지는, 발밑을
+              축으로 삼은 찰진 반동입니다 (<code className="font-mono">.animate-shanti-hop</code>,
+              app/globals.css). 움직임을 줄이도록 설정한 기기에서는 뛰지 않습니다.
+            </p>
 
             {/* 상단바 스크림 견본 — 실제로 페이지 위에 깔리는 그라데이션 */}
             <p className="mt-5 text-xs font-medium text-muted-foreground">
@@ -550,9 +561,18 @@ export default function DesignSystemPage() {
             </p>
 
             <p className="mt-4 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
-              ⚠️ 캐릭터(샨티)는 <strong className="font-semibold">타로를 보는 씬에만</strong>{" "}
-              나옵니다. 시안에서 나머지 하위 화면 헤더는 가운데가 비어 있습니다. 어디에나 두면
-              &quot;샨티가 말을 걸어오는 화면&quot;이라는 신호가 흐려집니다.
+              ⚠️ 캐릭터(샨티)는 <strong className="font-semibold">헤더에 있지 않습니다.</strong>{" "}
+              대화 영역으로 내려가, 답변 왼쪽 위에 붙습니다 (클로드가 답변 옆에 로고를 두는 것과
+              같은 자리). 헤더 가운데는 <strong className="font-semibold">제목</strong> 자리이고,
+              제목은 글 상세와 타로 리딩에만 넣습니다. 나머지 하위 화면은 비어 있습니다.
+            </p>
+
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              위 여백은 <strong className="font-semibold text-foreground">떠 있든 아니든 같습니다.</strong>{" "}
+              고정일 때는 <code className="font-mono">top-4</code>, 흐르는 상태일 때는{" "}
+              <code className="font-mono">pt-4</code> — 둘 다 16px 입니다. 헤더를 감싸는 쪽에서{" "}
+              <code className="font-mono">py-*</code> 를 한 겹 더 주면 버튼이 그만큼 내려앉아
+              두 상태가 어긋나므로, 감싸는 쪽은 아래 여백만 줍니다.
             </p>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
@@ -568,20 +588,33 @@ export default function DesignSystemPage() {
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ②-1 variant=&quot;sub&quot; + showShare — 공유가 필요한 글 상세에만 ⋯ 왼쪽에
-              공유 버튼이 하나 더 붙습니다
+              ②-1 variant=&quot;sub&quot; + showShare + title — 글 상세. 공유 버튼은{" "}
+              <strong className="font-semibold">글 상세에만</strong> 답니다 (목록 화면에서
+              &quot;이 페이지를 공유&quot;는 뜻이 흐릿합니다). 제목은 길면 말줄임되고, 양옆 버튼
+              폭과 상관없이 화면 한가운데에 놓입니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border bg-background px-4 pb-8">
-              <PageHeader variant="sub" backHref="#" showShare fixed={false} />
+              <PageHeader
+                variant="sub"
+                backHref="#"
+                showShare
+                title="운명의 수레바퀴 — 돌아가는 것은 바퀴지 내가 아니다"
+                fixed={false}
+              />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              ② variant=&quot;reading&quot; — 뒤로 + <strong className="font-semibold">샨티</strong>{" "}
-              + 더보기(⋯). 타로를 보는 동안에만 씁니다 — 질문 고르기 → 섞기 → 카드 뽑기 → 해석 →
-              대화. 가운데 샨티를 누르면 홈으로 갑니다
+              ② variant=&quot;reading&quot; + title — 뒤로 + 질문 + 더보기(⋯). 타로를 보는
+              동안에만 씁니다 — 질문 고르기 → 섞기 → 카드 뽑기 → 해석 → 대화. 가운데에는
+              지금 보고 있는 질문이 들어갑니다
             </p>
             <div className="mt-2 overflow-hidden rounded-xl border border-border bg-background px-4 pb-8">
-              <PageHeader variant="reading" backHref="#" fixed={false} />
+              <PageHeader
+                variant="reading"
+                backHref="#"
+                title="요즘 일이 잘 안 풀리는데 왜 그럴까요?"
+                fixed={false}
+              />
             </div>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">

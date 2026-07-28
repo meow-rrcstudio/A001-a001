@@ -143,8 +143,12 @@ export function CardDetailView({
           scrolled ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
-        <div className="mx-auto w-full max-w-site px-6 py-3 sm:px-8">
-          <PageHeader backHref={backHref} showShare fixed={false} />
+        {/* ⚠️ 여백을 여기서 주지 않습니다. PageHeader 가 위 16px(pt-4)과
+            좌우 24px(px-6), 그리고 최대 폭(740)을 스스로 가지고 있어서,
+            여기에 한 겹 더 주면 다른 화면보다 버튼이 내려가고 안쪽으로
+            밀려 헤더 위치가 화면마다 달라집니다. 아래 여백만 줍니다. */}
+        <div className="pb-4">
+          <PageHeader backHref={backHref} title={title} showShare fixed={false} />
         </div>
       </div>
 

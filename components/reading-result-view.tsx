@@ -19,6 +19,7 @@ import Link from "next/link"
 import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw } from "lucide-react"
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
 import { CardSpread } from "@/components/card-spread"
+import { BlinkingShanti } from "@/components/pixel-sprite"
 import { PageHeader } from "@/components/page-header"
 import { ChatInput } from "@/components/chat-input"
 import { HEADER_SPACE } from "@/lib/layout"
@@ -118,6 +119,41 @@ function AnswerActions({
       )}
     </div>
   )
+}
+
+/**
+ * 답 위에 놓이는 샨티 표식.
+ *
+ * 헤더에 있던 픽셀 고양이가 여기로 내려왔습니다 — 클로드가 답변 옆에
+ * 로고를 두는 자리와 같습니다. 눈은 늘 깜빡이고, 글이 만들어지는
+ * 중에는 통통 뜁니다.
+ */
+function ShantiMark({ busy = false, elapsed }: { busy?: boolean; elapsed?: string }) {
+  return (
+    <div className="mb-2 flex items-center gap-2 text-foreground">
+      <BlinkingShanti className="h-5" title="샨티" busy={busy} />
+      {elapsed && <span className="text-xs text-muted-foreground">{elapsed}</span>}
+    </div>
+  )
+}
+
+/** 기다린 시간을 "1m 20s" 처럼 보여줍니다 (클로드와 같은 표기) */
+function useElapsed(running: boolean) {
+  const [seconds, setSeconds] = useState(0)
+
+  useEffect(() => {
+    if (!running) {
+      setSeconds(0)
+      return
+    }
+    const startedAt = Date.now()
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [running])
+
+  if (!running) return undefined
+  const m = Math.floor(seconds / 60)
+  return m > 0 ? `${m}m ${seconds % 60}s` : `${seconds}s`
 }
 
 /** 아직 글이 오는 중임을 보여주는 깜빡이는 커서 */
@@ -268,6 +304,10 @@ export function ReadingResultView({
     onTurnsReplace,
   })
 
+  // 기다리는 동안 흐른 시간 (해석 · 면담 따로)
+  const readingElapsed = useElapsed(streaming)
+  const chatElapsed = useElapsed(streamingText !== null)
+
   // 샨티 답이 몇 번째인지 미리 세어둡니다.
   // 평가를 남길 때 이 번호로 "어느 답인지"를 가리킵니다 — 대화는 뒤에
   // 붙기만 하므로 번호가 흔들리지 않습니다.
@@ -345,7 +385,7 @@ export function ReadingResultView({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-site flex-1 flex-col px-6 pb-32 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader variant="reading" backHref={backHref} showShare />
+        <PageHeader variant="reading" backHref={backHref} title={question} />
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">
@@ -357,6 +397,10 @@ export function ReadingResultView({
         {/* 해석 본문 */}
         <article className="mt-6">
           <MiniSpread cards={cards} layoutKey={layoutKey} />
+
+          <div className="mt-4">
+            <ShantiMark busy={streaming} elapsed={readingElapsed} />
+          </div>
 
           {error && (
             <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
@@ -434,6 +478,7 @@ export function ReadingResultView({
             </div>
           ) : (
             <div key={i} className="mt-5">
+              <ShantiMark />
               <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
                 {turn.text}
               </p>
@@ -458,6 +503,7 @@ export function ReadingResultView({
         {/* 지금 흘러들어오는 중인 답 */}
         {streamingText !== null && (
           <div className="mt-5">
+            <ShantiMark busy elapsed={chatElapsed} />
             {streamingText ? (
               <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
                 {streamingText}

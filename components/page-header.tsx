@@ -4,21 +4,24 @@
 // ┌─ 헤더 케이스 ─────────────────────────────────────────────────────
 // │ variant="sub"     뒤로 + 더보기 — 대부분의 하위 화면
 // │                   (아카이빙·타로 목록·글 상세·기록·설정·about·privacy)
-// │ variant="reading" 뒤로 + 샨티 + 더보기 — 타로를 보는 동안만
+// │ variant="reading" 뒤로 + 제목 + 더보기 — 타로를 보는 동안만
 // │                   (질문 고르기 → 섞기 → 카드 뽑기 → 해석 → 대화)
 // │ variant="home"    워드마크 + 햄버거 — 홈 전용
 // │ variant="minimal" 뒤로만 — 로그인처럼 나갈 길만 필요한 화면
 // │
-// │ ⚠️ 캐릭터(샨티)는 타로를 보는 씬에만 나옵니다. 시안에서 나머지
-// │    하위 화면 헤더는 가운데가 비어 있습니다. 캐릭터를 모든 곳에
-// │    두면 "말을 걸어오는 화면"이라는 신호가 흐려집니다.
+// │ ⚠️ 공유 버튼은 글 상세(노션 글)에만 답니다. 목록 화면에서 "이 페이지를
+// │    공유"는 뜻이 흐릿하고, 헤더가 버튼으로 붐빕니다.
+// │
+// │ ⚠️ 캐릭터(샨티)는 이제 헤더에 없습니다. 대화 영역으로 내려갔습니다
+// │    (클로드가 답변 옆에 로고를 두는 것과 같은 자리).
+// │    헤더 가운데는 제목 자리입니다.
 // │
 // │ 홈을 뺀 세 케이스는 화면 위에서 16px 떨어진 자리에 "고정"됩니다.
 // │ 스크롤해도 따라 내려오지 않고 그 자리에 그대로 있습니다.
 // └──────────────────────────────────────────────────────────────────
 //
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
-// │ · 고정 위치   : top-4 (16px)
+// │ · 고정 위치   : top-4 (16px) — 떠 있든 아니든 위 여백은 같습니다
 // │ · 라임 스크림 : h-24 (96px) — 헤더 뒤에 깔려 아래로 투명해집니다
 // │ · 버튼 크기   : h-11 w-11 (44px — 손가락 최소 터치 크기)
 // │ · 본문 여백   : 헤더가 떠 있으므로 페이지는 HEADER_SPACE 만큼 위를 비웁니다
@@ -29,7 +32,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Menu, MoreHorizontal, Share } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
-import { BlinkingShanti } from "@/components/pixel-sprite"
 import { Wordmark } from "@/components/brand-mark"
 
 // 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다).
@@ -44,6 +46,7 @@ const roundButton =
 export function PageHeader({
   backHref,
   showShare = false,
+  title,
   variant = "sub",
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
@@ -51,6 +54,8 @@ export function PageHeader({
 }: {
   backHref?: string
   showShare?: boolean
+  /** 헤더 가운데에 놓을 제목. 길면 말줄임 (글 상세·타로 리딩) */
+  title?: string
   variant?: "sub" | "reading" | "home" | "minimal"
   fixed?: boolean
   className?: string
@@ -88,7 +93,7 @@ export function PageHeader({
           isFixed ? "fixed inset-x-0 top-4 z-50" : "relative pt-4"
         } mx-auto w-full max-w-site px-6 ${className}`}
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="relative flex items-center justify-between gap-3">
           {/* 왼쪽 — 홈은 워드마크, 나머지는 뒤로가기 */}
           {variant === "home" ? (
             <Wordmark className="h-10" priority />
@@ -98,15 +103,20 @@ export function PageHeader({
             </Link>
           )}
 
-          {/* 가운데 — 타로를 보는 씬에만 샨티가 있습니다 */}
-          {variant === "reading" && (
-            <Link
-              href="/"
-              aria-label="홈으로"
-              className="text-brand-ink transition-opacity hover:opacity-70"
+          {/* 가운데 — 제목.
+              양옆 버튼 폭에 상관없이 화면 한가운데 오도록 절대 위치로 놓습니다.
+              좌우 여백은 "넓은 쪽"에 맞춰 양쪽 같은 값을 씁니다 — 한쪽만
+              넓히면 글이 가운데에서 밀려나기 때문입니다.
+                버튼 하나  44 + 사이 16 = 60
+                버튼 둘    44 + 8 + 44 + 사이 16 = 112 (공유가 붙는 글 상세) */}
+          {title && (
+            <p
+              className={`pointer-events-none absolute inset-x-0 mx-auto max-w-site truncate text-center text-[15px] font-semibold text-brand-ink ${
+                showShare ? "px-[112px]" : "px-[60px]"
+              }`}
             >
-              <BlinkingShanti className="h-5" />
-            </Link>
+              {title}
+            </p>
           )}
 
           {/* 오른쪽 — 홈은 햄버거, 하위 화면은 (공유 +) 더보기, 최소형은 없음 */}

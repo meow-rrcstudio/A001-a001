@@ -306,3 +306,42 @@ a[href*="built-with-v0"] {
 body.menu-open #app-shell::after {
   opacity: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   샨티가 생각하는 중일 때 — 통통 뛰기
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 그냥 위아래로 움직이면 밋밋합니다. 뛰기 전에 웅크리고(눌리고),
+   꼭대기에서 살짝 늘어나고, 착지에서 다시 눌립니다 —
+   이 눌림·늘어남이 "찰지다"는 느낌을 만듭니다. */
+@keyframes shanti-hop {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  18% {
+    transform: translateY(0) scaleY(0.84) scaleX(1.08);
+  }
+  46% {
+    transform: translateY(-40%) scaleY(1.1) scaleX(0.94);
+  }
+  72% {
+    transform: translateY(0) scaleY(0.92) scaleX(1.04);
+  }
+  86% {
+    transform: translateY(0) scaleY(1.02);
+  }
+}
+
+.animate-shanti-hop {
+  /* 아래를 딛고 뛰도록 기준점을 발밑에 둡니다 */
+  transform-origin: bottom center;
+  animation: shanti-hop 0.72s cubic-bezier(0.3, 0.7, 0.4, 1) infinite;
+}
+
+/* 움직임을 줄이도록 설정한 사용자에게는 뛰지 않습니다 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shanti-hop {
+    animation: none;
+  }
+}
