@@ -19,6 +19,25 @@ import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
 
 type Mode = "buttons" | "email"
 
+/**
+ * 카카오에 요청할 동의항목.
+ *
+ * ⚠️ 이걸 적어주지 않으면 Supabase 가 기본값으로 이메일(account_email)까지
+ *    같이 요청합니다. 그런데 이메일은 사업자 인증을 마친 "비즈 앱"만
+ *    설정할 수 있는 항목이라, 일반 개발 앱에서는 카카오 콘솔에 아예
+ *    없습니다. 설정하지 않은 항목을 요청하면 카카오가 로그인 창 대신
+ *    KOE205("잘못된 요청 — 서비스 설정에 오류가 있습니다")를 띄웁니다.
+ *
+ * 그래서 일반 앱에서도 켤 수 있는 닉네임만 요청합니다. 카카오 계정에
+ * 이메일이 없어도 되도록 이미 만들어 두었습니다 (app/api/account/route.ts
+ * 의 nameOf, app/my/settings 의 표시 규칙).
+ *
+ * 사업자등록이 끝나 비즈 앱으로 전환하면 콘솔에서 이메일 동의항목을 켜고
+ * 여기에 " account_email" 을 덧붙이면 됩니다. 콘솔에서 켜는 것이 먼저입니다 —
+ * 순서가 바뀌면 다시 KOE205 가 납니다.
+ */
+const KAKAO_SCOPES = "profile_nickname"
+
 export function LoginForm({ next = "/my" }: { next?: string }) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("buttons")
@@ -39,6 +58,7 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
       options: {
         // 돌아올 자리. 지금 보고 있는 주소 기준이라 미리보기에서도 맞습니다.
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        ...(provider === "kakao" ? { scopes: KAKAO_SCOPES } : {}),
       },
     })
     if (error) {
