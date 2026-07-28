@@ -14,18 +14,36 @@ import { READING_JSON_SCHEMA } from "@/lib/ai/reading-schema"
 /** 환경변수로 덮어쓸 수 있습니다 (배포 없이 모델 비교) */
 export const GEMINI_READING_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"
 
-const MAX_OUTPUT_TOKENS = 8000
+/**
+ * 한 번에 받을 수 있는 토큰 한도.
+ *
+ * ⚠️ 생각(thinking)에 쓴 토큰도 여기서 같이 깎입니다. 그래서 생각을 켤
+ *    때는 반드시 넉넉해야 합니다 — 좁으면 생각만 하다 한도에 닿아
+ *    글자를 한 자도 안 내놓고 finishReason=MAX_TOKENS 로 끝납니다.
+ *    화면에는 오류도 글도 없이 빈 칸만 남아서 원인을 찾기가 아주
+ *    어렵습니다 (실제로 그렇게 한 번 막혔습니다).
+ *    최소한 THINKING_BUDGET 의 몇 배는 되게 두세요.
+ */
+const MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16000)
 
 /**
- * ⚠️ 이게 없으면 해석이 통째로 사라집니다.
+ * 답하기 전에 얼마나 생각할지.
  *
- * gemini-2.5-flash 는 기본으로 "생각"을 합니다. 그런데 생각에 쓴 토큰도
- * maxOutputTokens 에서 같이 깎입니다. 페르소나가 긴 데다 JSON 형식까지
- * 강제하니 생각만 하다 한도에 닿아, 글자는 한 자도 안 내놓고
- * finishReason=MAX_TOKENS 로 끝나버립니다 — 화면에는 오류도 글도 없이
- * 빈 칸만 남습니다. 타로 해석은 추론보다 문체가 중요하니 생각을 끕니다.
+ * 처음엔 0(생각 끄기)이었습니다. 위 경고대로 해석이 통째로 사라졌던 걸
+ * 막으려는 응급처치였는데, 진짜 원인은 따로 있었고 한도만 넓히면
+ * 됐습니다. 생각을 끈 채로 두니 카드 여러 장을 엮어 하나의 이야기로
+ * 만드는 힘이 눈에 띄게 떨어졌습니다 — 장마다 따로 노는 해설이 나옵니다.
+ *
+ * 그래서 다시 켜되 상한을 둡니다. 무제한(-1)으로 두면 느려지고 답이
+ * 언제 올지 알 수 없습니다. 환경변수로 배포 없이 조절할 수 있습니다.
  */
-const NO_THINKING = { thinkingBudget: 0 }
+const THINKING_BUDGET = Number(process.env.GEMINI_THINKING_BUDGET || 2048)
+
+// 생각이 한도를 다 먹어버리는 조합(빈 화면)을 아예 만들 수 없게 막습니다.
+// 환경변수로 잘못 조여도 여기서 되돌려 놓습니다.
+const SAFE_MAX_OUTPUT_TOKENS = Math.max(MAX_OUTPUT_TOKENS, THINKING_BUDGET * 4)
+
+const THINKING = { thinkingBudget: THINKING_BUDGET }
 
 export async function runReadingWithGemini({
   topicKey,
@@ -58,7 +76,7 @@ export async function runReadingWithGemini({
         systemInstruction: { parts: [{ text: system }] },
         // 이번에 뽑은 카드만.
         contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, thinkingConfig: NO_THINKING },
+        generationConfig: { maxOutputTokens: SAFE_MAX_OUTPUT_TOKENS, thinkingConfig: THINKING },
       }),
     }
   )
@@ -124,7 +142,7 @@ export async function* streamGeminiJson({
   system,
   user,
   schema,
-  maxOutputTokens = MAX_OUTPUT_TOKENS,
+  maxOutputTokens = SAFE_MAX_OUTPUT_TOKENS,
 }: {
   system: string
   user: string
@@ -146,7 +164,7 @@ export async function* streamGeminiJson({
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: {
           maxOutputTokens,
-          thinkingConfig: NO_THINKING,
+          thinkingConfig: THINKING,
           // 화면이 바로 쓸 수 있는 조각으로 받습니다.
           responseMimeType: "application/json",
           responseSchema: schema,
