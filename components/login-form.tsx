@@ -3,19 +3,18 @@
 //
 // 시안의 세 가지를 그대로 둡니다. 국내 서비스라 카카오가 맨 위입니다.
 //
-// 카카오 버튼만 시안(검정 알약)에서 벗어나 노란색입니다.
-// 카카오가 로그인 버튼 색을 #FEE500 으로 규정하고 있어서, 검정으로 두면
-// 심사에서 걸릴 수 있습니다. 대신 알약 모양·높이는 시안 그대로라 나머지
-// 버튼들과 나란히 놓입니다.
+// 버튼은 시안대로 각진 검정입니다. 카카오도 검정으로 통일했습니다.
 //
-// TODO(카카오): 공식 심볼(말풍선)을 /public/kakao-symbol.svg 로 받아
-//   넣고 아래 버튼 안에 <Image> 로 얹으세요. 로고를 비슷하게 그려 넣는
-//   것은 상표라 하면 안 됩니다 — 지금은 글자만 있습니다.
+// ⚠️ 카카오는 로그인 버튼 색을 #FEE500 으로 규정합니다. 검정으로 두는 것은
+//    그 규정에서 벗어나므로, 카카오 심사 전에 한 번 확인이 필요합니다.
+//    되돌릴 때는 카카오 버튼만 solidBtn 대신 bg-[#FEE500] text-black/85 로 바꾸면 됩니다.
+//
+// 심볼은 components/provider-marks.tsx 에 있습니다.
 "use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { GoogleMark, KakaoMark } from "@/components/provider-marks"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
 
 type Mode = "buttons" | "email"
@@ -95,8 +94,14 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
     router.refresh()
   }
 
+  // 시안: 각진 버튼. 모서리를 둥글리지 않습니다.
+  const btnBase =
+    "flex h-12 w-full items-center justify-center gap-2.5 px-5 text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+  const solidBtn = `${btnBase} bg-brand-ink text-white`
+  const softBtn = `${btnBase} bg-brand-lime-soft text-brand-ink`
+
   const field =
-    "h-12 w-full rounded-full border border-brand-ink/25 bg-background px-5 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-brand-ink"
+    "h-12 w-full border border-brand-ink/25 bg-background px-5 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-brand-ink"
 
   if (!isSupabaseConfigured) {
     return (
@@ -133,9 +138,9 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
 
         {message && <p className="px-2 text-sm text-brand-ink">{message}</p>}
 
-        <Button variant="solid" size="pill" className="w-full" type="submit" disabled={busy}>
+        <button type="submit" disabled={busy} className={solidBtn}>
           {busy ? "잠시만요..." : signUp ? "가입하기" : "로그인"}
-        </Button>
+        </button>
 
         <div className="flex items-center justify-between px-2 pt-1 text-sm text-brand-ink/75">
           <button
@@ -165,33 +170,20 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
 
   return (
     <div className="space-y-3">
-      {/* 카카오 규정색 #FEE500 · 글자는 85% 검정 (카카오 가이드) */}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => signInWith("kakao")}
-        className="flex h-12 w-full items-center justify-center rounded-full bg-[#FEE500] text-[15px] font-semibold text-black/85 transition-opacity hover:opacity-90 disabled:opacity-60"
-      >
+      <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>
+        <KakaoMark />
         카카오로 계속하기
       </button>
-      <Button
-        variant="solid"
-        size="pill"
-        className="w-full"
-        disabled={busy}
-        onClick={() => signInWith("google")}
-      >
+
+      <button type="button" disabled={busy} onClick={() => signInWith("google")} className={solidBtn}>
+        <GoogleMark />
         Google로 계속하기
-      </Button>
-      <Button
-        variant="soft"
-        size="pill"
-        className="w-full"
-        type="button"
-        onClick={() => setMode("email")}
-      >
+      </button>
+
+      {/* 이메일은 보조 — 연라임 바탕에 검정 글씨 (시안) */}
+      <button type="button" onClick={() => setMode("email")} className={softBtn}>
         이메일로 계속하기
-      </Button>
+      </button>
 
       {message && <p className="px-2 pt-1 text-center text-sm text-brand-ink">{message}</p>}
     </div>

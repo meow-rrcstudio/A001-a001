@@ -194,16 +194,28 @@
     -webkit-tap-highlight-color: transparent; /* 모바일 기본 회색 깜빡임 제거 */
     transition: transform 0.08s ease, opacity 0.08s ease;
   }
+  /* ⚠️ 스스로 누름 효과를 가진 것은 여기서 빼야 합니다.
+     data-press-fx="off" 를 달면 아래 기본 효과가 걸리지 않습니다.
+     안 빼면 두 효과가 겹칩니다 — 홈 카드가 검정으로 차오르는데 이
+     opacity 0.65 가 같이 걸려서 검정이 아니라 올리브로 보였고,
+     scale 축소까지 겹쳐 깜빡이는 것처럼 보였습니다. */
   button:active, [role="button"]:active, a[class*="rounded"]:active {
     transform: scale(0.97);
   }
   a:active {
     opacity: 0.65;
   }
+  [data-press-fx="off"]:active {
+    transform: none;
+    opacity: 1;
+  }
   @media (hover: hover) {
     /* 마우스 환경에선 press 축소를 약하게(데스크톱은 hover가 이미 있음) */
     button:active, [role="button"]:active, a[class*="rounded"]:active {
       transform: scale(0.985);
+    }
+    [data-press-fx="off"]:active {
+      transform: none;
     }
   }
 }

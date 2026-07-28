@@ -5,8 +5,10 @@
 // 누름 반응만 다룹니다.
 //
 // ┌─ 누르면 ──────────────────────────────────────────────────────────
-// │ 검정이 왼쪽에서 오른쪽으로 차오르고, 지나간 자리의 글이 우리말로
-// │ 바뀝니다.
+// │ 검정이 왼쪽에서 오른쪽으로 3초에 걸쳐 천천히 차오르고, 지나간 자리의
+// │ 글이 우리말로 바뀝니다. (속도는 duration-[3000ms] 한 곳)
+// │ 일정한 속도로 쓸리도록 ease-linear 입니다 — ease-out 이면 앞부분이
+// │ 훅 지나가고 뒤가 늘어져서 "3초에 걸쳐 차오른다"는 느낌이 안 납니다.
 // │
 // │ 만드는 법: 같은 줄을 두 겹 겹칩니다.
 // │   아래 겹 — 원문 (검정 글씨)
@@ -47,6 +49,10 @@ export function HomeCategoryCard({
       // 키보드로 넘어온 사람도 같은 것을 봅니다
       onFocus={() => setPressed(true)}
       onBlur={release}
+      // 이 줄은 스스로 누름 효과를 가지고 있습니다. 전역 기본 효과
+      // (opacity 0.65 · scale 축소)를 끄지 않으면 검정이 올리브로 뜨고
+      // 크기가 튀어 깜빡이는 것처럼 보입니다. (app/globals.css)
+      data-press-fx="off"
       className="relative block overflow-hidden text-black"
     >
       {/* 아래 겹 — 원문 */}
@@ -60,7 +66,7 @@ export function HomeCategoryCard({
       {/* 위 겹 — 우리말. 왼쪽부터 차오릅니다 */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-black text-white transition-[clip-path] duration-300 ease-out"
+        className="absolute inset-0 bg-black text-white transition-[clip-path] duration-[3000ms] ease-linear"
         style={{ clipPath: pressed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)" }}
       >
         <ListItemCard title={category.label} description={quote.ko} source={quote.koSource} />
