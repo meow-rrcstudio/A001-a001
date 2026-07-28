@@ -31,17 +31,48 @@ import { useAccount } from "@/lib/use-account"
 
 type Turn = ChatTurn
 
+/** 좋아요 · 싫어요 · 아직 안 누름 */
+type Rating = "up" | "down" | null
+
+/** 서버가 쓰는 숫자(1 / -1)와 화면이 쓰는 말 사이를 옮깁니다 */
+function toRating(value: number | null | undefined): Rating {
+  return value === 1 ? "up" : value === -1 ? "down" : null
+}
+
 /**
  * 답변 아래 붙는 액션 줄 — 복사 · 좋아요 · 싫어요 · 새로고침.
  *
- * ⚠️ 좋아요/싫어요는 아직 화면에만 남습니다. 보낼 곳(서버)이 생기면
- *    onRate 를 실제 호출로 이으면 됩니다.
+ * 좋아요/싫어요는 서버에 남습니다. 답변 문체를 고칠 때 쓸 유일한
+ * 단서라, 화면에서만 켜지고 사라지면 안 됩니다.
+ *
  * 새로고침은 마지막 답에만 붙습니다 — 중간 답을 다시 만들면 그 뒤에
  * 이어진 대화와 앞뒤가 안 맞기 때문입니다.
  */
-function AnswerActions({ text, onRegenerate }: { text: string; onRegenerate?: () => void }) {
+function AnswerActions({
+  text,
+  initialRating = null,
+  onRate,
+  onRegenerate,
+}: {
+  text: string
+  initialRating?: Rating
+  /** 1 좋아요 · -1 싫어요 · 0 취소 */
+  onRate?: (rating: number) => void
+  onRegenerate?: () => void
+}) {
   const [copied, setCopied] = useState(false)
-  const [rating, setRating] = useState<"up" | "down" | null>(null)
+  const [rating, setRating] = useState<Rating>(initialRating)
+
+  // 기록에서 다시 열면 평가가 늦게 도착합니다 (서버에서 받아오므로).
+  // 그때 켜둔 상태를 반영해 줍니다.
+  useEffect(() => setRating(initialRating), [initialRating])
+
+  // 같은 값을 다시 누르면 끕니다 (0 = 취소)
+  function rate(next: Exclude<Rating, null>) {
+    const value = rating === next ? null : next
+    setRating(value)
+    onRate?.(value === "up" ? 1 : value === "down" ? -1 : 0)
+  }
 
   async function copy() {
     try {
@@ -64,7 +95,7 @@ function AnswerActions({ text, onRegenerate }: { text: string; onRegenerate?: ()
       </button>
       <button
         type="button"
-        onClick={() => setRating((r) => (r === "up" ? null : "up"))}
+        onClick={() => rate("up")}
         aria-label="좋아요"
         aria-pressed={rating === "up"}
         className={rating === "up" ? btnOn : btn}
@@ -73,7 +104,7 @@ function AnswerActions({ text, onRegenerate }: { text: string; onRegenerate?: ()
       </button>
       <button
         type="button"
-        onClick={() => setRating((r) => (r === "down" ? null : "down"))}
+        onClick={() => rate("down")}
         aria-label="싫어요"
         aria-pressed={rating === "down"}
         className={rating === "down" ? btnOn : btn}
@@ -170,6 +201,7 @@ export function ReadingResultView({
   positions,
   layoutKey,
   readingId,
+  resultRating,
   streaming = false,
   error = null,
   backHref = "/tarot/ask",
@@ -190,6 +222,8 @@ export function ReadingResultView({
   layoutKey?: string
   /** 어느 판인지. 서버가 주인과 이어묻기 횟수를 확인합니다 */
   readingId?: string
+  /** 해석에 이미 매긴 평가 (1 좋아요 · -1 싫어요). 다시 열었을 때 켜둡니다 */
+  resultRating?: number | null
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
   streaming?: boolean
   /** 해석을 못 받았을 때의 사유 */
@@ -234,6 +268,15 @@ export function ReadingResultView({
     onTurnsReplace,
   })
 
+  // 샨티 답이 몇 번째인지 미리 세어둡니다.
+  // 평가를 남길 때 이 번호로 "어느 답인지"를 가리킵니다 — 대화는 뒤에
+  // 붙기만 하므로 번호가 흔들리지 않습니다.
+  const shantiIndexOf: number[] = []
+  let shantiSeen = -1
+  for (const [i, turn] of turns.entries()) {
+    shantiIndexOf[i] = turn.role === "shanti" ? ++shantiSeen : -1
+  }
+
   // ── 한 장 몫을 얼마나 썼는지 ──────────────────────────────────────
   //
   // 크레딧 한 장에 이어묻기 FOLLOWUPS_PER_CREDIT 번이 딸려옵니다. 다 쓰면
@@ -249,6 +292,21 @@ export function ReadingResultView({
   const allowance = FOLLOWUPS_PER_CREDIT * (1 + extraCredits)
   const leftToAsk = allowance - asked
   const outOfAsks = leftToAsk <= 0
+
+  /**
+   * 좋아요/싫어요를 서버에 남깁니다.
+   * shantiTurnIndex 를 빼면 해석 자체에 대한 평가입니다.
+   */
+  function sendRating(rating: number, shantiTurnIndex?: number) {
+    if (!readingId) return
+    // 실패해도 화면은 그대로 둡니다 — 평가 하나 때문에 흐름을 끊을 이유가
+    // 없고, 다시 누르면 또 보냅니다.
+    void fetch("/api/reading/rate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ readingId, rating, shantiTurnIndex }),
+    }).catch(() => {})
+  }
 
   /** 한 장 더 써서 계속 묻기 */
   async function spendAnotherCredit() {
@@ -359,6 +417,8 @@ export function ReadingResultView({
                 .join("\n\n")}`}
               // 이어지는 대화가 시작되면 해석만 다시 만들 수 없습니다
               // (뒤 이야기가 앞의 해석을 딛고 있으니까요)
+              initialRating={toRating(resultRating)}
+              onRate={(rating) => sendRating(rating)}
               onRegenerate={turns.length === 0 ? onRegenerate : undefined}
             />
           )}
@@ -385,6 +445,8 @@ export function ReadingResultView({
               )}
               <AnswerActions
                 text={turn.text}
+                initialRating={toRating(turn.rating)}
+                onRate={(rating) => sendRating(rating, shantiIndexOf[i])}
                 // 새로고침은 마지막 답에만. 중간 답을 다시 만들면 그 뒤에
                 // 이어진 대화와 앞뒤가 안 맞습니다.
                 onRegenerate={i === turns.length - 1 && !busy ? retryLast : undefined}

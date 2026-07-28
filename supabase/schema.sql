@@ -113,6 +113,9 @@ create table if not exists public.readings (
   result       jsonb,
   -- 이 판에 허락된 이어묻기 횟수. 한 장 더 쓸 때마다 늘어납니다.
   followups_allowed integer not null default 20,
+  -- 해석 자체에 대한 좋아요 1 / 싫어요 -1.
+  -- 이어지는 대화의 평가는 reading_turns.rating 에 따로 남습니다.
+  rating       smallint check (rating in (-1, 1)),
   created_at   timestamptz not null default now()
 );
 

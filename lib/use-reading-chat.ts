@@ -23,6 +23,8 @@ export interface ChatTurn {
   text: string
   /** 이 마디에서 새로 뽑힌 카드 (있으면 말 아래에 작게 깔립니다) */
   cards?: PickedCard[]
+  /** 이미 매긴 평가 (1 좋아요 · -1 싫어요). 다시 열었을 때 켜둡니다 */
+  rating?: number | null
 }
 
 /** 서버에 보내는 카드 한 장 */

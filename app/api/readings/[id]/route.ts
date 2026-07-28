@@ -22,7 +22,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const { data } = await admin
     .from("readings")
-    .select("id, created_at, question, layout_key, positions, cards, result")
+    .select("id, created_at, question, layout_key, positions, cards, result, rating")
     .eq("id", id)
     .maybeSingle()
 
@@ -30,7 +30,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const { data: turns } = await admin
     .from("reading_turns")
-    .select("role, body, cards")
+    .select("role, body, cards, rating")
     .eq("reading_id", id)
     .order("id", { ascending: true })
 
@@ -44,10 +44,12 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       positions: data.positions ?? undefined,
       cards: data.cards ?? [],
       result: data.result,
+      rating: data.rating ?? null,
       turns: (turns ?? []).map((t) => ({
         role: t.role as "user" | "shanti",
         text: t.body,
         cards: t.cards ?? undefined,
+        rating: t.rating ?? null,
       })),
     },
   })

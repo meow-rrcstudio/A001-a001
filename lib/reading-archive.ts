@@ -19,6 +19,8 @@ const RECENT_MAX = 4
 export interface ReadingTurn {
   role: "user" | "shanti"
   text: string
+  /** 이 답에 매긴 좋아요(1)·싫어요(-1) */
+  rating?: number | null
   /** 면담 도중 더 뽑은 카드 — 다시 열었을 때도 그대로 보이도록 함께 담습니다 */
   cards?: PickedCard[]
 }
@@ -38,6 +40,8 @@ export interface SavedReading {
   /** 그 배열의 자리 이름 — 다시 열어 이어 물을 때 함께 들려보냅니다 */
   positions?: string[]
   result: ReadingResult
+  /** 해석에 매긴 좋아요(1)·싫어요(-1) */
+  rating?: number | null
   /** 해석을 받은 뒤 이어서 나눈 대화 */
   turns: ReadingTurn[]
 }

@@ -66,6 +66,8 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
       result={reading.result}
       cards={reading.cards}
       layoutKey={reading.layoutKey}
+      readingId={reading.id}
+      resultRating={reading.rating}
       positions={reading.positions}
       backHref="/my"
       initialTurns={reading.turns}
