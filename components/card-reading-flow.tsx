@@ -18,6 +18,9 @@ import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 import { buildReadingPrompt, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
+import { FreeReadingNudge } from "@/components/free-reading-nudge"
+import { saveFreeReading } from "@/lib/save-free-reading"
+import { useAccount } from "@/lib/use-account"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
@@ -130,6 +133,13 @@ export function CardReadingFlow({
   const [stageWidth, setStageWidth] = useState(360)
   // 무대가 flex 로 받아간 실제 높이 — 보드와 부채를 여기에 맞춰 나눕니다
   const [stageBoxHeight, setStageBoxHeight] = useState(560)
+
+  // ── 무료 흐름의 기록 남기기 ─────────────────────────────────────
+  // 카드를 다 뒤집어 프롬프트가 뜨는 순간 한 번만 남깁니다.
+  // ⚠️ savedRef 가 없으면 리렌더마다 다시 저장돼 기록이 줄줄이 쌓입니다.
+  const { account } = useAccount()
+  const savedRef = useRef(false)
+  const [saved, setSaved] = useState<{ id: string; onServer: boolean } | null>(null)
 
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
@@ -370,6 +380,34 @@ export function CardReadingFlow({
     return shuffleStyle ? `${basePrompt}\nshuffle_style=${shuffleStyle}` : basePrompt
   }
 
+  // 프롬프트가 뜨는 순간 = 무료로 한 판을 본 순간입니다. 그때 기록에 남깁니다.
+  const freeDone =
+    mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
+
+  useEffect(() => {
+    if (!freeDone || savedRef.current) return
+    savedRef.current = true
+    void saveFreeReading({
+      question: question.label,
+      topicLabel,
+      cards: selected.map((cardIndex) => {
+        const card = shuffledDeck[cardIndex]
+        return {
+          name: card.nameKo,
+          reversed: cardOrientations[cardIndex] === "역방향",
+          imageUrl: card.imageUrl,
+        }
+      }),
+      layoutKey: question.layoutKey,
+      positions: question.positions.map((p) => p.label),
+      promptText: buildPrompt(),
+    }).then((result) => {
+      if (result) setSaved(result)
+    })
+    // 뽑기가 끝나는 건 판마다 한 번뿐이라, 그 신호만 봅니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freeDone])
+
   const isShuffling = phase === "shuffling"
   let leftoverCounter = 0
 
@@ -394,13 +432,19 @@ export function CardReadingFlow({
                     : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
                   : "카드를 하나씩 뒤집어보는 중이야냥..."
           }
-          promptText={
-            mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
-              ? buildPrompt()
-              : undefined
-          }
+          promptText={freeDone ? buildPrompt() : undefined}
           onHeightChange={(h) => setBubbleReservedHeight((prev) => (h > prev ? h : prev))}
         />
+
+        {/* 프롬프트를 다 보여준 뒤 다음 걸음을 권합니다.
+            로그인 여부에 따라 말이 갈립니다 (components/free-reading-nudge.tsx) */}
+        {freeDone && (
+          <FreeReadingNudge
+            isLoggedIn={account.isLoggedIn}
+            savedId={saved?.id}
+            onServer={saved?.onServer}
+          />
+        )}
       </div>
 
       {isShuffling && (

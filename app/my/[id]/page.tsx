@@ -12,11 +12,14 @@ import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingResultView } from "@/components/reading-result-view"
 import { Button } from "@/components/ui/button"
 import { appendTurn, getReading, replaceTurns, type SavedReading } from "@/lib/reading-archive"
+import { PromptReadingView } from "@/components/prompt-reading-view"
+import { useAccount } from "@/lib/use-account"
 
 export default function SavedReadingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [reading, setReading] = useState<SavedReading | null>(null)
   const [ready, setReady] = useState(false)
+  const { account } = useAccount()
 
   // 서버에 있으면 서버 것을, 없으면 브라우저 보관함을 봅니다.
   // (연결 전에 본 타로점은 아직 브라우저에만 있습니다)
@@ -63,6 +66,21 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
           </Button>
         </main>
       </div>
+    )
+  }
+
+  // 무료 흐름(프롬프트 복사)으로 본 판은 해석이 없습니다. AI 해석 화면을
+  // 그대로 쓰면 제목·요약·섹션이 다 비어 "고장난 기록"처럼 보이므로 따로 그립니다.
+  const result = reading.result as (typeof reading.result & { kind?: string; promptText?: string }) | null
+  if (result?.kind === "prompt" || reading.kind === "prompt") {
+    return (
+      <PromptReadingView
+        question={reading.question}
+        at={reading.at}
+        cards={reading.cards}
+        promptText={result?.promptText ?? reading.promptText}
+        isLoggedIn={account.isLoggedIn}
+      />
     )
   }
 

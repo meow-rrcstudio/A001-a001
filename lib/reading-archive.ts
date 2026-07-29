@@ -44,6 +44,17 @@ export interface SavedReading {
   rating?: number | null
   /** 해석을 받은 뒤 이어서 나눈 대화 */
   turns: ReadingTurn[]
+  /**
+   * 어떤 방식으로 본 타로점인지.
+   *
+   *   "ai"     샨티가 사이트 안에서 읽어준 것 (크레딧 한 장)
+   *   "prompt" 무료 흐름 — 카드만 뽑고 프롬프트를 복사해 밖에서 본 것
+   *
+   * 없으면 "ai" 로 봅니다 (이 칸이 생기기 전에 저장된 기록).
+   */
+  kind?: "ai" | "prompt"
+  /** kind 가 "prompt" 일 때, 복사해 간 프롬프트 원문 */
+  promptText?: string
 }
 
 function readAll(): SavedReading[] {
@@ -109,6 +120,43 @@ export function saveReading(input: {
 }): string {
   const id = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
   const record: SavedReading = { id, at: new Date().toISOString(), turns: [], ...input }
+  writeAll([record, ...readAll()])
+  return id
+}
+
+/**
+ * 무료 흐름(프롬프트 복사)으로 본 타로점을 보관합니다.
+ *
+ * 해석은 우리가 만들지 않았으니 result 에 담을 게 없습니다. 그래도 기록에
+ * 남겨야 합니다 — 무엇을 언제 뽑았는지 남아 있어야 나중에 "이어서 이야기
+ * 하기"를 권할 수 있고, 남지 않으면 무료로 본 사람은 돌아올 이유가 없습니다.
+ *
+ * ⚠️ 같은 판을 두 번 저장하지 않도록 부르는 쪽에서 한 번만 부릅니다
+ *    (components/card-reading-flow.tsx 의 savedRef).
+ */
+export function savePromptReading(input: {
+  question: string
+  topicLabel: string
+  cards: PickedCard[]
+  layoutKey?: string
+  positions?: string[]
+  promptText: string
+}): string {
+  const id = `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  const { promptText, ...rest } = input
+  const record: SavedReading = {
+    id,
+    at: new Date().toISOString(),
+    turns: [],
+    kind: "prompt",
+    promptText,
+    // 목록에 한 줄 요약이 필요합니다. 해석이 없으니 뽑은 카드로 대신합니다.
+    result: {
+      title: rest.question || rest.topicLabel,
+      summary: `카드 ${rest.cards.length}장을 뽑았어요. 프롬프트를 복사해 밖에서 읽어본 타로점입니다.`,
+    } as ReadingResult,
+    ...rest,
+  }
   writeAll([record, ...readAll()])
   return id
 }
