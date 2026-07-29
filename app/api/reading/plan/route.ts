@@ -69,15 +69,23 @@ export async function POST(request: Request) {
 
     readingId = created.id
 
-    const { data: left, error: spendError } = await admin.rpc("spend_credit", {
-      p_user_id: user.id,
-      p_reason: "reading",
-      p_reading_id: readingId,
-      p_key: `reading:${readingId}`,
-    })
+    // ⚠️ 여기서는 크레딧을 깎지 않습니다. 잔액이 있는지만 봅니다.
+    //
+    //    예전에는 이 자리에서 깎았습니다. 그런데 이 호출은 "질문을 고른
+    //    순간"에 일어납니다 — 아직 카드를 섞지도, 뽑지도, 해석을 보지도
+    //    않은 때입니다. 그래서 마음이 바뀌어 뒤로 가거나, 해석이 실패하면
+    //    받은 것 없이 크레딧만 사라졌습니다. ("두 번밖에 안 봤는데 없다"의
+    //    실제 원인입니다)
+    //
+    //    깎는 자리는 해석이 실제로 도착하는 곳(app/api/reading/route.ts)으로
+    //    옮겼습니다. 열쇠가 reading:<판id> 라 판 하나에 한 번만 깎입니다.
+    const { data: balance } = await admin
+      .from("credit_balance")
+      .select("credits")
+      .eq("user_id", user.id)
+      .maybeSingle()
 
-    if (spendError || typeof left !== "number" || left < 0) {
-      // 크레딧이 모자라면 방금 만든 판을 도로 지웁니다 —
+    if ((balance?.credits ?? 0) < 1) {
       // 시작도 못 한 판이 기록에 남으면 안 됩니다.
       await admin.from("readings").delete().eq("id", readingId)
       return NextResponse.json(

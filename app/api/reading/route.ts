@@ -86,6 +86,31 @@ export async function POST(request: Request) {
     )
   }
 
+  // ── 크레딧은 여기서 깎습니다 ────────────────────────────────────────
+  // 질문을 고른 순간이 아니라, 해석을 실제로 만들기 직전입니다. 카드를
+  // 다 뽑고 해석을 받으러 온 상태라 "받은 것 없이 사라지는" 일이 없습니다.
+  // 열쇠가 reading:<판id> 라 같은 판을 다시 읽어도 두 번 깎이지 않습니다
+  // (새로고침·다시 만들기가 공짜인 이유).
+  if (owned.value) {
+    const admin = getSupabaseAdmin()
+    if (!admin) return NextResponse.json({ error: "서버 설정이 아직 없어요." }, { status: 503 })
+
+    const { data: left, error: spendError } = await admin.rpc("spend_credit", {
+      p_user_id: guard.value!.id,
+      p_reason: "reading",
+      p_reading_id: owned.value.id,
+      p_key: `reading:${owned.value.id}`,
+    })
+
+    if (spendError || typeof left !== "number" || left < 0) {
+      if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
+      return NextResponse.json(
+        { error: "크레딧이 부족해요.", needCredits: true },
+        { status: 402 }
+      )
+    }
+  }
+
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {

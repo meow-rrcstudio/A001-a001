@@ -67,6 +67,22 @@ function writeAll(list: SavedReading[]) {
   }
 }
 
+/**
+ * 브라우저 보관함을 통째로 비웁니다 — 로그아웃할 때 부릅니다.
+ *
+ * ⚠️ 이걸 안 하면 로그아웃한 뒤에도 "최근 본 타로점"과 기록 화면에 앞
+ *    사람이 본 타로점이 그대로 남습니다. 한 기기를 여럿이 쓰면 남의
+ *    질문이 보이는 셈이라, 로그아웃은 반드시 여기까지 지워야 합니다.
+ */
+export function clearAll() {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.removeItem(KEY)
+  } catch {
+    // 무시
+  }
+}
+
 /** 최신순 전체 목록 */
 export function listAll(): SavedReading[] {
   return readAll().sort((a, b) => b.at.localeCompare(a.at))

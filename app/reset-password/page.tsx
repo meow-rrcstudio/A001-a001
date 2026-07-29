@@ -18,6 +18,7 @@ import { Wordmark } from "@/components/brand-mark"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
+import { translateAuthError } from "@/lib/auth-messages"
 
 type State = "checking" | "ready" | "expired" | "done"
 
@@ -60,14 +61,11 @@ export default function ResetPasswordPage() {
 
     setBusy(false)
 
+    // 사유는 lib/auth-messages.ts 한 곳에서 우리말로 옮깁니다.
+    // 예전에는 못 알아본 사유를 영어 그대로 띄웠는데, 읽는 사람에게는
+    // 무슨 말인지도, 무엇을 해야 하는지도 알 수 없었습니다.
     if (error) {
-      setMessage(
-        /should be at least/i.test(error.message)
-          ? "비밀번호는 6자 이상이어야 해요."
-          : /different from the old/i.test(error.message)
-            ? "예전 비밀번호와 다른 것으로 정해주세요."
-            : error.message
-      )
+      setMessage(translateAuthError(error.message))
       return
     }
 

@@ -82,6 +82,10 @@ export async function signOut() {
   } catch {
     // 무시
   }
+  // 브라우저에 남은 타로점 기록도 함께 지웁니다 — 안 지우면 로그아웃 뒤에도
+  // 앞 사람이 본 타로점이 "최근 본 타로점"과 기록 화면에 그대로 남습니다.
+  const { clearAll } = await import("@/lib/reading-archive")
+  clearAll()
 }
 
 function saveEntitlement(e: Entitlement) {

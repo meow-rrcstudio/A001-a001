@@ -16,6 +16,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { GoogleMark, KakaoMark } from "@/components/provider-marks"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
+import { translateAuthError } from "@/lib/auth-messages"
 
 type Mode = "buttons" | "email" | "forgot"
 
@@ -84,7 +85,7 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
     })
     if (error) {
       setBusy(false)
-      setMessage(error.message)
+      setMessage(translateAuthError(error.message))
     }
     // 성공하면 이 창이 그대로 로그인 페이지로 넘어갑니다 (busy 유지)
   }
@@ -121,7 +122,7 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
     }
     // 너무 자주 보내면 Supabase 가 막습니다 — 그건 알려줘야 합니다.
     if (result.error && /rate limit|for security purposes|too many/i.test(result.error.message)) {
-      setMessage(translate(result.error.message))
+      setMessage(translateAuthError(result.error.message))
       return
     }
 
@@ -157,7 +158,7 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
     }
 
     if (result.error) {
-      setMessage(translate(result.error.message))
+      setMessage(translateAuthError(result.error.message))
       return
     }
 
@@ -342,28 +343,4 @@ async function withTimeout<T>(promise: Promise<T>): Promise<T | "timeout"> {
     promise,
     new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), TIMEOUT_MS)),
   ])
-}
-
-/** Supabase 가 영어로 주는 사유를 사람 말로 */
-function translate(raw: string): string {
-  // "after 57 seconds" 처럼 기다릴 시간을 알려줄 때가 있습니다.
-  // "잠시 뒤"보다 "57초 뒤"가 훨씬 낫습니다 — 얼마나 기다릴지 알 수 있으니까요.
-  const wait = raw.match(/after (\d+) seconds?/i)
-  if (wait) return `${wait[1]}초 뒤에 다시 시도해 주세요.`
-
-  const map: [RegExp, string][] = [
-    [/invalid login credentials/i, "이메일이나 비밀번호가 맞지 않아요."],
-    [/user already registered|already been registered/i, "이미 가입된 이메일이에요. 로그인해 주세요."],
-    [/password should be at least/i, "비밀번호는 6자 이상이어야 해요."],
-    [/email not confirmed/i, "메일함에서 인증 링크를 먼저 눌러주세요."],
-    [/provider is not enabled/i, "이 로그인 방식이 아직 켜져 있지 않아요."],
-    [/rate limit|too many|for security purposes/i, "잠시 뒤에 다시 시도해 주세요."],
-    // 가입 순간 profiles 트리거가 실패하면 이 말이 옵니다.
-    // (supabase/schema.sql 의 handle_new_user 를 확인하세요)
-    [/database error/i, "계정을 만들다 막혔어요. 잠시 뒤 다시 시도해 주세요."],
-    [/invalid email/i, "이메일 형식이 올바르지 않아요."],
-    [/signups not allowed|signup is disabled/i, "지금은 가입을 받고 있지 않아요."],
-  ]
-  for (const [pattern, korean] of map) if (pattern.test(raw)) return korean
-  return raw
 }

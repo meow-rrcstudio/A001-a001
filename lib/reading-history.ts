@@ -51,6 +51,16 @@ export async function getHistory(year: number, month: number): Promise<HistoryDa
 
   try {
     const response = await fetch("/api/readings", { cache: "no-store" })
+
+    // ⚠️ 로그인하지 않았으면(401) 브라우저 보관함을 보지 않습니다.
+    //    예전에는 여기서 보관함으로 떨어졌는데, 그러면 로그아웃한 뒤에도
+    //    앞서 로그인해서 본 타로점이 그대로 보였습니다. 남의 기기에서
+    //    남의 질문이 보이는 셈입니다.
+    //    보관함은 "서버가 아예 없을 때"(연결 전 · 로컬 개발)만 씁니다 —
+    //    그때 서버는 200 과 함께 readings: null 을 줍니다.
+    if (response.status === 401) return []
+    if (!response.ok) return []
+
     const data = (await response.json()) as {
       readings: { id: string; at: string; question: string; summary: string; cardImages: string[] }[] | null
     }

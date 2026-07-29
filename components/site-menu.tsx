@@ -100,6 +100,12 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
     void (async () => {
       try {
         const response = await fetch("/api/readings?limit=4", { cache: "no-store" })
+        // 로그아웃 상태(401)에서는 브라우저 보관함을 보지 않습니다 —
+        // 앞 사람이 본 타로점이 남아 보이기 때문입니다 (lib/reading-history.ts 와 같은 규칙)
+        if (response.status === 401 || !response.ok) {
+          setRecent([])
+          return
+        }
         const data = (await response.json()) as {
           readings: { id: string; question: string }[] | null
         }
