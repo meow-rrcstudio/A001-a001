@@ -285,7 +285,7 @@ export function CardReadingFlow({
   const BOARD_WIDTH = 356
   const BOARD_HEIGHT_REVEAL = 348
 
-  const SLIDER_H = 86
+  const SLIDER_H = 76
 
   const stageHeight = phase === "revealing" ? BOARD_HEIGHT_REVEAL + 40 : stageBoxHeight
 
@@ -305,7 +305,9 @@ export function CardReadingFlow({
 
   const fanRadius = Math.max(220, Math.min(stageWidth * 0.85, 340))
   const FAN_BLEED = 60
-  const FAN_LIFT = 40 
+  
+  // ── 요구사항 반영: 카드를 기존보다 10px 더 올림 (40 -> 50) ──
+  const FAN_LIFT = 50 
 
   const fanApexY =
     Math.max(
@@ -591,8 +593,9 @@ export function CardReadingFlow({
         </div>
       )}
 
+      {/* ── 요구사항 반영: 손잡이 배경 알파값 90% (bg-background/90) 적용 ── */}
       {phase === "selecting" && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-glass px-6 py-5 backdrop-blur-[var(--glass-blur)] sm:px-8">
+        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/90 px-6 py-4 backdrop-blur-[var(--glass-blur)] sm:px-8">
           <input
             type="range"
             min={0}
@@ -601,14 +604,14 @@ export function CardReadingFlow({
             value={fanRoll}
             onChange={(e) => setFanRoll(Number(e.target.value))}
             aria-label="카드 굴리기"
+            /* ── 요구사항 반영: 손잡이 동그라미 크기 20x20으로 변경 ── */
             className="mx-auto block h-1 w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
-              [&::-webkit-slider-thumb]:h-[34px] [&::-webkit-slider-thumb]:w-[34px] [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:h-[20px] [&::-webkit-slider-thumb]:w-[20px] [&::-webkit-slider-thumb]:appearance-none
               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
           />
         </div>
       )}
 
-      {/* ── 고르러 가기 버튼 z-index를 최상단(z-[100])으로 수정 ── */}
       {isShuffling && shuffleStep >= 1 && (
         <button
           type="button"
