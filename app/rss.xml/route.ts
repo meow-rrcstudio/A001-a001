@@ -39,7 +39,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Soul Seoul</title>
+    <title>SoulSeoul</title>
     <link>${BASE_URL}</link>
     <description>타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브</description>
     <language>ko</language>

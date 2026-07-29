@@ -167,15 +167,15 @@ export function buildChatMessages(
   if (reading) {
     parts.push(
       `### 이 몸이 앞서 해준 해석\n${reading.title}\n\n${reading.summary}\n\n` +
-        `키워드: ${reading.keywords.join(" · ")}\n\n` +
-        reading.sections.map((s) => `[${s.heading}]\n${s.body}`).join("\n\n")
+      `키워드: ${reading.keywords.join(" · ")}\n\n` +
+      reading.sections.map((s) => `[${s.heading}]\n${s.body}`).join("\n\n")
     )
   }
 
   if (turns.length > 0) {
     parts.push(
       `### 그 뒤로 오간 말\n` +
-        turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
+      turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
     )
   }
 
@@ -286,7 +286,7 @@ one_line="🍿 한 줄 요약"|인용부호|이_조합의_핵심을_유쾌하게
 followup="더 물어봐도 좋다냥"|이어서_궁금해할_질문_1~2개_제안|예:"다른 카드로 뽑으면 또 다른 프로그램이 나올지 궁금하면 다시 뽑아보라냥.",
 return="다시 찾아오라냥"|아래_두_줄을_그대로_출력:
 🔮 타로 다시 보러 가기 → https://soulseoul.xyz/tarot/reading
-🌙 Soul Seoul → https://soulseoul.xyz
+🌙 SoulSeoul → https://soulseoul.xyz
 }
 @content_rule{
 전체=재미위주|무겁지_않게(가벼운_톤)|BUT_카드가_갈등이면_갈등을_드러내라|억지_해피엔딩·억지_화해_금지,

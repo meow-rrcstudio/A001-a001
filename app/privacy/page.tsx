@@ -8,7 +8,7 @@ import { HEADER_SPACE } from "@/lib/layout"
 
 export const metadata: Metadata = {
   title: "privacy statement",
-  description: "Soul Seoul의 privacy statement입니다.",
+  description: "SoulSeoul의 privacy statement입니다.",
 }
 
 // 본문 단락 공통 스타일
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           privacy statement
         </h1>
         <p className={`mt-4 ${pClass}`}>
-          Soul Seoul(soulseoul.xyz, 이하 &ldquo;본 사이트&rdquo;)은 타로·명상·점성술을 기록하는
+          SoulSeoul(soulseoul.xyz, 이하 &ldquo;본 사이트&rdquo;)은 타로·명상·점성술을 기록하는
           개인 아카이브 블로그입니다. 본 사이트는 방문자의 개인정보를 소중히 여기며, 관련 법령을
           준수합니다. 이 문서는 본 사이트가 어떤 정보를 수집하고 어떻게 이용하는지 안내합니다.
         </p>

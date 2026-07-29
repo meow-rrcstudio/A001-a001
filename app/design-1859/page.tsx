@@ -100,7 +100,7 @@ export default function DesignSystemPage() {
         <main className="min-w-0 max-w-site flex-1">
           <p className="mb-2 font-serif text-sm text-primary">Private Styleguide</p>
           <h1 className="font-serif text-4xl font-medium tracking-tight text-foreground">
-            Soul Seoul 디자인시스템
+            SoulSeoul 디자인시스템
           </h1>
           <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
             이 페이지는 링크되지 않은 비공개 페이지입니다. 여기 보이는 모든 색과 글꼴은{" "}

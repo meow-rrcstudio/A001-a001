@@ -25,7 +25,7 @@ export function Wordmark({
   return (
     <Image
       src="/wordmark.png"
-      alt="Soul Seoul"
+      alt="SoulSeoul"
       width={1229}
       height={287}
       priority={priority}
