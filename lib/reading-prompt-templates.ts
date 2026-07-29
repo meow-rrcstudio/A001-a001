@@ -182,7 +182,10 @@ export function buildChatMessages(
   parts.push(`### 이번 물음\n${message}`)
 
   return {
-    system: [character.persona, CHAT_INSTRUCTION].join("\n\n"),
+    // ⚠️ persona 가 아니라 chatPersona 입니다. 해석용 페르소나에는 출력
+    //    구조(제목·키워드·섹션)가 박혀 있어서, 대화에서도 리딩 한 편을
+    //    다시 쓰게 만듭니다 (lib/character.ts 주석 참고).
+    system: [character.chatPersona, CHAT_INSTRUCTION].join("\n\n"),
     user: parts.join("\n\n"),
   }
 }

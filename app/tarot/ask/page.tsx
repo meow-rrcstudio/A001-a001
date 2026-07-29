@@ -70,7 +70,9 @@ export default function AskPage() {
       return
     }
     const as = new URLSearchParams(window.location.search).get("as")
-    router.replace(as ? `/?as=${as}` : "/")
+    // 크레딧이 없으면 무료 흐름으로 보냅니다. 홈으로 보내면 "왜 튕겼지?"
+    // 가 되는데, 주제 고르기로 보내면 무료로도 볼 수 있는 길이 이어집니다.
+    router.replace(as ? `/tarot/reading?as=${as}` : "/tarot/reading")
   }, [router, accountReady, account])
 
   async function submit(text: string) {

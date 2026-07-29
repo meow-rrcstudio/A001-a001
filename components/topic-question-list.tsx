@@ -55,7 +55,8 @@ export function TopicQuestionList({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-site flex-1 flex-col px-6 pb-10 sm:px-8 ${HEADER_SPACE}`}>
-        <PageHeader variant="reading" backHref="/" />
+        {/* 뒤로 가면 주제 고르기입니다 (홈으로 나가버리면 흐름이 끊깁니다) */}
+        <PageHeader variant="reading" backHref="/tarot/reading" />
 
         <ReadingCharacterBubble placement="top" message={reactionLine} />
 
