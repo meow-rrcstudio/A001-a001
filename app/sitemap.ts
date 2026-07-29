@@ -5,10 +5,12 @@ const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || "https://soulseoul.xyz").r
 
 export const revalidate = 60
 
-function toIsoDate(value: string | null | undefined) {
+// 날짜 문자열을 Date 로 바꿉니다. 값이 없거나 이상하면 null 을 돌려줍니다
+// (Invalid Date 가 그대로 넘어가면 sitemap 의 lastmod 가 깨집니다)
+function toDate(value: string | null | undefined) {
   if (!value) return null
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -27,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .filter((s) => s.slug.length > 0)
       .map((s) => ({
         url: `${BASE_URL}/blog/${encodeURIComponent(s.slug)}`,
-        lastModified: s.publishedDate ? new Date(s.publishedDate) : now,
+        lastModified: toDate(s.publishedDate) ?? now,
       })),
   ]
 

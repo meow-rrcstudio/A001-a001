@@ -84,12 +84,12 @@ export default async function BlogPostPage({
   const toAdjacent = (p: typeof prev): AdjacentCard | null =>
     p
       ? {
-          slug: p.slug,
-          title: p.title,
-          coverImage: resolveCardImage(p.slug, p.coverImage),
-          arcana: p.arcana,
-          suit: p.suit,
-        }
+        slug: p.slug,
+        title: p.title,
+        coverImage: resolveCardImage(p.slug, p.coverImage),
+        arcana: p.arcana,
+        suit: p.suit,
+      }
       : null
 
   // 구조화 데이터(JSON-LD) — 구글이 글의 제목·날짜·이미지를 정확히 이해하도록 돕는 표식.
@@ -102,7 +102,7 @@ export default async function BlogPostPage({
     datePublished: post.publishedDate || undefined,
     image: resolveCardImage(slug, post.coverImage) || `${baseUrl}/og-image.png`,
     author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/about` },
-    publisher: { "@type": "Organization", name: "Soul Seoul", url: baseUrl },
+    publisher: { "@type": "Organization", name: "SoulSeoul", url: baseUrl },
     mainEntityOfPage: `${baseUrl}/blog/${slug}`,
   }
 

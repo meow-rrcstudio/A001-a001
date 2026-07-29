@@ -10,7 +10,7 @@ import { HEADER_SPACE } from "@/lib/layout"
 export const metadata: Metadata = {
   title: "about",
   description:
-    "Soul Seoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",
+    "SoulSeoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",
 }
 
 const pClass = "text-[15px] leading-relaxed text-muted-foreground"
@@ -31,7 +31,7 @@ export default function aboutPage() {
         </div>
 
         <p className={`mt-6 ${pClass}`}>
-          Soul Seoul은 서울(Seoul)과 영혼(Soul)을 겹쳐 지은 이름입니다. 타로를 중심으로 명상,
+          SoulSeoul은 서울(Seoul)과 영혼(Soul)을 겹쳐 지은 이름입니다. 타로를 중심으로 명상,
           요가, 신화, 점성술을 기록하고 연결하는 개인적인 아카이브이자, 그 기록을 나누는
           공간입니다.
         </p>

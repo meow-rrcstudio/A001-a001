@@ -42,7 +42,7 @@ export default function LoginPage() {
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 ${HEADER_SPACE}`}>
         <h1>
           <Wordmark className="mx-auto h-12" priority />
-          <span className="sr-only">Soul Seoul</span>
+          <span className="sr-only">SoulSeoul</span>
         </h1>
 
         {/* UFO·고양이 일러스트 (전달받은 원본 PNG 기반).
