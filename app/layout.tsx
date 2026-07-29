@@ -31,7 +31,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://soulseoul.xyz'
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'SoulSeoul — 타로와 명상 아카이브',
+    default: 'SoulSeoul — 소울서울, 타로와 명상 아카이브',
     template: '%s | SoulSeoul',
   },
   description: '타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브',
