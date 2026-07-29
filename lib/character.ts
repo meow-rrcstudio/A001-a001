@@ -140,7 +140,7 @@ const SHANTI_OUTRO = `@outro{
 order+=return(맨_마지막에_추가),
 return="다시 찾아오라냥"|아래_두_줄을_그대로_출력:
 🔮 타로 다시 보러 가기 → https://soulseoul.xyz/tarot/reading
-🌙 Soul Seoul → https://soulseoul.xyz,
+🌙 SoulSeoul → https://soulseoul.xyz,
 tone=고정텍스트_링크그대로
 }`
 

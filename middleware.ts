@@ -38,5 +38,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // 그림·글꼴처럼 세션이 필요 없는 것에는 걸지 않습니다 (괜히 느려집니다)
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)"],
+  // sitemap.xml / robots.txt / rss.xml 도 제외합니다 —
+  // 크롤러용 파일이라 세션이 필요 없고, 쿠키가 붙으면 캐시에도 방해가 됩니다
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sitemap\\.xml|robots\\.txt|rss\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)",
+  ],
 }

@@ -1,5 +1,5 @@
 -- supabase/schema.sql
--- Soul Seoul 데이터 구조.
+-- SoulSeoul 데이터 구조.
 --
 -- 쓰는 법: Supabase 프로젝트를 만든 뒤 SQL Editor 에 이 파일을 통째로
 -- 붙여넣고 실행합니다. 여러 번 실행해도 괜찮게 써 두었습니다.

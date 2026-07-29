@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
       >
         <h1>
           <Wordmark className="mx-auto h-12" priority />
-          <span className="sr-only">Soul Seoul</span>
+          <span className="sr-only">SoulSeoul</span>
         </h1>
 
         <div className="mt-10">

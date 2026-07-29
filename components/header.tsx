@@ -9,7 +9,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-site items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
           <Sparkle className="h-4 w-4 text-primary" aria-hidden="true" />
-          <span>Soul Seoul</span>
+          <span>SoulSeoul</span>
         </Link>
 
         <nav aria-label="주요 메뉴">

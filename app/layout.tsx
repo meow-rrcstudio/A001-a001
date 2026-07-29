@@ -31,8 +31,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://soulseoul.xyz'
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Soul Seoul — Shānti',
-    template: '%s | Soul Seoul',
+    default: 'SoulSeoul — 소울서울, 타로와 명상 아카이브',
+    template: '%s | SoulSeoul',
   },
   description: '타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브',
   generator: 'v0.app',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   // 링크 공유 시 미리보기 카드 기본값 — 커버 이미지 없는 페이지는 이 이미지가 나갑니다
   openGraph: {
-    siteName: 'Soul Seoul',
+    siteName: 'SoulSeoul',
     type: 'website',
     // ?v=2 : 이미지를 바꿀 때 숫자를 올리면 카톡 등이 캐시를 버리고 새로 가져갑니다
     images: [{ url: '/og-image.png?v=2', width: 1200, height: 630 }],
