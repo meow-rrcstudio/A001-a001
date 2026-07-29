@@ -16,22 +16,44 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { readingTopics } from "@/lib/reading-topics"
 import { resetReadingDeck } from "@/lib/reading-session"
 import { useAccount } from "@/lib/use-account"
+import { canUseInsiteReading } from "@/lib/reading-entitlement"
 
 export default function ReadingTopicsPage() {
+  const router = useRouter()
   const { account, ready } = useAccount()
+  // 확인이 끝나기 전에는 아무것도 그리지 않습니다 — 크레딧이 있는 사람에게
+  // 무료 화면이 잠깐 스쳤다 바뀌면 "왜 이 화면이 떴지?" 가 됩니다.
+  const [checked, setChecked] = useState(false)
 
   // 새 판을 시작하는 자리라 덱을 새로 섞어둡니다.
   // (안 하면 앞 판에서 쓰던 순서가 그대로 이어집니다)
   useEffect(() => {
     resetReadingDeck()
   }, [])
+
+  // ⚠️ 이 화면은 무료 흐름의 입구입니다. 크레딧이 있는 회원은 주제를 고를
+  //    필요가 없습니다 — 샨티에게 바로 물어보면 되니까요. 여기 세워두면
+  //    돈을 낸 사람이 무료 화면을 먼저 만나는 셈이 됩니다.
+  //    판단은 lib/reading-entitlement.ts 한 곳에서만 합니다
+  //    (components/topic-question-list.tsx 도 같은 규칙을 씁니다).
+  useEffect(() => {
+    if (!ready) return
+    if (canUseInsiteReading(account)) {
+      router.replace("/tarot/ask")
+      return
+    }
+    setChecked(true)
+  }, [router, ready, account])
+
+  if (!checked) return <div className="min-h-screen bg-background" />
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -64,25 +86,16 @@ export default function ReadingTopicsPage() {
             · 로그인 전         → 로그인하면 직접 물어볼 수 있다는 안내 (시안 문구)
             ⚠️ 확인이 끝나기 전에는 그리지 않습니다. 잘못된 말이 스쳤다
                바뀌면 "방금 뭐라고 했지?" 가 됩니다. */}
-        {ready && (
-          <div className="mt-10 flex justify-center">
-            {account.isLoggedIn && account.credits > 0 ? (
-              <Link
-                href="/tarot/ask"
-                className="flex h-12 items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
-              >
-                직접 질문하기
-              </Link>
-            ) : (
-              <Link
-                href={account.isLoggedIn ? "/my/credits" : "/login?next=/tarot/ask"}
-                className="flex h-12 items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
-              >
-                {account.isLoggedIn ? "크레딧으로 직접 질문하기" : "로그인 하고 직접 질문하기"}
-              </Link>
-            )}
-          </div>
-        )}
+        {/* 크레딧이 있는 회원은 위에서 이미 /tarot/ask 로 보냈으니, 여기
+            도달하는 사람은 둘 중 하나입니다 — 로그인 전이거나 크레딧이 없거나. */}
+        <div className="mt-10 flex justify-center">
+          <Link
+            href={account.isLoggedIn ? "/my/credits" : "/login?next=/tarot/ask"}
+            className="flex h-12 items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            {account.isLoggedIn ? "크레딧으로 직접 질문하기" : "로그인 하고 직접 질문하기"}
+          </Link>
+        </div>
       </main>
     </div>
   )
