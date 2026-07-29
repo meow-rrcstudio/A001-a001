@@ -27,23 +27,36 @@ export const GEMINI_READING_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flas
 const MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_MAX_OUTPUT_TOKENS || 16000)
 
 /**
- * 답하기 전에 얼마나 생각할지.
+ * 답하기 전에 얼마나 생각할지 — 해석용과 대화용을 따로 둡니다.
  *
  * 처음엔 0(생각 끄기)이었습니다. 위 경고대로 해석이 통째로 사라졌던 걸
  * 막으려는 응급처치였는데, 진짜 원인은 따로 있었고 한도만 넓히면
  * 됐습니다. 생각을 끈 채로 두니 카드 여러 장을 엮어 하나의 이야기로
  * 만드는 힘이 눈에 띄게 떨어졌습니다 — 장마다 따로 노는 해설이 나옵니다.
  *
- * 그래서 다시 켜되 상한을 둡니다. 무제한(-1)으로 두면 느려지고 답이
- * 언제 올지 알 수 없습니다. 환경변수로 배포 없이 조절할 수 있습니다.
+ * ⚠️ 둘을 같은 값으로 두면 안 됩니다.
+ *    해석은 카드 3~10장을 하나의 이야기로 엮는 일이라 생각이 값을 합니다.
+ *    대화는 2~5문장짜리 답이라, 같이 올리면 품질은 그대로인데 기다림만
+ *    길어집니다. 대화는 답이 빨리 오는 것 자체가 품질입니다.
+ *
+ * ⚠️ 생각하는 동안에는 글자가 한 자도 흘러나오지 않습니다. 그래서 예산을
+ *    올리면 "첫 글자가 뜨기까지의 빈 화면"이 그만큼 길어집니다.
+ *    무제한(-1)으로 두면 언제 올지 알 수 없어 쓰지 않습니다.
+ *
+ * 요청 횟수는 예산과 무관합니다 — 무료 등급의 하루 한도(요청 수)는
+ * 이 값을 올려도 줄지 않습니다. 늘어나는 것은 토큰과 대기 시간입니다.
+ *
+ * 환경변수로 배포 없이 조절할 수 있습니다.
  */
-const THINKING_BUDGET = Number(process.env.GEMINI_THINKING_BUDGET || 2048)
+const THINKING_BUDGET = Number(process.env.GEMINI_THINKING_BUDGET || 4096)
+const CHAT_THINKING_BUDGET = Number(process.env.GEMINI_CHAT_THINKING_BUDGET || 1024)
 
 // 생각이 한도를 다 먹어버리는 조합(빈 화면)을 아예 만들 수 없게 막습니다.
 // 환경변수로 잘못 조여도 여기서 되돌려 놓습니다.
 const SAFE_MAX_OUTPUT_TOKENS = Math.max(MAX_OUTPUT_TOKENS, THINKING_BUDGET * 4)
 
 const THINKING = { thinkingBudget: THINKING_BUDGET }
+const CHAT_THINKING = { thinkingBudget: CHAT_THINKING_BUDGET }
 
 export async function runReadingWithGemini({
   topicKey,
@@ -143,11 +156,17 @@ export async function* streamGeminiJson({
   user,
   schema,
   maxOutputTokens = SAFE_MAX_OUTPUT_TOKENS,
+  /**
+   * 무엇을 만드는 중인지 — 생각 예산이 갈립니다.
+   * "reading" 은 넉넉히, "chat" 은 짧게 (위 THINKING_BUDGET 주석 참고).
+   */
+  purpose = "reading",
 }: {
   system: string
   user: string
   schema: unknown
   maxOutputTokens?: number
+  purpose?: "reading" | "chat"
 }): AsyncGenerator<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
@@ -164,7 +183,7 @@ export async function* streamGeminiJson({
         contents: [{ role: "user", parts: [{ text: user }] }],
         generationConfig: {
           maxOutputTokens,
-          thinkingConfig: THINKING,
+          thinkingConfig: purpose === "chat" ? CHAT_THINKING : THINKING,
           // 화면이 바로 쓸 수 있는 조각으로 받습니다.
           responseMimeType: "application/json",
           responseSchema: schema,

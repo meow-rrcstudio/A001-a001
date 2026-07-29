@@ -107,6 +107,9 @@ export async function POST(request: Request) {
           user,
           schema: CHAT_JSON_SCHEMA,
           maxOutputTokens: CHAT_MAX_TOKENS,
+          // 대화는 짧게 생각합니다 — 해석만큼 생각하면 품질은 그대로인데
+          // 답이 오기까지의 빈 화면만 길어집니다 (lib/ai/gemini.ts 주석 참고)
+          purpose: "chat",
         })) {
           last = accumulated
           send({ partial: accumulated })
