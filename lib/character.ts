@@ -4,7 +4,25 @@
 
 export interface CharacterProfile {
   id: string
-  name: string // 화면에 보이는 이름
+  /**
+   * 화면에 보이는 이름 — 1순위 표기.
+   *
+   * ⚠️ 이름은 세 가지 표기를 두고 상황에 따라 고릅니다.
+   *    글꼴·환경마다 "ā"(장음 a)가 없을 수 있어서입니다. 그 글자가 없으면
+   *    브라우저가 그 한 글자만 다른 글꼴로 바꿔치기해서, 이름 가운데가
+   *    툭 튀어나온 것처럼 보입니다.
+   *
+   *      name      Shānti-   1순위. 본문 글꼴(SF Pro·Pretendard)에서는 잘 나옵니다
+   *      nameAscii Shanti-   2순위. ā 가 없는 글꼴(캘리그라피 등)에서 씁니다
+   *      nameBare  Shānti    하이픈이 어울리지 않는 자리 (조사가 바로 붙을 때 등)
+   *
+   *    쓰는 쪽에서 골라 쓰고, 어느 쪽을 왜 골랐는지 주석으로 남깁니다.
+   */
+  name: string
+  /** ā 를 못 그리는 환경에서 쓰는 대체 표기 */
+  nameAscii: string
+  /** 뒤의 하이픈을 뗀 표기 */
+  nameBare: string
   promptId: string // AI 프롬프트 안에서 쓰는 정식 표기
   /**
    * 이 캐릭터의 고정 페르소나 프롬프트.
@@ -128,7 +146,9 @@ tone=고정텍스트_링크그대로
 
 export const shantiProfile: CharacterProfile = {
   id: "shanti",
-  name: "Shanti-",
+  name: "Shānti-",
+  nameAscii: "Shanti-",
+  nameBare: "Shānti",
   promptId: "Śhānti",
   persona: SHANTI_PERSONA,
   outro: SHANTI_OUTRO,

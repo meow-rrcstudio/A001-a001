@@ -30,6 +30,7 @@ import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import { FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
+import { ACTIVE_CHARACTER } from "@/lib/character"
 
 type Turn = ChatTurn
 
@@ -596,7 +597,7 @@ export function ReadingResultView({
                 onChange={setDraft}
                 onSubmit={handleSend}
                 disabled={busy}
-                placeholder={busy ? "샨티가 생각하는 중..." : "Shānti-에게 응답하기"}
+                placeholder={busy ? "샨티가 생각하는 중..." : `${ACTIVE_CHARACTER.name}에게 응답하기`}
                 ariaLabel="샨티에게 응답하기"
                 className="pointer-events-auto"
               />

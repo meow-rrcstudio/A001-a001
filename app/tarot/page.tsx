@@ -78,12 +78,17 @@ export default async function TarotListPage() {
             ⚠️ 캘리그라피는 같은 크기라도 훨씬 작아 보여서, 이름만 한 단계
                크게 잡아야 우리말과 눈높이가 맞습니다. */}
         <Link
-          href="/"
+          // 물어보러 가는 버튼이니 주제 고르는 화면으로 보냅니다.
+          // 홈("/")으로 보내면 물어보려다 뒤로 간 것처럼 읽힙니다.
+          href="/tarot/reading"
           className={cn(
             buttonVariants({ variant: "connect", size: "lg" }),
             "h-14 gap-0 rounded-full px-8 shadow-lg"
           )}
         >
+          {/* 캘리그라피(Shadows Into Light)도 ā 를 제대로 그립니다 — 실제로
+              찍어서 확인했습니다. 그래서 1순위 표기(name)를 씁니다.
+              혹시 다른 글꼴로 바꿔 ā 가 깨지면 nameAscii 로 내리세요. */}
           <span className="font-script text-2xl leading-none">{ACTIVE_CHARACTER.name}</span>
           {/* connect 변형이 버튼 전체에 캘리그라피를 걸어두어서, 우리말은
               font-sans 로 되돌려야 합니다 (한글은 캘리그라피 글자가 없어

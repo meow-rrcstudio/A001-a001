@@ -93,7 +93,8 @@ export function ReadingHistory({ userName }: { userName?: string | null }) {
           <p className="mt-1.5 text-sm text-muted-foreground">
             타로를 보면 여기에 차곡차곡 쌓여요.
           </p>
-          <Button variant="solid" size="pill" className="mt-6" render={<Link href="/tarot" />}>
+          {/* 카드 그림 아카이브(/tarot)가 아니라 주제를 고르는 화면으로 */}
+          <Button variant="solid" size="pill" className="mt-6" render={<Link href="/tarot/reading" />}>
             타로 보러 가기
           </Button>
         </div>

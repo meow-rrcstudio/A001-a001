@@ -7,7 +7,8 @@ export function FloatingReadingButton() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-6 pb-6">
       <Link
-        href="/"
+        // 주제 고르는 화면으로. 홈으로 보내면 "뒤로 간" 것처럼 읽힙니다.
+        href="/tarot/reading"
         className="flex items-center gap-3 rounded-full border border-white bg-glass py-2 pl-2 pr-6 shadow-raised backdrop-blur-[var(--glass-blur)] transition-transform hover:-translate-y-0.5"
       >
         <CharacterAvatar size={44} />

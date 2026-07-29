@@ -107,7 +107,8 @@ export default function CreditsPage() {
 
         <div className="mt-6 px-6 pb-10 text-center">
           <Link
-            href="/tarot"
+            // 카드 그림 아카이브(/tarot)가 아니라 실제로 타로를 보는 길입니다
+            href="/tarot/reading"
             className="text-sm text-black underline underline-offset-4 hover:opacity-70"
           >
             타로 보러 가기
