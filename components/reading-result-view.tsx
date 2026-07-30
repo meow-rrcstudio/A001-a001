@@ -243,7 +243,11 @@ function MiniSpread({ cards, layoutKey }: { cards: PickedCard[]; layoutKey?: str
 
 export function ReadingResultView({
   question,
-  result,
+  // ⚠️ null 이 들어올 수 있습니다. 해석을 못 받고 끝난 판(기록에 result 가
+  //    비어 있는 판)을 열면 예전에는 result.title 에서 터져 브라우저가
+  //    "This page couldn't load" 를 띄웠습니다. 빈 객체로 받아 넘깁니다 —
+  //    화면은 이미 "아직 안 온 조각"을 그릴 줄 압니다(streaming 용).
+  result: incomingResult,
   cards = [],
   positions,
   layoutKey,
@@ -261,7 +265,7 @@ export function ReadingResultView({
 }: {
   question: string
   /** 아직 만들어지는 중이면 조각이 비어 있을 수 있습니다 */
-  result: Partial<ReadingResult>
+  result: Partial<ReadingResult> | null
   cards?: PickedCard[]
   /** 뽑은 카드들의 자리 이름 (샨티가 고른 배열). 면담에 함께 넘깁니다 */
   positions?: string[]
@@ -294,6 +298,8 @@ export function ReadingResultView({
   /** 해석을 다시 받고 싶을 때 (새로고침). 없으면 그 버튼이 안 나옵니다 */
   onRegenerate?: () => void
 }) {
+  const result = incomingResult ?? {}
+
   const [draft, setDraft] = useState("")
   const {
     turns,

@@ -64,7 +64,12 @@ export default function CreditsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime">
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col ${HEADER_SPACE}`}>
-        <PageHeader variant="sub" backHref="/my/settings" />
+        {/* surface="lime": 이 화면은 배경이 이미 라임입니다.
+            스크림은 색 장식이 아니라 "본문이 고정 헤더 밑을 지날 때 버튼이
+            읽히게" 하는 장치라 끄지 않습니다 — 끄면 아래 검정 묶음 줄이
+            버튼 뒤로 그대로 지나갑니다. 대신 연라임 중간색을 뺀 스크림으로
+            바꿔 끼웁니다 (그 중간색이 라임 위에서 밝은 줄을 만들었습니다). */}
+        <PageHeader variant="sub" backHref="/my/settings" surface="lime" />
 
         <div className="px-6">
           <h1 className="font-myeongjo text-2xl font-bold text-black">{CREDIT_UNIT.one}</h1>

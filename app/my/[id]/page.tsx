@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { appendTurn, getReading, replaceTurns, type SavedReading } from "@/lib/reading-archive"
 import { PromptReadingView } from "@/components/prompt-reading-view"
 import { useAccount } from "@/lib/use-account"
+import { CREDIT_UNIT } from "@/lib/credit-packs"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { layoutKeyForCount } from "@/lib/ai/reading-plan"
@@ -101,6 +102,44 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
         promptText={result?.promptText ?? reading.promptText}
         isLoggedIn={account.isLoggedIn}
       />
+    )
+  }
+
+  // ── 해석이 없는 판 ──────────────────────────────────────────────
+  // 크레딧은 나갔는데 해석이 오지 않고 끝난 판입니다 (하루 한도·시간 초과).
+  //
+  // ⚠️ 예전에는 이 판을 열면 브라우저가 "This page couldn't load" 를 띄웠습니다.
+  //    해석 화면이 result.title 을 읽다 null 에서 터진 것입니다 — 기록
+  //    목록에는 멀쩡히 보이는데 누르면 죽어서 원인을 짚기 어려웠습니다.
+  //    (지금은 그 판이 새로 생기지 않게 크레딧을 되돌려주지만, 이미 남아
+  //     있는 판과 앞으로의 중간 실패를 위해 화면이 필요합니다)
+  if (!result?.title) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <PageHeader backHref="/my" />
+        <main
+          className={`mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 text-center ${HEADER_SPACE}`}
+        >
+          <p className="text-pretty text-reading leading-relaxed text-foreground">
+            이 판은 카드까지만 놓이고 해석이 오지 못했다냥.
+          </p>
+          <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
+            {reading.question}
+          </p>
+          <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
+            쓴 {CREDIT_UNIT.one}은 돌려드렸어요. 다시 물어보면 이 몸이 새로 읽어줄게.
+          </p>
+          <Button variant="solid" size="pill" className="mt-8" render={<Link href="/tarot/ask" />}>
+            다시 물어보기
+          </Button>
+          <Link
+            href="/my"
+            className="mt-4 text-sm text-muted-foreground underline underline-offset-4"
+          >
+            기록으로 돌아가기
+          </Link>
+        </main>
+      </div>
     )
   }
 

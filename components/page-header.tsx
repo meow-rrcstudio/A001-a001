@@ -51,14 +51,27 @@ export function PageHeader({
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
   /**
-   * 헤더 뒤에 라임 스크림을 깔지.
+   * 이 화면의 배경.
    *
-   * 스크림은 "크림색 본문이 헤더 밑을 지날 때도 버튼이 읽히게" 하려고
-   * 있는 것입니다. 그래서 배경이 이미 라임인 화면(로그인처럼)에서는
-   * 깔면 안 됩니다 — 라임 위에 연라임 띠가 얹혀 위쪽에만 이상한
-   * 그라데이션 자국이 생깁니다. 홈이 스크림을 안 까는 이유도 같습니다.
+   * ┌─ 왜 헤더가 배경을 알아야 하는가 ───────────────────────────────
+   * │ 스크림(헤더 뒤에 깔리는 띠)은 색 장식이 아닙니다. "본문이 고정
+   * │ 헤더 밑을 지날 때도 버튼이 읽히게" 하는 장치입니다. 그래서 어느
+   * │ 화면에서든 있어야 합니다.
+   * │
+   * │ 다만 크림 배경용 스크림에는 연라임 중간색이 있어서, 라임 배경에
+   * │ 얹으면 "라임 → 밝은 연라임 → 다시 라임"이 되어 띠가 끝나는 자리에
+   * │ 밝은 줄이 하나 생깁니다. 그래서 라임 화면은 중간색을 뺀 스크림을
+   * │ 씁니다 (globals.css 의 --scrim-flat).
+   * │
+   * │ ⚠️ 예전에는 라임 화면에서 스크림을 아예 껐습니다. 밝은 줄은
+   * │    없어지지만, 짙은 본문이 버튼 뒤로 그대로 지나가서 버튼이
+   * │    안 읽힙니다 (크레딧 화면의 검정 묶음 줄에서 확인했습니다).
+   * │    끄는 것이 아니라 바꿔 끼우는 것이 맞습니다.
+   * │
+   * │ scripts/check-header-scrim.mjs 가 화면마다 이 짝이 맞는지 봅니다.
+   * └────────────────────────────────────────────────────────────────
    */
-  scrim,
+  surface = "cream",
   className = "",
 }: {
   backHref?: string
@@ -67,13 +80,13 @@ export function PageHeader({
   title?: string
   variant?: "sub" | "reading" | "home" | "minimal"
   fixed?: boolean
-  scrim?: boolean
+  surface?: "cream" | "lime"
   className?: string
 }) {
   // 홈은 고정하지 않는 것이 기본입니다 (시안 기준)
   const isFixed = fixed ?? variant !== "home"
   // 떠 있지 않으면 스크림도 쓸 데가 없습니다 (본문이 헤더 밑을 지나지 않으니까요)
-  const showScrim = isFixed && (scrim ?? true)
+  const showScrim = isFixed
   const [menuOpen, setMenuOpen] = useState(false)
 
   async function handleShare() {
@@ -95,8 +108,15 @@ export function PageHeader({
       {showScrim && (
         <div
           aria-hidden="true"
+          // data-scrim: scripts/check-header-scrim.mjs 가 이 표식으로
+          // "스크림이 깔렸는지"를 봅니다. 픽셀 밝기로 재면 헤더 아래를
+          // 지나가는 본문까지 함께 잡혀서, 있는 그대로를 물어보게 했습니다.
+          data-scrim={surface}
           className="pointer-events-none fixed inset-x-0 top-0 z-40"
-          style={{ height: "var(--scrim-height)", backgroundImage: "var(--scrim)" }}
+          style={{
+            height: "var(--scrim-height)",
+            backgroundImage: surface === "lime" ? "var(--scrim-flat)" : "var(--scrim)",
+          }}
         />
       )}
 

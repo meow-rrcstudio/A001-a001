@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime text-brand-ink">
       {/* 로그인과 같은 이유로 스크림을 깔지 않습니다 (배경이 이미 라임) */}
-      <PageHeader variant="minimal" backHref="/login" scrim={false} />
+      <PageHeader variant="minimal" backHref="/login" surface="lime" />
 
       <main
         className={`mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 ${HEADER_SPACE}`}
