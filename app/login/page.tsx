@@ -6,24 +6,23 @@
 //   · 구글   — 연동
 //   · 이메일 — 직접 가입
 //
-// 인증 연결 순서:
-//   1) 인증 공급자 선택 (Supabase Auth 는 셋 다 한 번에 됩니다)
-//   2) 카카오 개발자센터·Google Cloud 에서 앱 등록 → 환경변수(.env)에 키 입력
-//   3) 아래 버튼의 onClick 에 공급자 호출 연결
-//
 // ┌─ 디자인 조절 가이드 ──────────────────────────────────────────────
 // │ · 배경색     : bg-brand-lime (globals.css --brand-lime)
 // │ · 버튼 배경  : bg-brand-ink (검정에 가까운 #333)
-// │ · 버튼 높이  : h-12 (48px — 시안 실측)
+// │ · 버튼 높이  : h-13 (52px — 시안 실측)
+// │ · 그림 크기  : max-h-[340px] — 남는 세로 안에서만 큽니다
+// │
+// │ ⚠️ 이 화면에는 사이트 공용 푸터를 달지 않습니다. 시안에서 뺐습니다 —
+// │    로그인은 "고르고 끝"인 화면이라 아래에 링크가 늘어서면 눈이
+// │    갈 곳이 늘어납니다. 약관·개인정보 링크는 동의 고지 한 줄이
+// │    대신합니다 (components/login-form.tsx 의 Consent).
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
-import Link from "next/link"
 import Image from "next/image"
-import { Wordmark } from "@/components/brand-mark"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { LoginForm } from "@/components/login-form"
-import { SITE, copyrightLine } from "@/lib/site"
+import { translateAuthError } from "@/lib/auth-messages"
 
 export const metadata: Metadata = {
   title: "로그인",
@@ -31,60 +30,66 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function LoginPage() {
+/**
+ * 카카오·구글에서 돌아오다 실패하면 /auth/callback 이
+ * /login?error=... 로 되돌려 보냅니다.
+ *
+ * ⚠️ 그 error 를 읽는 곳이 여기 말고는 없습니다. 예전에는 아무도 읽지
+ *    않아서, 승인을 취소하거나 설정이 어긋난 사람에게는 로그인 화면이
+ *    그냥 한 번 더 뜰 뿐이었습니다. 무엇이 잘못됐는지도, 다시 눌러야
+ *    하는지도 알 수 없는 화면이었습니다.
+ *
+ * 사유는 영어로 오므로 lib/auth-messages.ts 를 거쳐 우리말로 바꿉니다
+ * (못 알아본 것은 한 줄로 감싸고 원문은 콘솔에만 남습니다).
+ */
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; next?: string; debug?: string }>
+}) {
+  const { error, next, debug } = await searchParams
+  const notice = error ? translateAuthError(error) : undefined
+
+  // 실패해서 되돌아온 사람이 다시 로그인하면 가려던 자리로 갑니다.
+  // 바깥으로 나가는 주소는 받지 않습니다 (app/auth/callback 의 safeNext 와 같은 이유).
+  const backTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/my"
+
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime text-brand-ink">
-      {/* 뒤로 — 로그인은 막다른 길이면 안 됩니다. 항상 나갈 구멍을 둡니다.
-          surface="lime": 이 화면은 배경이 이미 라임이라, 연라임 중간색을 뺀 스크림을 씁니다. 크림용을 그대로 깔면
-          위쪽에만 연라임 띠가 얹혀 이상한 그라데이션 자국이 생깁니다. */}
-      <PageHeader variant="minimal" backHref="/" surface="lime" />
+      {/* 뒤로 + 가운데 워드마크 + 더보기 (시안).
+          로그인은 막다른 길이면 안 됩니다 — 항상 나갈 구멍을 둡니다.
+          surface="lime": 이 화면은 배경이 이미 라임이라, 연라임 중간색을 뺀
+          스크림을 씁니다. 크림용을 그대로 깔면 위쪽에만 연라임 띠가 얹혀
+          이상한 그라데이션 자국이 생깁니다. */}
+      <PageHeader backHref="/" surface="lime" centerMark />
 
-      <main className={`mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 ${HEADER_SPACE}`}>
-        <h1>
-          <Wordmark className="mx-auto h-12" priority />
-          <span className="sr-only">SoulSeoul</span>
-        </h1>
+      <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 ${HEADER_SPACE}`}>
+        <h1 className="sr-only">SoulSeoul 로그인</h1>
 
         {/* UFO·고양이 일러스트 (전달받은 원본 PNG 기반).
-            배경이 투명해서 라임 위에 그대로 얹힙니다. */}
-        <Image
-          src="/login-cat.webp"
-          alt=""
-          aria-hidden="true"
-          width={560}
-          height={793}
-          priority
-          className="mx-auto mt-3 h-auto w-[68%] max-w-[260px]"
-        />
+            배경이 투명해서 라임 위에 그대로 얹힙니다.
 
-        <p className="mt-2 text-center text-sm leading-relaxed text-brand-ink/75">
-          리딩 기록을 저장하고 샨티와 이어서 이야기하려면
-          <br />
-          로그인이 필요해요.
-        </p>
-
-        {/* 시안의 세 가지 — 카카오·구글은 연동, 이메일은 직접 가입입니다.
-            동작은 components/login-form.tsx 에 있습니다. */}
-        <div className="mt-8">
-          <LoginForm />
+            남는 세로를 이 칸이 다 가져가고 그림은 그 안에서 가운데에 섭니다.
+            그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 그림만
+            줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
+            min-h-0 이 없으면 flex 칸이 그림 원본 높이 아래로 줄지 않아
+            키보드가 올라왔을 때 버튼이 화면 밖으로 밀립니다. */}
+        <div className="flex min-h-0 flex-1 items-center justify-center py-4">
+          <Image
+            src="/login-cat.webp"
+            alt=""
+            aria-hidden="true"
+            width={560}
+            height={793}
+            priority
+            className="h-full max-h-[340px] w-auto max-w-[70%] object-contain"
+          />
         </div>
-      </main>
 
-      <footer className="mx-auto w-full max-w-md px-6 pb-10 text-center">
-        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-ink/70">
-          {SITE.star} {SITE.displayUrl} {SITE.star}
-        </p>
-        <p className="mt-2 text-xs text-brand-ink/70">{copyrightLine()}</p>
-        <p className="mt-1.5 text-xs text-brand-ink/70">
-          <Link href="/about" className="underline underline-offset-4 hover:text-brand-ink">
-            About
-          </Link>
-          <span className="px-1">and</span>
-          <Link href="/privacy" className="underline underline-offset-4 hover:text-brand-ink">
-            Privacy Policy
-          </Link>
-        </p>
-      </footer>
+        {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.
+            동의 고지도 이 안에 있습니다 (모든 단계에서 보여야 해서). */}
+        <LoginForm next={backTo} notice={notice} debug={debug === "1"} />
+      </main>
     </div>
   )
 }

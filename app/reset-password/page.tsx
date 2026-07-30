@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
     // 예전에는 못 알아본 사유를 영어 그대로 띄웠는데, 읽는 사람에게는
     // 무슨 말인지도, 무엇을 해야 하는지도 알 수 없었습니다.
     if (error) {
-      setMessage(translateAuthError(error.message))
+      setMessage(translateAuthError(error.message, error.code))
       return
     }
 

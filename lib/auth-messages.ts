@@ -10,6 +10,47 @@
 //
 // 로그인·가입·비밀번호 재설정이 이 한 곳을 함께 씁니다.
 
+/**
+ * 에러 코드로 먼저 맞춥니다.
+ *
+ * ┌─ 왜 코드를 먼저 보는가 ───────────────────────────────────────────
+ * │ 아래 MAP 은 영어 "문구"를 정규식으로 훑습니다. 그런데 문구는
+ * │ Supabase 가 판을 올릴 때마다 조용히 바뀝니다. 한 글자만 달라져도
+ * │ 정규식이 빗나가고, 그러면 정확한 사유가 있는데도 FALLBACK
+ * │ ("잠시 문제가 생겼어요")으로 뭉개집니다 — 비밀번호가 틀렸다는 걸
+ * │ 알려줄 수 있는데 "잠시 뒤 다시"라고 말하게 됩니다.
+ * │
+ * │ code 는 supabase-js 의 AuthApiError 가 들고 오는 값이고 문구와 달리
+ * │ 잘 바뀌지 않습니다. 그래서 이걸 먼저 봅니다.
+ * │
+ * │ ⚠️ code 가 없는 오류(네트워크 등)도 있어서 MAP 은 그대로 둡니다.
+ * │    코드 → 문구 → FALLBACK 순으로 내려갑니다.
+ * └──────────────────────────────────────────────────────────────────
+ */
+const CODE_MAP: Record<string, string> = {
+  invalid_credentials: "이메일이나 비밀번호가 맞지 않아요.",
+  email_not_confirmed: "메일함에서 인증 링크를 먼저 눌러주세요.",
+  user_already_exists: "이미 가입된 이메일이에요. 로그인해 주세요.",
+  email_exists: "이미 가입된 이메일이에요. 로그인해 주세요.",
+  user_banned: "이용이 제한된 계정이에요.",
+  weak_password: "비밀번호가 너무 단순해요. 조금 더 복잡하게 정해주세요.",
+  same_password: "예전 비밀번호와 다른 것으로 정해주세요.",
+  signup_disabled: "지금은 가입을 받고 있지 않아요.",
+  email_provider_disabled: "이메일 로그인이 꺼져 있어요.",
+  provider_disabled: "이 로그인 방식이 아직 켜져 있지 않아요.",
+  validation_failed: "입력한 내용을 다시 확인해 주세요.",
+  over_request_rate_limit: "잠시 뒤에 다시 시도해 주세요.",
+  over_email_send_rate_limit: "메일을 너무 자주 보냈어요. 잠시 뒤에 다시 시도해 주세요.",
+  otp_expired: "링크가 만료됐어요. 다시 받아주세요.",
+  session_not_found: "로그인이 풀렸어요. 다시 로그인해 주세요.",
+  flow_state_not_found: "로그인이 중간에 끊겼어요. 다시 시도해 주세요.",
+  flow_state_expired: "로그인이 중간에 끊겼어요. 다시 시도해 주세요.",
+  bad_oauth_state: "로그인이 중간에 끊겼어요. 다시 시도해 주세요.",
+  // 가입 순간 profiles 트리거가 실패하면 이 코드로 옵니다
+  // (supabase/schema.sql 의 handle_new_user 를 확인하세요)
+  unexpected_failure: "계정을 만들다 막혔어요. 잠시 뒤 다시 시도해 주세요.",
+}
+
 const MAP: [RegExp, string][] = [
   // ── 로그인 · 가입 ────────────────────────────────────────────────
   [/invalid login credentials/i, "이메일이나 비밀번호가 맞지 않아요."],
@@ -36,6 +77,20 @@ const MAP: [RegExp, string][] = [
   [/missing oauth secret/i, "이 로그인 방식의 설정이 아직 끝나지 않았어요."],
   [/invalid_client|oauth client was not found/i, "이 로그인 방식의 설정이 잘못됐어요. 다른 방법으로 로그인해 주세요."],
 
+  // ── 돌아오는 길에 실패한 경우 (app/auth/callback → /login?error=) ─
+  // 카카오·구글이 붙여 보내는 표준 사유들입니다. 사람이 취소한 것과
+  // 설정이 틀린 것은 완전히 다른 일이라, 같은 말로 뭉뚱그리지 않습니다.
+  [/access_denied|user_cancelled|consent_required/i, "로그인을 취소하셨어요. 다시 시도해 주세요."],
+  [
+    /redirect_uri_mismatch|redirect_uri/i,
+    "돌아오는 주소 설정이 맞지 않아요. 다른 방법으로 로그인해 주세요.",
+  ],
+  // Supabase 가 OAuth 왕복에 쓰는 임시 상태값이 만료·유실된 경우입니다.
+  // 창을 오래 열어두었거나 뒤로가기로 돌아왔을 때 납니다 — 다시 누르면 됩니다.
+  [/bad_oauth_state|flow_state|state.*(not found|expired)/i, "로그인이 중간에 끊겼어요. 다시 시도해 주세요."],
+  [/unable to exchange external code|code.*exchange/i, "로그인을 마치지 못했어요. 다시 시도해 주세요."],
+  [/server_error|temporarily_unavailable/i, "로그인 서버가 잠시 불안정해요. 잠시 뒤 다시 시도해 주세요."],
+
   // ── 그 밖에 ──────────────────────────────────────────────────────
   [/rate limit|too many|for security purposes/i, "잠시 뒤에 다시 시도해 주세요."],
   [/network|fetch failed|failed to fetch/i, "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요."],
@@ -44,8 +99,45 @@ const MAP: [RegExp, string][] = [
 /** 못 알아본 사유를 감쌀 우리말 (원문은 콘솔에만) */
 const FALLBACK = "잠시 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요."
 
-export function translateAuthError(raw: string): string {
-  if (!raw) return FALLBACK
+/**
+ * 못 옮긴 사유의 원문.
+ *
+ * FALLBACK 이 뜬 화면에서 "그래서 진짜 이유가 뭐였는지"를 꺼내 볼 수 있게
+ * 마지막 것 하나를 들고 있습니다. /login?debug=1 이 이걸 읽어 화면에
+ * 덧붙입니다 — 콘솔을 열 수 없는 손전화에서 확인하려고 둔 것입니다.
+ */
+let lastUntranslated: string | null = null
+
+/** 마지막으로 옮기지 못한 사유 (없으면 null) */
+export function lastAuthErrorRaw(): string | null {
+  return lastUntranslated
+}
+
+/**
+ * 사유를 우리말로.
+ *
+ * @param raw  공급자·Supabase 가 준 영어 문구
+ * @param code supabase-js AuthApiError 의 code. 있으면 이걸 먼저 봅니다 —
+ *             문구는 판이 바뀌면 달라지지만 code 는 잘 안 바뀝니다.
+ */
+export function translateAuthError(raw: string, code?: string | null): string {
+  // 코드가 먼저입니다. 문구가 어떻게 바뀌든 여기서 걸리면 정확합니다.
+  if (code && CODE_MAP[code]) return CODE_MAP[code]
+
+  if (!raw) {
+    if (code) {
+      lastUntranslated = `code=${code}`
+      if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 코드:", code)
+    }
+    return FALLBACK
+  }
+
+  // ⚠️ 이미 우리말인 것은 건드리지 않고 그대로 돌려줍니다.
+  //    app/auth/callback 은 "코드가 없습니다"처럼 우리가 지은 사유를
+  //    붙여 보내기도 합니다. 그걸 아래 표에 물리면 하나도 안 맞아서
+  //    FALLBACK("잠시 문제가 생겼어요")으로 뭉개집니다 — 이미 정확히
+  //    적어 둔 말을 뭉뚱그리는 셈입니다.
+  if (/[가-힣]/.test(raw)) return raw
 
   // "after 57 seconds" 처럼 기다릴 시간을 알려줄 때가 있습니다.
   // "잠시 뒤"보다 "57초 뒤"가 훨씬 낫습니다 — 얼마나 기다릴지 알 수 있으니까요.
@@ -55,6 +147,7 @@ export function translateAuthError(raw: string): string {
   for (const [pattern, korean] of MAP) if (pattern.test(raw)) return korean
 
   // 원문은 버리지 않습니다 — 어떤 사유가 안 옮겨졌는지 알아야 고칠 수 있습니다.
-  if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 사유:", raw)
+  lastUntranslated = code ? `${raw} (code=${code})` : raw
+  if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 사유:", lastUntranslated)
   return FALLBACK
 }

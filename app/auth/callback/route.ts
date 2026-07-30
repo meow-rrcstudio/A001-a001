@@ -12,33 +12,52 @@ import { getSupabaseServer } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * 로그인 뒤 돌아갈 곳을 안전한 것만 통과시킵니다.
+ *
+ * ⚠️ 검사 없이 new URL(next, origin) 을 쓰면 안 됩니다. next 가
+ *    "https://남의사이트" 라면 그 주소가 그대로 살아나서, 우리 로그인
+ *    링크가 남의 사이트로 보내는 발판이 됩니다(오픈 리다이렉트).
+ *    피싱에 쓰이는 흔한 수법입니다 — 주소만 보면 우리 도메인이니까요.
+ *
+ * "/" 로 시작하는 우리 안쪽 길만 받습니다. "//남의사이트" 는 브라우저가
+ * 프로토콜 상대 주소로 읽어 바깥으로 나가므로 함께 막습니다.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return "/my"
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/my"
+  return raw
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get("code")
-  // 로그인 뒤 돌아갈 곳. 없으면 MY 로 보냅니다.
-  const next = url.searchParams.get("next") ?? "/my"
+  // 로그인 뒤 돌아갈 곳. 없거나 바깥으로 나가는 주소면 MY 로 보냅니다.
+  const next = safeNext(url.searchParams.get("next"))
+
+  // 되돌려 보낼 때 사유와 함께 "가려던 곳"도 들려 보냅니다.
+  //
+  // ⚠️ next 를 빠뜨리면 안 됩니다. 타로를 보다 로그인으로 넘어온 사람이
+  //    한 번 실패하면, 다시 로그인한 뒤 보던 자리가 아니라 MY 로 떨어집니다.
+  //    실패한 것도 억울한데 하던 일까지 잃습니다.
+  const backToLogin = (reason: string) => {
+    const target = new URL("/login", url.origin)
+    target.searchParams.set("error", reason)
+    if (next !== "/my") target.searchParams.set("next", next)
+    return NextResponse.redirect(target)
+  }
 
   // 사용자가 창을 닫거나 승인을 거부한 경우
   const error = url.searchParams.get("error_description") ?? url.searchParams.get("error")
-  if (error) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error)}`, url.origin))
-  }
+  if (error) return backToLogin(error)
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/login?error=코드가+없습니다", url.origin))
-  }
+  if (!code) return backToLogin("코드가 없습니다")
 
   const supabase = await getSupabaseServer()
-  if (!supabase) {
-    return NextResponse.redirect(new URL("/login?error=로그인+설정이+없습니다", url.origin))
-  }
+  if (!supabase) return backToLogin("로그인 설정이 없습니다")
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-  if (exchangeError) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(exchangeError.message)}`, url.origin)
-    )
-  }
+  if (exchangeError) return backToLogin(exchangeError.message)
 
   return NextResponse.redirect(new URL(next, url.origin))
 }
