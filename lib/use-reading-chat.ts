@@ -9,6 +9,12 @@
 //   · 샨티가 대신 뽑음 — 서버가 뽑아 보내주고, 곧바로 그 카드를 읽어줍니다
 //   · 묻는 이가 직접 뽑음 — pendingDraw 가 채워지고, 화면이 카드 고르기로
 //     넘겼다가 submitDrawnCards 로 돌아옵니다
+//
+// ⚠️ 어느 쪽이든 뽑기를 시작하는 것은 샨티입니다. 화면에는 "직접 뽑기"
+//    버튼이 없습니다 — 예전에는 입력창 위에 두었는데, 그러면 뽑기가
+//    대화에서 나오지 않고 손이 먼저 나가는 기능이 됩니다. 무엇을 더 봐야
+//    하는지는 이야기를 들은 샨티가 정하는 것이 이 대화의 결입니다.
+//    (묻는 이가 뽑고 싶으면 말로 청하면 됩니다 — 샨티가 받아서 내줍니다)
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -118,6 +124,14 @@ export function useReadingChat({
    * 같은 한 번에서 더 받아오는 쪽이 언제나 낫습니다.
    */
   const [suggestions, setSuggestions] = useState<string[]>([])
+  /**
+   * 뽑기를 물렀는지 — 카드 고르기 화면에서 빈손으로 나온 직후에만 켜집니다.
+   *
+   * 이때 입력창 위에 "샨티가 대신 뽑아줘" 를 하나 내밉니다. 확인창을
+   * 띄우지 않고 되묻는 자리입니다 — 잘못 누른 사람은 그걸 누르면 되고,
+   * 지금은 안 뽑고 싶어서 나온 사람은 그냥 말을 이어가면 됩니다.
+   */
+  const [drawDeclined, setDrawDeclined] = useState(false)
 
   // 면담 도중 카드가 늘어납니다. 다음 물음에는 늘어난 채로 들려보내야
   // 샨티가 "아까 더 뽑은 그 카드"를 기억합니다.
@@ -157,10 +171,13 @@ export function useReadingChat({
   const ask = useCallback(
     // depth — 샨티가 뽑고 이어서 읽는 한 번만 허용합니다. 없으면 "더 뽑자 →
     // 또 더 뽑자"로 끝없이 이어질 수 있습니다.
-    async (message: string, depth = 0): Promise<void> => {
+    async (message: string, depth = 0, drawnByUser?: PickedCard[]): Promise<void> => {
       setBusy(true)
       setError(null)
       setStreamingText("")
+      // 되묻는 칩은 여기서 걷습니다 — 말이 오가기 시작하면 물었던 뽑기는
+      // 지나간 일입니다.
+      setDrawDeclined(false)
       // 앞 답에 딸려온 제안은 여기서 걷습니다 — 새 물음을 던지는 중에
       // 지난 제안이 남아 있으면 그걸 누를 수 있게 되고, 그러면 방금 던진
       // 물음과 순서가 뒤엉킵니다.
@@ -179,6 +196,12 @@ export function useReadingChat({
               turns: turnsRef.current.map((t) => ({ role: t.role, text: t.text })),
               message,
               readingId,
+              // 묻는 이가 직접 뽑은 카드 — 서버가 그 마디에 함께 남깁니다.
+              // ⚠️ 이걸 안 보내면 직접 뽑은 카드가 판에 남지 않습니다.
+              //    기록에서 다시 열면 "카드를 뽑았어"라는 말만 있고 카드는
+              //    없습니다. 샨티가 뽑은 것과 묻는 이가 뽑은 것의 비율도
+              //    셀 수 없어집니다 (서버가 그 비율로 다음 뽑기를 고릅니다).
+              drawnCards: drawnByUser,
             }),
           })
         } catch (networkError) {
@@ -365,35 +388,21 @@ export function useReadingChat({
   }, [ask, busy, onTurnsReplace])
 
   /**
-   * 묻는 이가 스스로 "직접 뽑겠다"고 한 경우.
+   * 묻는 이가 카드 고르기 화면에서 돌아왔습니다.
    *
-   * ⚠️ 샨티가 draw 를 내줄 때까지 기다리면 안 됩니다. 모델이 "네가 뽑아보는
-   *    것도 좋겠구나" 라고 말만 하고 draw 를 안 붙이는 일이 실제로
-   *    있었습니다. 그러면 묻는 이는 뽑겠다고 했는데 뽑을 데가 없습니다.
-   *    그래서 화면에서도 직접 시작할 수 있게 열어둡니다.
+   * 빈손으로 돌아오면(뒤로가기) 뽑기를 무른 것입니다. 그때는 대화로
+   * 조용히 돌아가고, 되묻는 칩 하나만 내밉니다 — 확인창을 띄우면 잘못
+   * 누른 사람 한 명을 위해 모두가 한 번 더 눌러야 합니다.
    */
-  const requestOwnDraw = useCallback((count = 1) => {
-    if (busy) return
-    const n = Math.max(1, Math.min(count, CHAT_DRAW_MAX))
-    setPendingDraw({
-      mode: "user",
-      // ⚠️ intro 는 카드 고르기 화면의 말풍선 문구입니다. 비우면 그 자리에
-      //    아무 말도 없는 빈 말풍선이 뜹니다 (샨티가 청해서 뽑는 경우에는
-      //    샨티가 직접 써 보냅니다).
-      intro: "그래, 네가 직접 뽑아보라냥. 마음을 담아 섞고 끌리는 카드를 골라보게.",
-      positions: Array.from({ length: n }, (_, i) => ({
-        label: n === 1 ? "지금 마음에 걸리는 것" : `${i + 1}번째로 궁금한 것`,
-        guide: "끌리는 카드를 골라보라냥",
-      })),
-    })
-  }, [busy])
-
-  /** 묻는 이가 직접 뽑고 돌아왔습니다 */
   const submitDrawnCards = useCallback(
     async (picked: PickedCard[]) => {
       const draw = pendingDraw
       setPendingDraw(null)
-      if (!draw || picked.length === 0) return
+      if (!draw) return
+      if (picked.length === 0) {
+        setDrawDeclined(true)
+        return
+      }
 
       const labels = draw.positions.map((p) => p.label)
       cardsRef.current = [...cardsRef.current, ...toPromptCards(picked, labels)]
@@ -406,7 +415,8 @@ export function useReadingChat({
         `내가 직접 뽑은 카드다: ${picked
           .map((c, i) => `${labels[i] ?? `추가${i + 1}`}=${c.name}(${c.reversed ? "역방향" : "정방향"})`)
           .join(", ")}. 이 카드로 앞선 물음에 이어서 읽어달라.`,
-        1
+        1,
+        picked
       )
     },
     [ask, pendingDraw, pushTurn]
@@ -419,9 +429,9 @@ export function useReadingChat({
     error,
     pendingDraw,
     suggestions,
+    drawDeclined,
     send,
     retryLast,
     submitDrawnCards,
-    requestOwnDraw,
   }
 }

@@ -14,7 +14,7 @@
 // └──────────────────────────────────────────────────────────────────
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw, Layers } from "lucide-react"
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
@@ -308,10 +308,10 @@ export function ReadingResultView({
     error: chatError,
     pendingDraw,
     suggestions,
+    drawDeclined,
     send,
     retryLast,
     submitDrawnCards,
-    requestOwnDraw,
   } = useReadingChat({
     question,
     cards,
@@ -390,13 +390,34 @@ export function ReadingResultView({
     void refreshAccount()
   }
 
-  // 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다.
+  // ── 샨티가 직접 뽑으라고 하면 화면 밖(페이지)에 카드 고르기를 부탁합니다 ──
+  //
+  // ⚠️ 이 effect 가 보는 것은 pendingDraw 하나뿐입니다. 손잡이(onDrawRequest ·
+  //    submitDrawnCards)를 의존성에 넣으면 안 됩니다.
+  //
+  //    두 손잡이는 렌더마다 새로 만들어집니다 — 부르는 쪽이 넘기는 onTurn 이
+  //    그 자리에서 만든 함수라, pushTurn → ask → submitDrawnCards 가 줄줄이
+  //    새 함수가 됩니다. 그것들을 의존성에 두면 렌더마다 effect 가 다시
+  //    돌고, onDrawRequest 는 페이지의 상태를 새 객체로 바꾸고, 그 때문에
+  //    또 렌더되어 끝없이 돕니다. 실제로 카드 고르기 화면이 뜬 채로 먹통이
+  //    됐습니다.
+  //
+  //    그래서 손잡이는 ref 로 들고 최신 것만 씁니다. 이러면 "뽑아달라는
+  //    요청이 새로 생겼을 때"만 정확히 한 번 불립니다.
+  const drawRequestRef = useRef(onDrawRequest)
+  const submitDrawnRef = useRef(submitDrawnCards)
+  // ⚠️ 아래 effect 보다 먼저 놓여야 합니다 (effect 는 적힌 순서대로 돕니다).
   useEffect(() => {
-    if (!pendingDraw || !onDrawRequest) return
-    onDrawRequest(pendingDraw, (picked) => {
-      void submitDrawnCards(picked)
+    drawRequestRef.current = onDrawRequest
+    submitDrawnRef.current = submitDrawnCards
+  })
+
+  useEffect(() => {
+    if (!pendingDraw) return
+    drawRequestRef.current?.(pendingDraw, (picked) => {
+      void submitDrawnRef.current(picked)
     })
-  }, [pendingDraw, onDrawRequest, submitDrawnCards])
+  }, [pendingDraw])
 
   function handleSend() {
     const text = draft.trim()
@@ -493,10 +514,17 @@ export function ReadingResultView({
         {/* 이어지는 대화 */}
         {turns.map((turn, i) =>
           turn.role === "user" ? (
-            <div key={i} className="mt-6 flex justify-end">
+            <div key={i} className="mt-6 flex flex-col items-end">
               <p className="max-w-[85%] whitespace-pre-line rounded-2xl bg-muted px-4 py-2.5 text-reading text-foreground">
                 {turn.text}
               </p>
+              {/* 직접 뽑은 카드는 말 아래에 깔아 보여줍니다 — 이름만 적힌
+                  줄로 남으면 "내가 뭘 뽑았더라"가 대화에서 사라집니다. */}
+              {!!turn.cards?.length && (
+                <div className="mt-3 w-full max-w-[85%]">
+                  <MiniSpread cards={turn.cards} />
+                </div>
+              )}
             </div>
           ) : (
             <div key={i} className="mt-5">
@@ -657,19 +685,27 @@ export function ReadingResultView({
                 </div>
               )}
 
-              {/* 직접 뽑기 — 샨티가 권하지 않아도 언제든 스스로 뽑을 수 있습니다.
-                  (샨티가 "네가 뽑아보라"고 말만 하고 뽑을 자리를 안 내주는
-                   일이 있어서, 화면에도 길을 둡니다) */}
-              {onDrawRequest && (
-                <button
-                  type="button"
-                  onClick={() => requestOwnDraw(1)}
-                  disabled={busy}
-                  className="pointer-events-auto mx-auto mb-2 flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-xs text-muted-foreground shadow-raised transition-colors hover:text-foreground disabled:opacity-50"
-                >
-                  <Layers className="h-3.5 w-3.5" aria-hidden="true" />
-                  남은 카드에서 직접 뽑기
-                </button>
+              {/* ── 뽑기를 무르고 나왔을 때 ────────────────────────────
+                  카드 고르기 화면에서 빈손으로 돌아온 직후에만 뜹니다.
+
+                  ⚠️ 여기 "직접 뽑기" 버튼을 상시로 두지 않습니다. 예전에는
+                     두었는데, 그러면 뽑기가 대화에서 나오지 않고 손이 먼저
+                     나가는 기능이 됩니다. 무엇을 더 봐야 하는지는 이야기를
+                     들은 샨티가 정합니다 (lib/use-reading-chat.ts 주석 참고).
+
+                  확인창 대신 이 칩 하나로 되묻습니다. 잘못 눌렀으면 누르면
+                  되고, 지금은 안 뽑고 싶으면 그냥 말을 이어가면 됩니다. */}
+              {drawDeclined && !busy && (
+                <div className="pointer-events-auto mb-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => void send("그건 네가 대신 뽑아줘")}
+                    className="flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-xs text-foreground shadow-raised transition-colors hover:bg-muted"
+                  >
+                    <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                    샨티가 대신 뽑아줘
+                  </button>
+                </div>
               )}
               <ChatInput
                 value={draft}

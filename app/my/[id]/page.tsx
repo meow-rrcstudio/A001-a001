@@ -167,7 +167,15 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
           <main
             className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
           >
-            <PageHeader variant="reading" backHref="/my" />
+            {/* 뒤로가기는 이 덮개만 걷습니다 (/my 로 나가면 대화가 사라집니다).
+                빈 배열 = 뽑기를 물렀다는 뜻입니다. */}
+            <PageHeader
+              variant="reading"
+              onBack={() => {
+                followup.done([])
+                setFollowup(null)
+              }}
+            />
             <CardReadingFlow
               mode="inline"
               topicLabel={reading.question}
@@ -180,6 +188,8 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
               }}
               introMessage={followup.draw.intro}
               excludeNames={[...reading.cards, ...extraCards].map((c) => c.name)}
+              // 이미 섞어서 펼쳐둔 판입니다 — 다시 섞지 않고 이어서 뽑습니다.
+              skipShuffle
               onComplete={(picked) => {
                 followup.done(picked)
                 setExtraCards((prev) => [...prev, ...picked])

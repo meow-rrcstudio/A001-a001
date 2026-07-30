@@ -145,6 +145,18 @@ export interface ChatContext {
   digest?: string
   /** 그 뒤로 오간 말. 카드를 더 뽑았으면 그것도 한 마디로 들어옵니다 */
   turns: { role: "user" | "shanti"; text: string }[]
+  /**
+   * 이 판에서 지금까지 누가 몇 번 뽑았는지.
+   *
+   * 샨티가 다음 뽑기를 "이 몸이 뽑을까 / 네가 뽑아라"로 고를 때 봅니다.
+   * 대략 이 몸 2 : 묻는 이 1 이 되게 두었습니다 — 직접 뽑는 일이 잦으면
+   * 대화가 자꾸 끊기고 카드 고르기 화면만 오갑니다. 그렇다고 없으면
+   * 묻는 이의 마음이 실릴 자리가 사라집니다.
+   *
+   * ⚠️ 비율을 말로만 시키면(“2:1 로 해라”) 모델은 지킬 수가 없습니다.
+   *    지금까지 몇 번이었는지를 모르기 때문입니다. 그래서 세어서 들려줍니다.
+   */
+  drawTally?: { shanti: number; user: number }
   /** 이번에 새로 던진 물음 */
   message: string
   /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
@@ -183,7 +195,7 @@ export function buildChatMessages(
   context: ChatContext,
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
-  const { question, cards, reading, digest, turns, message, reserve } = context
+  const { question, cards, reading, digest, turns, message, reserve, drawTally } = context
 
   const parts = [
     `### 처음 던진 물음\n${question}`,
@@ -210,6 +222,16 @@ export function buildChatMessages(
     parts.push(
       `### 그 뒤로 오간 말\n` +
       turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
+    )
+  }
+
+  // 뽑기 셈은 예비 카드 바로 앞에 둡니다 — 둘 다 "더 뽑을지"를 정할 때
+  // 함께 보는 것이라, 떨어뜨려 놓으면 하나만 보고 고릅니다.
+  if (drawTally) {
+    parts.push(
+      `### 지금까지 뽑기 (이 판)\n` +
+        `이 몸이 뽑은 횟수: ${drawTally.shanti}\n` +
+        `묻는 이가 직접 뽑은 횟수: ${drawTally.user}`
     )
   }
 

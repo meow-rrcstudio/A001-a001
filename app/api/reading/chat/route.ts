@@ -41,10 +41,30 @@ function drawCards(count: number, exclude: string[]) {
   }))
 }
 
+/** 화면이 보내온 "내가 직접 뽑은 카드"를 믿을 수 있는 모양으로만 걸러냅니다. */
+function readDrawnByUser(raw: unknown) {
+  if (!Array.isArray(raw)) return null
+  const picked = raw
+    .filter(
+      (c): c is { name: string; reversed: boolean; imageUrl: string } =>
+        !!c &&
+        typeof c === "object" &&
+        typeof (c as { name?: unknown }).name === "string" &&
+        typeof (c as { imageUrl?: unknown }).imageUrl === "string"
+    )
+    .slice(0, CHAT_DRAW_MAX)
+    .map((c) => ({
+      name: c.name.slice(0, 60),
+      reversed: c.reversed === true,
+      imageUrl: c.imageUrl.slice(0, 500),
+    }))
+  return picked.length > 0 ? picked : null
+}
+
 export async function POST(request: Request) {
-  let body: ChatContext
+  let body: ChatContext & { drawnCards?: unknown }
   try {
-    body = (await request.json()) as ChatContext
+    body = (await request.json()) as ChatContext & { drawnCards?: unknown }
   } catch {
     return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 })
   }
@@ -66,6 +86,11 @@ export async function POST(request: Request) {
 
   // 접어둔 이야기 — 열두 마디 밖으로 밀려난 앞부분이 여기 들어 있습니다.
   let digest: string | undefined
+  // 이 판에서 누가 몇 번 뽑았는지. 샨티가 다음 뽑기를 고를 때 봅니다
+  // (이 몸 2 : 묻는 이 1 — lib/reading-prompt-templates.ts 주석 참고).
+  let drawTally: { shanti: number; user: number } | undefined
+  // 이번 물음에 딸려온 "내가 직접 뽑은 카드"
+  const drawnByUser = readDrawnByUser(body.drawnCards)
 
   // 한 장 몫을 다 썼는지 — 세는 곳도 서버여야 합니다.
   // 화면에서만 세면 새로고침 한 번으로 초기화됩니다.
@@ -99,6 +124,25 @@ export async function POST(request: Request) {
       console.warn("[reading/chat] 접어둔 이야기를 못 읽었습니다:", folded.error.message)
     }
     digest = folded?.data?.thread_digest ?? undefined
+
+    // 카드가 딸린 마디 = 뽑기가 있었던 마디입니다.
+    // 샨티가 뽑았으면 샨티 마디에, 묻는 이가 뽑았으면 묻는이 마디에 붙습니다.
+    const drawnTurns = await admin
+      ?.from("reading_turns")
+      .select("role")
+      .eq("reading_id", owned.value.id)
+      .not("cards", "is", null)
+
+    if (drawnTurns?.error) {
+      // 못 세면 비율 없이 갑니다 — 샨티가 물음의 결로만 고릅니다(예전과 같음).
+      console.warn("[reading/chat] 뽑기 셈을 못 읽었습니다:", drawnTurns.error.message)
+    } else {
+      const rows = drawnTurns?.data ?? []
+      drawTally = {
+        shanti: rows.filter((r) => r.role === "shanti").length,
+        user: rows.filter((r) => r.role === "user").length,
+      }
+    }
   }
 
   const cards = Array.isArray(body.cards) ? body.cards.slice(0, 20) : []
@@ -126,6 +170,7 @@ export async function POST(request: Request) {
     // 대화가 길어지면 앞쪽은 흘려보냅니다 (프롬프트가 무한정 자라지 않도록).
     // 흘려보낸 만큼은 위의 digest 에 접혀 있습니다.
     turns: Array.isArray(body.turns) ? body.turns.slice(-12) : [],
+    drawTally,
     message: message.slice(0, 1000),
     readingId: body.readingId,
     reserve: reserve.map((c) => ({
@@ -189,7 +234,16 @@ export async function POST(request: Request) {
             await getSupabaseAdmin()
               ?.from("reading_turns")
               .insert([
-                { reading_id: owned.value.id, role: "user", body: context.message },
+                // 묻는 이가 직접 뽑은 카드는 묻는이 마디에 붙습니다.
+                // ⚠️ 이걸 빠뜨리면 두 가지가 함께 망가집니다. 기록에서 다시
+                //    열었을 때 "카드를 뽑았어"라는 말만 남고 카드가 없어지고,
+                //    누가 몇 번 뽑았는지(drawTally)를 셀 수 없어집니다.
+                {
+                  reading_id: owned.value.id,
+                  role: "user",
+                  body: context.message,
+                  cards: drawnByUser,
+                },
                 { reading_id: owned.value.id, role: "shanti", body: reply, cards: drawn },
               ])
 
