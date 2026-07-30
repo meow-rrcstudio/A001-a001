@@ -28,6 +28,7 @@ import {
   type CreditPack,
 } from "@/lib/credit-packs"
 import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
+import { CreditLedger } from "@/components/credit-ledger"
 
 /** 묶음 한 줄 — 홈 카테고리 카드와 같은 결(명조 제목 + 보조 설명) */
 function PackRow({ pack, dark = false }: { pack: CreditPack; dark?: boolean }) {
@@ -97,6 +98,12 @@ export default function CreditsPage() {
               <PackRow pack={pack} dark={pack.featured} />
             </div>
           ))}
+        </div>
+
+        {/* 어디에 썼는지 — 잔액만 보여주고 내역을 감추면 셈이 맞는지
+            아무도 확인할 수 없습니다 (로그인 전에는 그려지지 않습니다). */}
+        <div className="px-6">
+          <CreditLedger />
         </div>
 
         <p className="mt-7 px-6 text-center text-sm leading-relaxed text-black/70">

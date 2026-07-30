@@ -123,10 +123,16 @@ export async function POST(request: Request) {
       // 크레딧은 첫 글자가 온 뒤에 한 번만 깎습니다.
       // 열쇠가 reading:<판id> 라 같은 판을 다시 읽어도 두 번 깎이지 않습니다
       // (새로고침·다시 만들기가 공짜인 이유).
+      // ⚠️ 두 깃발을 따로 둡니다.
+      //    · tried  — 한 번 시도했으니 다시 부르지 않는다 (조각마다 부르므로)
+      //    · charged — 실제로 깎였다
+      //    하나로 합치면, 깎기가 실패했는데도 "깎았다"고 표시돼서 아래에서
+      //    있지도 않은 차감을 되돌려줍니다 (쓰지 않은 한 장이 생깁니다).
+      let tried = false
       let charged = false
       async function chargeOnce(): Promise<string | null> {
-        if (charged || !ownedReading) return null
-        charged = true
+        if (tried || !ownedReading) return null
+        tried = true
         const admin = getSupabaseAdmin()
         if (!admin) return "서버 설정이 아직 없어요."
         const { data: left, error: spendError } = await admin.rpc("spend_credit", {
@@ -139,6 +145,7 @@ export async function POST(request: Request) {
           if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
           return "크레딧이 부족해요."
         }
+        charged = true
         return null
       }
 
@@ -166,17 +173,62 @@ export async function POST(request: Request) {
         )
       } finally {
         controller.close()
+
         // 다 받은 해석을 판에 적어둡니다 (기록에서 다시 열 때 씁니다).
         // 화면이 아니라 서버가 적어야 "브라우저를 지우면 기록이 사라지는"
         // 지금 문제가 없어집니다.
+        let saved = false
         if (ownedReading && last) {
           try {
-            await getSupabaseAdmin()
-              ?.from("readings")
-              .update({ cards, result: JSON.parse(last) })
-              .eq("id", ownedReading.id)
+            const result = JSON.parse(last) as {
+              title?: string
+              summary?: string
+              sections?: unknown[]
+            }
+            // 제목·요약·본문이 다 있어야 "받았다"고 봅니다. 반쪽짜리를 적으면
+            // 기록에서 다시 열었을 때 빈 화면이 나옵니다.
+            if (result.title && result.summary && result.sections?.length) {
+              await getSupabaseAdmin()
+                ?.from("readings")
+                .update({ cards, result })
+                .eq("id", ownedReading.id)
+              saved = true
+            }
           } catch {
-            // 잘린 JSON 이면 적지 않습니다 — 반쪽짜리 기록보다 없는 게 낫습니다
+            // 잘린 JSON — 적지 않습니다 (반쪽짜리 기록보다 없는 게 낫습니다)
+          }
+        }
+
+        // ── 받은 게 없으면 되돌려줍니다 ──────────────────────────────
+        // ⚠️ 크레딧을 깎는 자리를 "첫 글자가 온 뒤"로 미뤄뒀지만, 첫 글자가
+        //    온 다음에 끊기는 경우가 남습니다 (한도·시간 초과·연결 끊김).
+        //    그러면 화면에는 오류만 뜨고 크레딧은 없어집니다 — 아리님이
+        //    "두 번밖에 못 물었는데 네 장이 나갔다"고 한 바로 그 모양입니다.
+        //    받은 것이 없으면 되돌려주는 것이 맞습니다.
+        //
+        // 열쇠가 refund:reading:<판id> 라 한 판에 한 번만 돌아갑니다.
+        //
+        // 되돌려준 판을 다시 시도해서 이번엔 성공하면, 깎기 열쇠(reading:<판id>)가
+        // 이미 쓰인 상태라 다시 깎이지 않습니다 — 그 한 판은 공짜가 됩니다.
+        // 일부러 그대로 둡니다. 우리가 못 준 판을 다시 받는 것이고, 우리 잘못
+        // 뒤에는 사람에게 유리한 쪽으로 기울이는 게 맞습니다.
+        // (실제로 로컬 PostgreSQL 16 에 이 표와 함수를 그대로 올려 확인했습니다)
+        if (charged && !saved && ownedReading && userId) {
+          const { error: refundError } = await (getSupabaseAdmin()
+            ?.from("credit_entries")
+            .insert({
+              user_id: userId,
+              delta: 1,
+              reason: "refund",
+              reading_id: ownedReading.id,
+              idempotency_key: `refund:reading:${ownedReading.id}`,
+            }) ?? { error: null })
+
+          if (refundError) {
+            // 이미 돌려준 판이면 열쇠가 겹쳐 여기로 옵니다 (정상).
+            console.warn("[reading] 되돌려주기:", refundError.message)
+          } else {
+            console.warn(`[reading] 해석을 못 받아 한 장 되돌려줬습니다 — ${ownedReading.id}`)
           }
         }
       }

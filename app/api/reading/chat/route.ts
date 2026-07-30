@@ -157,21 +157,21 @@ export async function POST(request: Request) {
               return ""
             }
           })()
-          await getSupabaseAdmin()
-            ?.from("reading_turns")
-            .insert([
-              { reading_id: owned.value.id, role: "user", body: context.message },
-              ...(reply
-                ? [
-                    {
-                      reading_id: owned.value.id,
-                      role: "shanti",
-                      body: reply,
-                      cards: drawn,
-                    },
-                  ]
-                : []),
-            ])
+
+          // ⚠️ 답을 못 받았으면 물음도 남기지 않습니다.
+          //    이어묻기 횟수는 남은 "묻는이" 마디로 셉니다. 답이 없는데
+          //    물음만 남기면, 받은 것 없이 한 번을 쓴 셈이 됩니다.
+          //    (화면에는 "말문이 막혔구먼"이 뜨고 다시 물어보기가 붙습니다)
+          if (reply) {
+            await getSupabaseAdmin()
+              ?.from("reading_turns")
+              .insert([
+                { reading_id: owned.value.id, role: "user", body: context.message },
+                { reading_id: owned.value.id, role: "shanti", body: reply, cards: drawn },
+              ])
+          } else {
+            console.warn(`[reading/chat] 답이 비어 마디를 남기지 않았습니다 — ${owned.value.id}`)
+          }
         }
       } catch (error) {
         // ⚠️ 오류 문장을 그대로 흘려보내지 않습니다. 갈래(kind)를 보냅니다 —
