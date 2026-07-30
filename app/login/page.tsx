@@ -45,9 +45,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>
+  searchParams: Promise<{ error?: string; next?: string; debug?: string }>
 }) {
-  const { error, next } = await searchParams
+  const { error, next, debug } = await searchParams
   const notice = error ? translateAuthError(error) : undefined
 
   // 실패해서 되돌아온 사람이 다시 로그인하면 가려던 자리로 갑니다.
@@ -88,7 +88,7 @@ export default async function LoginPage({
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.
             동의 고지도 이 안에 있습니다 (모든 단계에서 보여야 해서). */}
-        <LoginForm next={backTo} notice={notice} />
+        <LoginForm next={backTo} notice={notice} debug={debug === "1"} />
       </main>
     </div>
   )

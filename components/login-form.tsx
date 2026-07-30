@@ -22,7 +22,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { GoogleMark, KakaoMark } from "@/components/provider-marks"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
-import { translateAuthError } from "@/lib/auth-messages"
+import { lastAuthErrorRaw, translateAuthError } from "@/lib/auth-messages"
 
 type Mode = "buttons" | "email"
 
@@ -86,9 +86,18 @@ export function LoginForm({
    * 다시 떠서, 누른 사람은 자기가 잘못 눌렀는지조차 몰랐습니다.
    */
   notice,
+  /**
+   * /login?debug=1 일 때 켜집니다.
+   *
+   * 못 옮긴 사유의 원문을 화면에 덧붙입니다. 콘솔을 열 수 없는 손전화에서
+   * "왜 잠시 문제가 생겼다고만 뜨는지"를 확인하려고 둔 것입니다.
+   * 평소에는 꺼져 있으니 사용자 눈에 영어가 새지 않습니다.
+   */
+  debug = false,
 }: {
   next?: string
   notice?: string
+  debug?: boolean
 }) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("buttons")
@@ -117,7 +126,7 @@ export function LoginForm({
     })
     if (error) {
       setBusy(false)
-      setStatus({ kind: "error", text: translateAuthError(error.message) })
+      setStatus({ kind: "error", text: translateAuthError(error.message, error.code) })
     }
     // 성공하면 이 창이 그대로 공급자 화면으로 넘어갑니다 (busy 유지)
   }
@@ -168,9 +177,22 @@ export function LoginForm({
     }
 
     // 자격 증명 문제가 아니면(예: 메일 인증 전) 그 사유를 그대로 알립니다.
-    if (!/invalid login credentials/i.test(signIn.error.message)) {
+    //
+    // ⚠️ 영어 문구만 보고 가르면 안 됩니다. Supabase 가 판을 올리면서
+    //    문구를 바꾸면 이 갈림길이 어긋나고, 비밀번호가 틀린 사람이
+    //    가입 시도까지 못 가서 FALLBACK("잠시 문제가 생겼어요")을 봅니다.
+    //    "비밀번호가 맞지 않아요"라고 말해줄 수 있는데 말이죠.
+    //    그래서 잘 안 바뀌는 code 를 먼저 보고, 문구는 보조로만 씁니다.
+    const wrongCredentials =
+      signIn.error.code === "invalid_credentials" ||
+      /invalid login credentials/i.test(signIn.error.message)
+
+    if (!wrongCredentials) {
       setBusy(false)
-      return setStatus({ kind: "error", text: translateAuthError(signIn.error.message) })
+      return setStatus({
+        kind: "error",
+        text: translateAuthError(signIn.error.message, signIn.error.code),
+      })
     }
 
     // 여기부터는 "비밀번호가 틀렸거나 계정이 없거나" — 가입을 시도해 봅니다.
@@ -189,6 +211,8 @@ export function LoginForm({
     }
 
     const already =
+      signUp.error?.code === "user_already_exists" ||
+      signUp.error?.code === "email_exists" ||
       (signUp.error && /already registered|already been registered/i.test(signUp.error.message)) ||
       (!signUp.error && signUp.data.user?.identities?.length === 0)
 
@@ -201,7 +225,7 @@ export function LoginForm({
     }
 
     if (signUp.error) {
-      return setStatus({ kind: "error", text: translateAuthError(signUp.error.message) })
+      return setStatus({ kind: "error", text: translateAuthError(signUp.error.message, signUp.error.code) })
     }
 
     // 메일 확인을 꺼 두었다면 가입과 동시에 로그인됩니다.
@@ -244,7 +268,7 @@ export function LoginForm({
     }
     // 너무 자주 보내면 Supabase 가 막습니다 — 그건 알려줘야 합니다.
     if (result.error && /rate limit|for security purposes|too many/i.test(result.error.message)) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message) })
+      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
     }
     setStatus({ kind: "info", text: "비밀번호를 새로 정하는 링크를 보냈어요." })
   }
@@ -268,7 +292,7 @@ export function LoginForm({
       return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
     }
     if (result.error) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message) })
+      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
     }
     setStatus({ kind: "info", text: "인증 메일을 다시 보냈어요.", canResend: true })
   }
@@ -369,6 +393,7 @@ export function LoginForm({
           </div>
         )}
 
+        <DebugLine show={debug} />
         <Consent />
       </div>
     )
@@ -417,6 +442,23 @@ export function LoginForm({
 
       <Consent />
     </div>
+  )
+}
+
+/**
+ * 못 옮긴 사유의 원문 (/login?debug=1 일 때만).
+ *
+ * ⚠️ 평소에는 절대 그리지 않습니다. 영어 원문은 읽는 사람에게 아무
+ *    정보가 아니고("Invalid login credentials"), 우리 속사정만 드러냅니다.
+ *    고칠 때만 잠깐 켜는 창입니다.
+ */
+function DebugLine({ show }: { show: boolean }) {
+  const raw = show ? lastAuthErrorRaw() : null
+  if (!raw) return null
+  return (
+    <p className="border border-red-500/40 bg-white/60 px-3 py-2 text-center font-mono text-[11px] break-all text-red-700">
+      {raw}
+    </p>
   )
 }
 
