@@ -126,6 +126,16 @@ export function buildReadingMessages({
 
 /** 면담에 들려보내는 지금까지의 사정 */
 export interface ChatContext {
+  /**
+   * 이 사람에 대해 지금까지 알게 된 것.
+   *
+   * ⚠️ 이 판의 것이 아닙니다. 판을 넘어 쌓이는 유일한 값입니다 — 지난달에
+   *    다른 질문으로 왔을 때 들은 것도 여기 들어 있습니다.
+   *
+   * 없으면 그냥 빠집니다. 그때 샨티는 처음 만난 것처럼 대합니다
+   * (lib/character.ts 의 @memory_use 참고).
+   */
+  memories?: { kind: string; fact: string }[]
   /** 처음 던진 질문 */
   question: string
   /** 그때 뽑은 카드 (자리 이름과 함께) */
@@ -195,12 +205,23 @@ export function buildChatMessages(
   context: ChatContext,
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
-  const { question, cards, reading, digest, turns, message, reserve, drawTally } = context
+  const { memories, question, cards, reading, digest, turns, message, reserve, drawTally } = context
 
-  const parts = [
+  const parts: string[] = []
+
+  // 이 사람에 대해 아는 것이 가장 앞에 옵니다. 판보다 오래된 것이고,
+  // 이 판의 이야기는 그 위에 얹히는 것이기 때문입니다.
+  if (memories && memories.length > 0) {
+    parts.push(
+      `### 이 사람에 대해 알고 있는 것 (지난 대화에서 들은 것)\n` +
+        memories.map((m) => `· [${m.kind}] ${m.fact}`).join("\n")
+    )
+  }
+
+  parts.push(
     `### 처음 던진 물음\n${question}`,
-    `### 뽑힌 카드\n${describeCards(cards)}`,
-  ]
+    `### 뽑힌 카드\n${describeCards(cards)}`
+  )
 
   if (reading) {
     parts.push(

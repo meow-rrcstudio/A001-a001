@@ -17,13 +17,29 @@ import { streamErrorPayload, streamGeminiJson } from "@/lib/ai/gemini"
 import { CHAT_DIGEST_MAX_CHARS, CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
+import { cleanMemos, readUserMemories, rememberFacts } from "@/lib/server/user-memory"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-/** 면담 답은 해석보다 훨씬 짧습니다 */
-const CHAT_MAX_TOKENS = 2000
+/**
+ * 면담 답은 해석보다 훨씬 짧습니다. 그래도 넉넉히 둡니다.
+ *
+ * ⚠️ 이 한도는 "글자"만이 아니라 생각(thinking)에 쓴 토큰까지 함께
+ *    깎습니다. 대화의 생각 예산이 1024 이므로, 2000 이면 실제로 쓸 수
+ *    있는 것은 천 토큰 남짓이었습니다.
+ *
+ *    거기에 답(2~5문장)·뽑기 요청·다음 물음 제안에 더해 접어둔 이야기
+ *    (CHAT_DIGEST_MAX_CHARS 자)와 새로 알게 된 것까지 얹히면 한도에
+ *    닿습니다. 닿으면 글자를 한 자도 못 내놓고 finishReason=MAX_TOKENS 로
+ *    끝나서, 화면에는 오류도 글도 없이 빈 칸만 남습니다 — 실제로 예전에
+ *    그렇게 한 번 막혔습니다 (lib/ai/gemini.ts 주석 참고).
+ *
+ *    올려도 값이 더 들지 않습니다. 상한이지 목표가 아니라서, 짧게 답하면
+ *    짧게 끝납니다.
+ */
+const CHAT_MAX_TOKENS = 4000
 
 /**
  * 이미 나온 카드를 빼고 count 장을 뽑습니다 (20% 역방향).
@@ -145,6 +161,10 @@ export async function POST(request: Request) {
     }
   }
 
+  // 이 사람에 대해 지금까지 알게 된 것 — 이 판이 아니라 이 사람에 딸린
+  // 값이라, 판을 확인하는 위 블록 밖에서 꺼냅니다.
+  const memories = await readUserMemories(guard.value?.id)
+
   const cards = Array.isArray(body.cards) ? body.cards.slice(0, 20) : []
 
   // ── 예비 카드를 미리 뽑아 함께 들려보냅니다 ─────────────────────────
@@ -161,6 +181,7 @@ export async function POST(request: Request) {
   const reserve = drawCards(CHAT_DRAW_MAX, cards.map((c) => c.name))
 
   const context: ChatContext = {
+    memories,
     question: String(body.question ?? "").slice(0, 300),
     cards,
     reading: body.reading,
@@ -265,6 +286,13 @@ export async function POST(request: Request) {
                 console.warn("[reading/chat] 접어둔 이야기를 못 남겼습니다:", saved.error.message)
               }
             }
+
+            // 이 사람에 대해 새로 알게 된 것을 쌓습니다.
+            // ⚠️ 판이 아니라 사람에 딸립니다 — 다음에 다른 질문으로 와도
+            //    이건 따라옵니다. 그래서 답을 못 받은 마디에서는 남기지
+            //    않습니다(이 블록 안입니다). 오간 것이 없는데 알게 된
+            //    것만 남으면 근거 없는 사실이 됩니다.
+            await rememberFacts(guard.value?.id, owned.value.id, readMemos(last))
           } else {
             console.warn(`[reading/chat] 답이 비어 마디를 남기지 않았습니다 — ${owned.value.id}`)
           }
@@ -301,6 +329,20 @@ function readDigest(raw: string): string | null {
     return text ? text.slice(0, CHAT_DIGEST_MAX_CHARS) : null
   } catch {
     return null
+  }
+}
+
+/**
+ * 다 받은 JSON 에서 "새로 알게 된 것"만 꺼냅니다.
+ *
+ * 모양이 이상하면 빈 배열입니다 — 여기 들어온 것은 다음 대화마다 프롬프트에
+ * 실리므로, 미심쩍은 것은 들이지 않는 편이 낫습니다.
+ */
+function readMemos(raw: string) {
+  try {
+    return cleanMemos((JSON.parse(raw) as { memo?: unknown }).memo)
+  } catch {
+    return []
   }
 }
 

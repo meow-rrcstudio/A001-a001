@@ -153,6 +153,62 @@ create index if not exists reading_turns_reading_idx
   on public.reading_turns (reading_id, id);
 
 -- ═══════════════════════════════════════════════════════════════════
+-- 3-2. 이 사람에 대해 알게 된 것
+-- ═══════════════════════════════════════════════════════════════════
+-- 대화 원문이 아니라 "한 줄짜리 사실"만 쌓습니다.
+--
+-- ┌─ 왜 원문이 아니라 한 줄인가 ──────────────────────────────────────
+-- │ · 원문을 쌓으면 프롬프트에 다 실을 수 없어서 결국 요약해야 하고,
+-- │   그 요약을 매번 다시 만들면 AI 호출이 늘어납니다. 처음부터 한 줄로
+-- │   받아 적는 편이 쌉니다.
+-- │ · 사람에게 보여주고 지우게 하기도 쉽습니다. 항상 프롬프트에 실리는
+-- │   값이라, 틀린 것이 하나 섞이면 모든 대화가 그만큼 틀어집니다.
+-- │   고칠 손잡이가 반드시 있어야 하는 자료입니다.
+-- │ · 한글 문장이라 AI 를 갈아타도 그대로 씁니다. 임베딩(벡터)으로
+-- │   저장했다면 모델이 바뀔 때 전부 다시 만들어야 합니다.
+-- └──────────────────────────────────────────────────────────────────
+--
+-- 샨티가 답을 쓰면서 같은 응답 안에 함께 적어 보냅니다 — 기억을 남기자고
+-- 호출을 한 번 더 쓰지 않습니다 (lib/ai/gemini.ts 의 하루 한도 주석 참고).
+create table if not exists public.user_memories (
+  id         bigserial primary key,
+  user_id    uuid not null references auth.users on delete cascade,
+  -- 무엇에 대한 것인가. 프롬프트에서 묶어 보여주는 데 씁니다.
+  --   situation 지금 놓인 처지   (이직을 준비하고 있다)
+  --   person    주변 사람        (3년 만난 사람이 있다)
+  --   trait     성향             (결정을 미루는 편이다)
+  --   care      이 사람을 대하는 법 (조언보다 들어주기를 원한다)
+  kind       text not null check (kind in ('situation','person','trait','care')),
+  -- 한 줄. 공백을 다듬은 뒤 넣습니다 (아래 unique 가 그 모양으로 걸립니다).
+  fact       text not null,
+  -- 어느 판에서 알게 됐는지. 되짚을 때 씁니다.
+  reading_id uuid references public.readings on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- 같은 말을 두 번 쌓지 않습니다. 다시 나오면 updated_at 만 새로 찍힙니다
+-- (그래서 자주 나오는 사실이 오래 남습니다 — 아래 정리에서 늦게 밀립니다).
+create unique index if not exists user_memories_unique
+  on public.user_memories (user_id, kind, fact);
+
+create index if not exists user_memories_user_idx
+  on public.user_memories (user_id, updated_at desc);
+
+alter table public.user_memories enable row level security;
+
+-- 보기와 지우기는 본인이 합니다.
+-- 넣는 것은 서버(서비스 키)만 — 브라우저가 직접 넣을 수 있으면 프롬프트에
+-- 아무 문장이나 심을 수 있습니다.
+drop policy if exists "본인 기억 보기" on public.user_memories;
+create policy "본인 기억 보기" on public.user_memories
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "본인 기억 지우기" on public.user_memories;
+create policy "본인 기억 지우기" on public.user_memories
+  for delete using (auth.uid() = user_id);
+
+-- ═══════════════════════════════════════════════════════════════════
 -- 4. 결제 (토스페이먼츠)
 -- ═══════════════════════════════════════════════════════════════════
 create table if not exists public.purchases (

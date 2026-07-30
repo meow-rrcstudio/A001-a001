@@ -62,6 +62,19 @@ export interface ChatReply {
    * 요약하자고 요청을 한 번 더 쓰면 하루 스무 번이 열 번이 됩니다.
    */
   digest?: string | null
+  /**
+   * 이번 마디에서 새로 알게 된, 이 사람에 대한 사실 0~2개.
+   *
+   * ⚠️ 화면은 이걸 쓰지 않습니다. 서버가 받아 user_memories 에 쌓았다가,
+   *    다음에 이 사람이 올 때 — 다른 판이어도 — 함께 들려보냅니다.
+   *
+   * digest 가 "이 판에서 있었던 일"이라면 이쪽은 "이 사람에 대해 알게 된
+   * 것"입니다. 판이 끝나도 남습니다.
+   *
+   * 대개 빈 배열입니다. 억지로 채우면 추측이 사실로 굳어서, 다음 대화에서
+   * 샨티가 틀린 것을 알고 있는 척하게 됩니다.
+   */
+  memo?: ChatMemo[] | null
 }
 
 /** 한 번에 제안할 다음 물음의 최대 개수 */
@@ -81,6 +94,31 @@ export const CHAT_DIGEST_MIN_TURNS = 4
 
 /** 접어둔 이야기의 길이 상한 — 이게 길어지면 대화를 밀어냅니다 */
 export const CHAT_DIGEST_MAX_CHARS = 600
+
+/**
+ * 이 사람에 대해 알게 된 것 — 갈래.
+ *
+ *   situation 지금 놓인 처지   (이직을 준비하고 있다)
+ *   person    주변 사람        (3년 만난 사람이 있다)
+ *   trait     성향             (결정을 미루는 편이다)
+ *   care      대하는 법        (조언보다 들어주기를 원한다)
+ *
+ * care 가 이 중 가장 중요합니다. 다른 셋은 "무엇을 아는가"지만 care 는
+ * "어떻게 말할 것인가"라서, 상담의 결이 사람마다 갈리는 자리입니다.
+ */
+export const CHAT_MEMO_KINDS = ["situation", "person", "trait", "care"] as const
+export type ChatMemoKind = (typeof CHAT_MEMO_KINDS)[number]
+
+export interface ChatMemo {
+  kind: ChatMemoKind
+  fact: string
+}
+
+/** 한 마디에서 새로 받아 적을 수 있는 사실의 최대 개수 */
+export const CHAT_MEMO_MAX = 2
+
+/** 사실 한 줄의 길이 상한 */
+export const CHAT_MEMO_MAX_CHARS = 200
 
 export const CHAT_JSON_SCHEMA = {
   type: "object",
@@ -135,14 +173,36 @@ export const CHAT_JSON_SCHEMA = {
         `앞서 받은 "지금까지 오간 이야기"에 이번 마디를 더해 통째로 새로 쓴다. ` +
         `오간 말이 ${CHAT_DIGEST_MIN_TURNS}마디에 못 미치면 빈 값.`,
     },
+    memo: {
+      type: "array",
+      nullable: true,
+      description:
+        `이번 마디에서 새로 알게 된 "묻는 이에 대한 사실" 0~${CHAT_MEMO_MAX}개. ` +
+        `다음에 다시 만났을 때 알고 있으면 좋을 것만. ${CHAT_MEMO_MAX_CHARS}자 안쪽 한 문장. ` +
+        `이미 알고 있던 것·이 판에서만 쓰이는 것·카드 이야기는 넣지 않는다. 대개 빈 배열.`,
+      items: {
+        type: "object",
+        properties: {
+          kind: {
+            type: "string",
+            enum: [...CHAT_MEMO_KINDS],
+            description:
+              "situation=지금 놓인 처지, person=주변 사람, trait=성향, care=이 사람을 대하는 법",
+          },
+          fact: { type: "string", description: "한 문장. 묻는 이를 '이 사람'으로 적는다." },
+        },
+        required: ["kind", "fact"],
+        propertyOrdering: ["kind", "fact"],
+      },
+    },
   },
   required: ["reply"],
   // 답이 먼저 흘러나오고, 뽑기 요청과 제안이 그 뒤에 붙습니다.
   // (순서가 곧 화면에 차는 순서입니다 — 답이 가장 먼저 보여야 합니다)
   //
-  // digest 는 맨 뒤입니다. 화면이 쓰지 않는 값이라 먼저 오면 답이 그만큼
-  // 늦게 보이기만 합니다.
-  propertyOrdering: ["reply", "draw", "suggestions", "digest"],
+  // digest·memo 는 맨 뒤입니다. 화면이 쓰지 않는 값이라 먼저 오면 답이
+  // 그만큼 늦게 보이기만 합니다.
+  propertyOrdering: ["reply", "draw", "suggestions", "digest", "memo"],
 } as const
 
 /** 면담 지시 — 페르소나 뒤에 붙습니다 */
@@ -208,4 +268,16 @@ reply.예(shanti)=흠,_그건_지금_패에_없구먼._이_몸이_한_장_뽑아
 시점=사실만_담담하게|말투를_흉내내지_말_것,
 길이=${CHAT_DIGEST_MAX_CHARS}자_안쪽|3문장_안쪽,
 비우는때=오간_말이_${CHAT_DIGEST_MIN_TURNS}마디에_못_미칠_때|아직_접을_것이_없다
+}
+@memo_rule{
+정체=memo_는_"다음에_다시_만났을_때_알고_있으면_좋을_것"이다|이_판의_메모가_아니다,
+digest와의_차이=digest는_이_판에서_있었던_일|memo는_이_사람에_대한_것|판이_끝나도_남는다,
+갈래=situation(지금_놓인_처지)|person(주변_사람)|trait(성향)|care(이_사람을_대하는_법),
+care_예=조언보다_들어주기를_원한다|단정적인_말에_움츠러든다|농담을_섞으면_편해한다|길게_말하면_지친다,
+확실성=묻는_이가_직접_말한_것만_적는다|이_몸이_읽어낸_해석·카드가_말한_것은_넣지_않는다,
+안_넣는것=카드_이야기|이미_알고_있는_것(위에_적혀_있다)|한_번_스쳐간_기분|추측|이_판에서만_쓰이는_것,
+민감=건강·정신과_진료·성적지향·종교·정치·돈의_액수는_넣지_않는다,
+문장=한_문장|${CHAT_MEMO_MAX_CHARS}자_안쪽|묻는_이를_"이_사람"으로_적는다|예:이_사람은_이직을_준비하고_있다,
+개수=0~${CHAT_MEMO_MAX}개|대개_0개다|억지로_채우지_말_것,
+왜=억지로_채우면_추측이_사실로_굳는다|다음_대화에서_이_몸이_틀린_것을_아는_척하게_된다
 }`
