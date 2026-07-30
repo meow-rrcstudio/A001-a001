@@ -187,13 +187,6 @@ export default function AskPage() {
           onTurnsReplace={(turns) => readingId && replaceTurns(readingId, turns)}
           onDrawRequest={handleDrawRequest}
           onRegenerate={() => void runReading(cards)}
-          onRestart={() => {
-            setQuestion("")
-            setCards([])
-            setExtraCards([])
-            setReadingId(null)
-            setStep("ask")
-          }}
         />
 
         {/* 면담 중 추가로 뽑기 — 해석 화면 위에 덮습니다 (대화를 잃지 않도록) */}

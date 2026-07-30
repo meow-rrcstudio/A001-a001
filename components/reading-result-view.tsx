@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw, Layers } from "lucide-react"
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, Layers } from "lucide-react"
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
 import { CardSpread } from "@/components/card-spread"
 import { BlinkingShanti } from "@/components/pixel-sprite"
@@ -259,7 +259,6 @@ export function ReadingResultView({
   initialTurns = [],
   onTurn,
   onTurnsReplace,
-  onRestart,
   onDrawRequest,
   onRegenerate,
 }: {
@@ -287,8 +286,6 @@ export function ReadingResultView({
   onTurn?: (turn: Turn) => void
   /** 새로고침으로 마지막 답을 물렀을 때 — 보관본도 그만큼 되돌립니다 */
   onTurnsReplace?: (turns: Turn[]) => void
-  /** 새 질문하기. 넘기지 않으면 버튼이 나오지 않습니다 (기록에서 열었을 때) */
-  onRestart?: () => void
   /**
    * 샨티가 "네가 직접 뽑아라"라고 할 때 불립니다. 카드 고르기 화면으로
    * 넘겼다가 뽑은 카드를 done 으로 돌려주면 면담이 이어집니다.
@@ -578,17 +575,6 @@ export function ReadingResultView({
             클로드가 마지막 답 아래·입력창 위에 표식을 하나만 두는 자리와
             같습니다. 대화가 길어져도 늘어나지 않고 끝을 따라 내려옵니다. */}
         <ShantiMark busy={busyNow} elapsed={busyNow ? chatElapsed ?? readingElapsed : undefined} />
-
-        {onRestart && (
-          <button
-            type="button"
-            onClick={onRestart}
-            className="mt-10 inline-flex items-center justify-center gap-2 self-start text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            새 질문하기
-          </button>
-        )}
       </main>
 
       {/* 입력창 — 해석을 다 받은 뒤에만 (읽는 중엔 물어볼 수 없습니다) */}
