@@ -262,6 +262,26 @@ export function useReadingChat({
     await ask(lastUser.text)
   }, [ask, busy, onTurnsReplace])
 
+  /**
+   * 묻는 이가 스스로 "직접 뽑겠다"고 한 경우.
+   *
+   * ⚠️ 샨티가 draw 를 내줄 때까지 기다리면 안 됩니다. 모델이 "네가 뽑아보는
+   *    것도 좋겠구나" 라고 말만 하고 draw 를 안 붙이는 일이 실제로
+   *    있었습니다. 그러면 묻는 이는 뽑겠다고 했는데 뽑을 데가 없습니다.
+   *    그래서 화면에서도 직접 시작할 수 있게 열어둡니다.
+   */
+  const requestOwnDraw = useCallback((count = 1) => {
+    if (busy) return
+    const n = Math.max(1, Math.min(count, CHAT_DRAW_MAX))
+    setPendingDraw({
+      mode: "user",
+      positions: Array.from({ length: n }, (_, i) => ({
+        label: n === 1 ? "지금 마음에 걸리는 것" : `${i + 1}번째로 궁금한 것`,
+        guide: "끌리는 카드를 골라보라냥",
+      })),
+    })
+  }, [busy])
+
   /** 묻는 이가 직접 뽑고 돌아왔습니다 */
   const submitDrawnCards = useCallback(
     async (picked: PickedCard[]) => {
@@ -286,5 +306,15 @@ export function useReadingChat({
     [ask, pendingDraw, pushTurn]
   )
 
-  return { turns, streamingText, busy, error, pendingDraw, send, retryLast, submitDrawnCards }
+  return {
+    turns,
+    streamingText,
+    busy,
+    error,
+    pendingDraw,
+    send,
+    retryLast,
+    submitDrawnCards,
+    requestOwnDraw,
+  }
 }

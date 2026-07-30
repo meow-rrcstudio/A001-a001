@@ -97,12 +97,22 @@ export function CardReadingFlow({
   question,
   introMessage,
   mode = "prompt",
+  excludeNames,
   onComplete,
 }: {
   topicLabel: string
   topicSlug: ReadingTopicKey
   question: ReadingQuestion
   introMessage: string
+  /**
+   * 부채에서 빼놓을 카드 이름(nameKo).
+   *
+   * 면담 중에 다시 뽑을 때 씁니다 — 이미 이 판에서 나온 카드가 부채에
+   * 그대로 섞여 있으면 같은 카드를 또 뽑을 수 있고, 그러면 "아까 그
+   * 카드가 또?" 하고 읽는 이가 걸립니다. 사용자가 말한 "남은 카드들 중"
+   * 이 바로 이 뜻입니다.
+   */
+  excludeNames?: string[]
   /**
    * 카드를 다 뒤집은 뒤에 무엇을 보여줄지.
    * · "prompt" (기본) — 외부 AI 에 붙여넣을 프롬프트를 말풍선에 띄웁니다 (비회원 흐름)
@@ -152,7 +162,20 @@ export function CardReadingFlow({
   const [selected, setSelected] = useState<number[]>([])
   const [flippedIndices, setFlippedIndices] = useState<number[]>([])
 
-  const shuffledDeck = useMemo(() => getReadingDeck(), [])
+  // 이 판에서 이미 나온 카드는 부채에서 빼둡니다.
+  // ⚠️ 다 빼면 뽑을 카드가 없어지니, 남는 게 뽑을 장수보다 적으면
+  //    빼지 않고 한 벌을 그대로 씁니다 (뽑을 수 없는 화면이 더 나쁩니다).
+  const excludeKey = (excludeNames ?? []).join("|")
+  const shuffledDeck = useMemo(() => {
+    const deck = getReadingDeck()
+    const used = new Set(excludeKey ? excludeKey.split("|") : [])
+    if (used.size === 0) return deck
+    const left = deck.filter((c) => !used.has(c.nameKo))
+    return left.length >= requiredPicks ? left : deck
+    // excludeKey 는 배열을 문자열로 굳힌 값입니다 — 배열을 그대로 두면
+    // 리렌더마다 새 배열이라 덱이 매번 다시 섞입니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excludeKey, requiredPicks])
 
   const cardOrientations = useMemo(() => {
     const total = shuffledDeck.length;

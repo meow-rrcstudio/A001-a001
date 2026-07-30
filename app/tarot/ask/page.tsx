@@ -54,6 +54,9 @@ export default function AskPage() {
     draw: ChatDrawRequest
     done: (picked: PickedCard[]) => void
   } | null>(null)
+  // 면담 중에 더 뽑은 카드. 처음 뽑은 카드와 합쳐서 "이미 나온 카드" 목록이
+  // 되고, 다음 뽑기의 부채에서 빠집니다 (같은 카드가 두 번 나오지 않도록).
+  const [extraCards, setExtraCards] = useState<PickedCard[]>([])
 
   const handleDrawRequest = useCallback(
     (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
@@ -187,6 +190,7 @@ export default function AskPage() {
           onRestart={() => {
             setQuestion("")
             setCards([])
+            setExtraCards([])
             setReadingId(null)
             setStep("ask")
           }}
@@ -212,8 +216,12 @@ export default function AskPage() {
                   positions: followup.draw.positions,
                 }}
                 introMessage={followup.draw.intro}
+                // 이 판에서 이미 나온 카드는 부채에서 빼둡니다 —
+                // 사용자가 말한 "남은 카드들 중"입니다.
+                excludeNames={[...cards, ...extraCards].map((c) => c.name)}
                 onComplete={(picked) => {
                   followup.done(picked)
+                  setExtraCards((prev) => [...prev, ...picked])
                   setFollowup(null)
                 }}
               />

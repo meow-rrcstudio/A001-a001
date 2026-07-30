@@ -19,7 +19,12 @@ const STORAGE_KEY = "soulseoul.entitlement.v1"
 // 크레딧 규칙의 숫자들은 lib/credit-rules.ts 에 있습니다.
 // ⚠️ 이 파일은 "use client" 라서 서버가 여기서 숫자를 가져가면 스텁을
 //    받습니다. 서버 코드는 lib/credit-rules.ts 를 직접 보세요.
-export { WELCOME_CREDITS, FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/credit-rules"
+export {
+  WELCOME_CREDITS,
+  FOLLOWUPS_PER_CREDIT,
+  FOLLOWUP_WARN_AT,
+  FOLLOWUP_NEARLY_DONE_AT,
+} from "@/lib/credit-rules"
 
 export interface Entitlement {
   isLoggedIn: boolean

@@ -5,21 +5,41 @@
 // 여기서 이어서 물어본 말도 그 타로점에 계속 쌓입니다.
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { use, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
-import { ReadingResultView } from "@/components/reading-result-view"
+import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
 import { Button } from "@/components/ui/button"
 import { appendTurn, getReading, replaceTurns, type SavedReading } from "@/lib/reading-archive"
 import { PromptReadingView } from "@/components/prompt-reading-view"
 import { useAccount } from "@/lib/use-account"
+import { CardReadingFlow } from "@/components/card-reading-flow"
+import { FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { layoutKeyForCount } from "@/lib/ai/reading-plan"
+import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
+import type { LayoutKey } from "@/lib/spread-layouts"
 
 export default function SavedReadingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [reading, setReading] = useState<SavedReading | null>(null)
   const [ready, setReady] = useState(false)
   const { account } = useAccount()
+  // 예전 판을 다시 열어 이어 물을 때도 카드를 더 뽑을 수 있어야 합니다.
+  // ⚠️ 이게 없으면 샨티가 "카드를 더 뽑아보자"고 말해도 뽑을 화면이 없어서
+  //    대화가 그 자리에서 멈춥니다 (/tarot/ask 에만 있던 문제였습니다).
+  const [followup, setFollowup] = useState<{
+    draw: ChatDrawRequest
+    done: (picked: PickedCard[]) => void
+  } | null>(null)
+  const [extraCards, setExtraCards] = useState<PickedCard[]>([])
+
+  const handleDrawRequest = useCallback(
+    (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
+      setFollowup({ draw, done })
+    },
+    []
+  )
 
   // 서버에 있으면 서버 것을, 없으면 브라우저 보관함을 봅니다.
   // (연결 전에 본 타로점은 아직 브라우저에만 있습니다)
@@ -85,18 +105,51 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <ReadingResultView
-      question={reading.question}
-      result={reading.result}
-      cards={reading.cards}
-      layoutKey={reading.layoutKey}
-      readingId={reading.id}
-      resultRating={reading.rating}
-      positions={reading.positions}
-      backHref="/my"
-      initialTurns={reading.turns}
-      onTurn={(turn) => appendTurn(reading.id, turn)}
-      onTurnsReplace={(turns) => replaceTurns(reading.id, turns)}
-    />
+    <>
+      <ReadingResultView
+        question={reading.question}
+        result={reading.result}
+        cards={reading.cards}
+        layoutKey={reading.layoutKey}
+        readingId={reading.id}
+        resultRating={reading.rating}
+        positions={reading.positions}
+        backHref="/my"
+        initialTurns={reading.turns}
+        onTurn={(turn) => appendTurn(reading.id, turn)}
+        onTurnsReplace={(turns) => replaceTurns(reading.id, turns)}
+        onDrawRequest={handleDrawRequest}
+      />
+
+      {/* 이어 묻는 중에 카드를 더 뽑기 — 해석 화면 위에 덮습니다.
+          걷어내면 나눈 대화가 사라지기 때문에 화면을 바꾸지 않습니다. */}
+      {followup && (
+        <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-background">
+          <main
+            className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
+          >
+            <PageHeader variant="reading" backHref="/my" />
+            <CardReadingFlow
+              mode="inline"
+              topicLabel={reading.question}
+              topicSlug="self"
+              question={{
+                slug: FREE_QUESTION_SLUG,
+                label: reading.question,
+                layoutKey: layoutKeyForCount(followup.draw.positions.length) as LayoutKey,
+                positions: followup.draw.positions,
+              }}
+              introMessage={followup.draw.intro}
+              excludeNames={[...reading.cards, ...extraCards].map((c) => c.name)}
+              onComplete={(picked) => {
+                followup.done(picked)
+                setExtraCards((prev) => [...prev, ...picked])
+                setFollowup(null)
+              }}
+            />
+          </main>
+        </div>
+      )}
+    </>
   )
 }

@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw } from "lucide-react"
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, RotateCcw, Layers } from "lucide-react"
 import { spreadLayouts, type LayoutKey } from "@/lib/spread-layouts"
 import { CardSpread } from "@/components/card-spread"
 import { BlinkingShanti } from "@/components/pixel-sprite"
@@ -28,7 +28,11 @@ import { type ReadingResult } from "@/lib/mock-reading"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
-import { FOLLOWUPS_PER_CREDIT, FOLLOWUP_WARN_AT } from "@/lib/reading-entitlement"
+import {
+  FOLLOWUPS_PER_CREDIT,
+  FOLLOWUP_WARN_AT,
+  FOLLOWUP_NEARLY_DONE_AT,
+} from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
 import { ACTIVE_CHARACTER } from "@/lib/character"
 
@@ -298,6 +302,7 @@ export function ReadingResultView({
     send,
     retryLast,
     submitDrawnCards,
+    requestOwnDraw,
   } = useReadingChat({
     question,
     cards,
@@ -586,11 +591,49 @@ export function ReadingResultView({
             </div>
           ) : (
             <>
-              {/* 남은 횟수는 끝이 가까울 때만 — 평소엔 세는 느낌이 나면 안 됩니다 */}
-              {leftToAsk <= FOLLOWUP_WARN_AT && (
-                <p className="pointer-events-auto mb-2 text-center text-xs text-muted-foreground">
-                  이 판으로 {leftToAsk}번 더 물어볼 수 있어냥
-                </p>
+              {/* ── 끝이 가까울 때 ──────────────────────────────────────
+                  두 단계로 알립니다.
+                  · 5번 남으면 — 작은 글씨로 세어만 줍니다 (평소엔 미터기처럼
+                    보이면 안 되니까요)
+                  · 2번 남으면 — 한 장 더 쓸 수 있는 버튼을 미리 내줍니다.
+                    ⚠️ 예전에는 이 버튼이 "다 쓴 뒤"에만 나왔습니다. 그러면
+                       한창 이야기하다 벽에 부딪히고, 그 자리에서 흐름이
+                       끊깁니다. 끝나기 전에 내주면 벽을 만나지 않습니다. */}
+              {leftToAsk <= FOLLOWUP_NEARLY_DONE_AT && credits !== null && credits > 0 ? (
+                <div className="pointer-events-auto mb-2 rounded-2xl bg-card p-3 shadow-raised">
+                  <p className="text-center text-sm leading-relaxed text-foreground">
+                    이 판으로는 {leftToAsk}번 더 물어볼 수 있다냥. 더 이어가고 싶으면 한{" "}
+                    {CREDIT_UNIT.counter} 더 쓰면 된다네.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void spendAnotherCredit()}
+                    className="mt-2 w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    미리 한 {CREDIT_UNIT.counter} 더 쓰기 (남은 {countCredits(credits)})
+                  </button>
+                </div>
+              ) : (
+                leftToAsk <= FOLLOWUP_WARN_AT && (
+                  <p className="pointer-events-auto mb-2 text-center text-xs text-muted-foreground">
+                    이 판으로 {leftToAsk}번 더 물어볼 수 있어냥
+                  </p>
+                )
+              )}
+
+              {/* 직접 뽑기 — 샨티가 권하지 않아도 언제든 스스로 뽑을 수 있습니다.
+                  (샨티가 "네가 뽑아보라"고 말만 하고 뽑을 자리를 안 내주는
+                   일이 있어서, 화면에도 길을 둡니다) */}
+              {onDrawRequest && (
+                <button
+                  type="button"
+                  onClick={() => requestOwnDraw(1)}
+                  disabled={busy}
+                  className="pointer-events-auto mx-auto mb-2 flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-xs text-muted-foreground shadow-raised transition-colors hover:text-foreground disabled:opacity-50"
+                >
+                  <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                  남은 카드에서 직접 뽑기
+                </button>
               )}
               <ChatInput
                 value={draft}
