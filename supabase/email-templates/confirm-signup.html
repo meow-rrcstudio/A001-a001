@@ -1,0 +1,55 @@
+<!--
+  가입 확인 메일 — Supabase 대시보드의 Authentication → Emails → "Confirm signup"
+  에 이 파일 내용을 그대로 붙여넣습니다.
+
+  ⚠️ 왜 파일로 두는가
+     Supabase 메일 본문은 대시보드에만 저장됩니다. 코드에 없으면 무엇을 보내고
+     있는지 아무도 모르고, 고칠 때마다 처음부터 다시 씁니다. 이 파일이 원본이고
+     대시보드는 그 사본입니다 — 고칠 일이 생기면 여기를 고친 뒤 붙여넣으세요.
+
+  ⚠️ 색은 값을 그대로 적었습니다 (app/globals.css 의 --brand-lime / --brand-ink).
+     메일에서는 CSS 변수가 통하지 않습니다. 브랜드 색을 바꾸면 여기도 함께
+     바꿔야 합니다.
+
+  ⚠️ 이미지를 넣지 않았습니다. 네이버·다음은 스팸함에 들어간 메일의 이미지를
+     아예 가리기 때문에, 이미지에 기댄 편지는 그 자리에서 빈 종이가 됩니다.
+
+  쓸 수 있는 자리표시자: {{ .ConfirmationURL }} {{ .Token }} {{ .Email }} {{ .SiteURL }}
+-->
+<div style="margin:0;padding:24px 16px;background:#faf9f5;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard','Malgun Gothic',sans-serif;color:#1c1c1e;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px 24px;">
+
+    <p style="margin:0 0 4px;font-size:13px;color:#8a8a8e;letter-spacing:0.02em;">SoulSeoul</p>
+    <h1 style="margin:0 0 20px;font-size:20px;line-height:1.4;font-weight:600;">
+      이메일 주소를 확인해 주세요
+    </h1>
+
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.7;">
+      SoulSeoul 가입을 시작하셨네요. 아래 버튼을 누르면 확인이 끝나고 바로 타로를 볼 수 있습니다.
+    </p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#6b6b70;">
+      이 링크는 잠시 뒤에 만료됩니다. 늦었다면 다시 가입을 눌러 새 메일을 받으세요.
+    </p>
+
+    <a href="{{ .ConfirmationURL }}"
+       style="display:inline-block;background:#1c1c1e;color:#ffffff;text-decoration:none;
+              font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">
+      이메일 확인하기
+    </a>
+
+    <p style="margin:24px 0 0;font-size:13px;line-height:1.7;color:#8a8a8e;">
+      버튼이 눌리지 않으면 아래 주소를 브라우저에 붙여넣어 주세요.<br />
+      <span style="word-break:break-all;color:#6b6b70;">{{ .ConfirmationURL }}</span>
+    </p>
+
+    <hr style="border:none;border-top:1px solid #e8e6e0;margin:28px 0 16px;" />
+
+    <p style="margin:0 0 6px;font-size:12px;line-height:1.7;color:#8a8a8e;">
+      이 메일은 <strong style="color:#6b6b70;">{{ .Email }}</strong> 로 SoulSeoul 가입을 시도한
+      분에게만 보냅니다. 가입한 적이 없다면 그냥 지우시면 됩니다 — 아무 일도 일어나지 않습니다.
+    </p>
+    <p style="margin:0;font-size:12px;line-height:1.7;color:#8a8a8e;">
+      SoulSeoul · <a href="{{ .SiteURL }}" style="color:#8a8a8e;">soulseoul.xyz</a>
+    </p>
+  </div>
+</div>
