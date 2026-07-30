@@ -17,8 +17,15 @@ import { isSupabaseConfigured } from "@/lib/supabase/env"
 /** 통과하면 사용자, 막히면 그대로 돌려보낼 응답 */
 export type Guarded<T> = { ok: true; value: T } | { ok: false; response: NextResponse }
 
-function deny(message: string, status: number): Guarded<never> {
-  return { ok: false, response: NextResponse.json({ error: message }, { status }) }
+/**
+ * 막을 때는 갈래(kind)도 함께 보냅니다.
+ *
+ * ⚠️ 화면이 문장을 눈으로 맞춰 분류하면(문장에 "로그인"이 들었나 보는 식)
+ *    문장을 다듬는 순간 분류가 조용히 깨집니다. 갈래 이름은
+ *    lib/chat-errors.ts 의 ChatErrorKind 와 같은 말을 씁니다.
+ */
+function deny(message: string, status: number, kind: string): Guarded<never> {
+  return { ok: false, response: NextResponse.json({ error: message, kind }, { status }) }
 }
 
 /**
@@ -32,7 +39,7 @@ export async function requireUser(): Promise<Guarded<User | null>> {
   if (!isSupabaseConfigured) return { ok: true, value: null }
 
   const user = await getCurrentUser()
-  if (!user) return deny("로그인이 필요해요.", 401)
+  if (!user) return deny("로그인이 필요해요.", 401, "signedOut")
   return { ok: true, value: user }
 }
 
@@ -49,10 +56,10 @@ export async function requireOwnedReading(
   // 연결 전이면 검사할 것이 없습니다 (위와 같은 이유)
   if (!user) return { ok: true, value: null }
 
-  if (!readingId) return deny("타로점을 찾을 수 없어요.", 400)
+  if (!readingId) return deny("타로점을 찾을 수 없어요.", 400, "notFound")
 
   const admin = getSupabaseAdmin()
-  if (!admin) return deny("서버 설정이 아직 없어요.", 503)
+  if (!admin) return deny("서버 설정이 아직 없어요.", 503, "server")
 
   const { data } = await admin
     .from("readings")
@@ -60,9 +67,9 @@ export async function requireOwnedReading(
     .eq("id", readingId)
     .maybeSingle()
 
-  if (!data) return deny("타로점을 찾을 수 없어요.", 404)
+  if (!data) return deny("타로점을 찾을 수 없어요.", 404, "notFound")
   // 남의 판이면 "없다"고 답합니다 — 있는지 없는지도 알려줄 이유가 없습니다.
-  if (data.user_id !== user.id) return deny("타로점을 찾을 수 없어요.", 404)
+  if (data.user_id !== user.id) return deny("타로점을 찾을 수 없어요.", 404, "notFound")
 
   return { ok: true, value: { id: data.id, followupsAllowed: data.followups_allowed } }
 }

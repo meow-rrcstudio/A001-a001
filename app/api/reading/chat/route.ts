@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server"
 import { allTarotCards } from "@/lib/tarot-cards"
 import { buildChatMessages, type ChatContext } from "@/lib/reading-prompt-templates"
-import { streamGeminiJson } from "@/lib/ai/gemini"
+import { streamErrorPayload, streamGeminiJson } from "@/lib/ai/gemini"
 import { CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
     if ((count ?? 0) >= owned.value.followupsAllowed) {
       return NextResponse.json(
-        { error: "이 판으로는 여기까지예요.", needCredits: true },
+        { error: "이 판으로는 여기까지예요.", kind: "needCredits", needCredits: true },
         { status: 402 }
       )
     }
@@ -174,8 +174,10 @@ export async function POST(request: Request) {
             ])
         }
       } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error)
-        send({ error: detail })
+        // ⚠️ 오류 문장을 그대로 흘려보내지 않습니다. 갈래(kind)를 보냅니다 —
+        //    화면이 그 갈래로 말과 다음 걸음을 고릅니다 (lib/chat-errors.ts).
+        //    예전에는 제미나이가 준 영어 JSON 이 그대로 화면에 떴습니다.
+        send(streamErrorPayload(error, "reading/chat"))
       } finally {
         controller.close()
       }

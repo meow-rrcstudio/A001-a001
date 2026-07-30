@@ -10,6 +10,8 @@
 import { buildReadingMessages, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import type { ReadingRunResult } from "@/lib/ai/openai"
 import { READING_JSON_SCHEMA } from "@/lib/ai/reading-schema"
+// 막혔을 때 사람에게 할 말은 한 곳에서만 정합니다 (화면도 같은 파일을 봅니다).
+import { describeChatError, type ChatErrorKind } from "@/lib/chat-errors"
 
 /** 환경변수로 덮어쓸 수 있습니다 (배포 없이 모델 비교) */
 export const GEMINI_READING_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"
@@ -54,40 +56,89 @@ export const GEMINI_FALLBACK_MODEL =
  */
 export class GeminiError extends Error {
   constructor(
-    /** 사람에게 보여줄 우리말 */
-    message: string,
+    /** 무엇 때문에 막혔는가 — 화면은 이걸로 말을 고릅니다 */
+    readonly kind: ChatErrorKind,
     readonly status: number,
     /** 구글이 준 원문 — 로그에만 남깁니다 */
-    readonly detail: string
+    readonly detail: string,
+    /** 몇 초 뒤에 다시 되는지 (구글이 알려준 경우만) */
+    readonly retryAfterSeconds?: number
   ) {
-    super(message)
+    // ⚠️ 문장을 여기서 새로 쓰지 않습니다. lib/chat-errors.ts 한 곳에서
+    //    가져옵니다 — 두 벌이 되면 한쪽만 고쳐진 채로 남습니다.
+    super(describeChatError({ kind, retryAfterSeconds }).message)
     this.name = "GeminiError"
   }
 }
 
-/** 상태 코드를 사람이 읽을 수 있는 우리말로 바꿉니다 */
-function describeFailure(status: number, body: string): string {
-  if (status === 429) {
-    // 하루 한도인지 순간 속도인지에 따라 할 수 있는 일이 다릅니다.
-    const perDay = body.includes("PerDay")
-    return perDay
-      ? "오늘 이 몸이 볼 수 있는 몫을 다 썼다냥... 내일 다시 물어봐주게."
-      : "잠깐, 너무 빠르구먼. 조금 쉬었다가 다시 물어보라냥."
-  }
-  if (status === 401 || status === 403) {
-    return "이 몸이 카드를 들 수 없는 상태다냥. (열쇠 설정을 확인해야 합니다)"
-  }
-  if (status >= 500) {
-    return "지금은 이 몸의 눈이 흐리구먼. 잠시 뒤에 다시 물어보라냥."
-  }
-  return "해석을 받아오지 못했다냥. 잠시 뒤에 다시 물어보게."
+/**
+ * 상태 코드와 원문을 보고 갈래를 정합니다.
+ *
+ * ⚠️ 429 를 한 갈래로 뭉치면 안 됩니다. 하루 몫을 다 쓴 것과 순간적으로
+ *    몰린 것은 사람이 할 수 있는 일이 완전히 다릅니다 — 앞은 내일 오는
+ *    것뿐이고, 뒤는 몇십 초 뒤에 다시 누르면 됩니다.
+ *    구글은 그 구분을 quotaId 에 적어 보냅니다 (…PerDay… 가 들어갑니다).
+ */
+export function kindOfFailure(status: number, body: string): ChatErrorKind {
+  if (status === 429) return body.includes("PerDay") ? "quotaDay" : "quotaSpeed"
+  // 열쇠가 잘못됐거나 권한이 없는 것 — 사람 잘못이 아니고 우리가 고칠 일입니다.
+  if (status === 401 || status === 403) return "server"
+  if (status === 504) return "timeout"
+  if (status >= 500) return "server"
+  return "unknown"
 }
 
-/** 응답이 실패면 우리말을 담은 오류를 만듭니다 (원문은 로그로) */
+/**
+ * 구글이 "몇 초 뒤에 다시 하라"고 적어 보낸 값을 꺼냅니다.
+ *
+ * 이 둘은 순수 함수라 밖으로 내둡니다 — 실제 429 응답 본문을 넣어
+ * 확인해볼 수 있어야 합니다 (하루 한도와 순간 몰림을 잘못 나누면
+ * 사람에게 완전히 틀린 말을 하게 됩니다).
+ */
+export function retryDelayFrom(body: string): number | undefined {
+  // "retryDelay": "41s" / "41.949504965s"
+  const found = body.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/)
+  if (!found) return undefined
+  return Math.max(1, Math.ceil(Number(found[1])))
+}
+
+/**
+ * 흘려보내는 중에 막혔을 때, 화면에 보낼 한 줄을 만듭니다.
+ *
+ * 해석(app/api/reading)과 면담(app/api/reading/chat)이 함께 씁니다 — 둘이
+ * 따로 만들면 한쪽만 우리말이 되는 일이 생깁니다.
+ *
+ * 문장도 함께 담지만 화면이 실제로 보는 것은 kind 입니다
+ * (lib/chat-errors.ts 가 그 갈래로 말과 다음 걸음을 고릅니다).
+ */
+export function streamErrorPayload(error: unknown, where: string) {
+  if (error instanceof GeminiError) {
+    // ⚠️ 화면에서 원문을 지웠으니, 로그가 유일한 단서입니다.
+    //    (열쇠가 비어 있는 경우처럼 "우리가 고쳐야 하는 일"이 여기 적힙니다)
+    console.error(`[${where}] ${error.kind} —`, error.detail.slice(0, 800))
+    return {
+      error: error.message,
+      kind: error.kind,
+      retryAfterSeconds: error.retryAfterSeconds,
+    }
+  }
+  // 우리가 모르는 것 — 원문은 로그에만 남기고 화면에는 갈래만 보냅니다.
+  console.error(`[${where}] 알 수 없는 실패:`, error)
+  return { error: describeChatError({ kind: "unknown" }).message, kind: "unknown" as const }
+}
+
+/** 응답이 실패면 갈래를 담은 오류를 만듭니다 (원문은 로그로) */
 async function failureFrom(response: Response, model: string) {
   const body = await response.text()
+  // ⚠️ 원문은 반드시 로그에 남깁니다. 화면에서 지웠으니 여기가 유일한
+  //    단서입니다 (Vercel → 프로젝트 → Logs 에서 봅니다).
   console.error(`[gemini] ${model} 호출 실패 (${response.status})`, body.slice(0, 800))
-  return new GeminiError(describeFailure(response.status, body), response.status, body)
+  return new GeminiError(
+    kindOfFailure(response.status, body),
+    response.status,
+    body,
+    retryDelayFrom(body)
+  )
 }
 
 /**
@@ -148,7 +199,11 @@ export async function runReadingWithGemini({
 }): Promise<ReadingRunResult> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error(
+    // 화면에는 "이 몸이 카드를 들 수 없는 상태"로 나갑니다. 어느 환경변수가
+    // 비었는지는 사람이 할 수 있는 일이 아니고, 우리가 로그에서 봅니다.
+    throw new GeminiError(
+      "server",
+      500,
       "GEMINI_API_KEY 가 없습니다. Vercel → Settings → Environment Variables 를 확인하세요."
     )
   }
@@ -179,10 +234,9 @@ export async function runReadingWithGemini({
     data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
 
   if (!text.trim()) {
-    throw new Error(
-      `제미나이가 글자를 하나도 내놓지 않았습니다 ` +
-        `(finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}).`
-    )
+    const detail = `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
+    console.error("[gemini] 글자를 하나도 내놓지 않았습니다 —", detail)
+    throw new GeminiError("empty", response.status, detail)
   }
 
   const usage = data?.usageMetadata ?? {}
@@ -245,7 +299,7 @@ export async function* streamGeminiJson({
 }): AsyncGenerator<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY 가 없습니다. Vercel 환경변수를 확인하세요.")
+    throw new GeminiError("server", 500, "GEMINI_API_KEY 가 없습니다. Vercel 환경변수를 확인하세요.")
   }
 
   const ask = (model: string) =>
@@ -349,12 +403,14 @@ export async function* streamGeminiJson({
   }
 
   // 한 글자도 못 받았는데 조용히 끝나면 화면엔 빈 칸만 남습니다.
-  // 그럴 바엔 무엇이 왔는지 들고 실패하는 편이 낫습니다.
+  // 그럴 바엔 무엇이 왔는지 로그에 남기고 실패하는 편이 낫습니다.
   if (!accumulated.trim()) {
-    throw new Error(
-      `제미나이가 글자를 하나도 내놓지 않았습니다 ` +
-        `(finishReason=${finishReason || "없음"}${blockReason ? `, blockReason=${blockReason}` : ""}). ` +
-        `받은 것: ${rawHead ? JSON.stringify(rawHead.slice(0, 300)) : "아무것도 오지 않음"}`
-    )
+    const detail =
+      `finishReason=${finishReason || "없음"}${blockReason ? `, blockReason=${blockReason}` : ""}, ` +
+      `받은 것: ${rawHead ? JSON.stringify(rawHead.slice(0, 300)) : "아무것도 오지 않음"}`
+    console.error("[gemini] 글자를 하나도 내놓지 않았습니다 —", detail)
+    // 다시 물으면 되는 경우가 대부분이라 "empty" 로 둡니다.
+    // 화면에는 "방금 건 이 몸의 실수다냥"으로 나가고 다시 물어보기가 붙습니다.
+    throw new GeminiError("empty", 200, detail)
   }
 }

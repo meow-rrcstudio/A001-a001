@@ -55,9 +55,17 @@ export function rateLimit(key: string, limit: number, windowMs: number): NextRes
   if (current.count <= limit) return null
 
   // 얼마나 기다려야 하는지 함께 알려줍니다. "잠시 뒤"보다 훨씬 낫습니다.
+  //
+  // ⚠️ 갈래(kind)와 초를 몸통에도 담습니다. 화면은 이 값으로 말을 고릅니다
+  //    (lib/chat-errors.ts). 문장을 눈으로 맞춰 분류하면 문장을 다듬는
+  //    순간 조용히 깨집니다.
   const seconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000))
   return NextResponse.json(
-    { error: `조금 빠르구먼. ${seconds}초 뒤에 다시 청해보라냥.` },
+    {
+      error: `조금 빠르구먼. ${seconds}초 뒤에 다시 청해보라냥.`,
+      kind: "tooFast",
+      retryAfterSeconds: seconds,
+    },
     { status: 429, headers: { "retry-after": String(seconds) } }
   )
 }

@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server"
 import { topicContent } from "@/lib/reading-content"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
-import { streamReadingWithGemini } from "@/lib/ai/gemini"
+import { streamErrorPayload, streamReadingWithGemini } from "@/lib/ai/gemini"
 import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
@@ -111,6 +111,11 @@ export async function POST(request: Request) {
     }
   }
 
+  // 아래 스트림 안쪽은 별개의 함수라, 위에서 좁혀둔 타입이 따라 들어가지
+  // 않습니다. 필요한 값만 미리 꺼내둡니다.
+  const ownedReading = owned.value
+  const userId = guard.value?.id
+
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
@@ -120,15 +125,15 @@ export async function POST(request: Request) {
       // (새로고침·다시 만들기가 공짜인 이유).
       let charged = false
       async function chargeOnce(): Promise<string | null> {
-        if (charged || !owned.value) return null
+        if (charged || !ownedReading) return null
         charged = true
         const admin = getSupabaseAdmin()
         if (!admin) return "서버 설정이 아직 없어요."
         const { data: left, error: spendError } = await admin.rpc("spend_credit", {
-          p_user_id: guard.value!.id,
+          p_user_id: userId!,
           p_reason: "reading",
-          p_reading_id: owned.value.id,
-          p_key: `reading:${owned.value.id}`,
+          p_reading_id: ownedReading.id,
+          p_key: `reading:${ownedReading.id}`,
         })
         if (spendError || typeof left !== "number" || left < 0) {
           if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
@@ -142,7 +147,10 @@ export async function POST(request: Request) {
           // 첫 조각 = 제미나이가 실제로 답하기 시작한 순간입니다.
           const failed = await chargeOnce()
           if (failed) {
-            controller.enqueue(encoder.encode(JSON.stringify({ error: failed }) + "\n"))
+            // 크레딧이 모자란 경우 — 화면이 "이어서 묻기"로 이어줍니다.
+            controller.enqueue(
+              encoder.encode(JSON.stringify({ error: failed, kind: "needCredits" }) + "\n")
+            )
             return
           }
           last = accumulated
@@ -151,19 +159,22 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(JSON.stringify({ partial: accumulated }) + "\n"))
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        controller.enqueue(encoder.encode(JSON.stringify({ error: message }) + "\n"))
+        // ⚠️ 날오류를 그대로 흘려보내지 않습니다 — 예전에는 제미나이가 준
+        //    영어 JSON 이 해석 화면에 그대로 떴습니다.
+        controller.enqueue(
+          encoder.encode(JSON.stringify(streamErrorPayload(error, "reading")) + "\n")
+        )
       } finally {
         controller.close()
         // 다 받은 해석을 판에 적어둡니다 (기록에서 다시 열 때 씁니다).
         // 화면이 아니라 서버가 적어야 "브라우저를 지우면 기록이 사라지는"
         // 지금 문제가 없어집니다.
-        if (owned.value && last) {
+        if (ownedReading && last) {
           try {
             await getSupabaseAdmin()
               ?.from("readings")
               .update({ cards, result: JSON.parse(last) })
-              .eq("id", owned.value.id)
+              .eq("id", ownedReading.id)
           } catch {
             // 잘린 JSON 이면 적지 않습니다 — 반쪽짜리 기록보다 없는 게 낫습니다
           }

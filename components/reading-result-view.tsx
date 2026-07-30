@@ -25,6 +25,8 @@ import { ChatInput } from "@/components/chat-input"
 import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
+import { ChatErrorBox } from "@/components/chat-error-box"
+import type { ChatErrorInfo } from "@/lib/chat-errors"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
@@ -272,7 +274,7 @@ export function ReadingResultView({
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
   streaming?: boolean
   /** 해석을 못 받았을 때의 사유 */
-  error?: string | null
+  error?: ChatErrorInfo | null
   /** 뒤로가기가 갈 곳. 기록에서 다시 열었을 때는 /my 로 돌아갑니다 */
   backHref?: string
   /** 예전에 나눈 대화 — 기록에서 다시 열면 그때 대화가 그대로 이어집니다 */
@@ -413,13 +415,16 @@ export function ReadingResultView({
         <article className="mt-6">
           <MiniSpread cards={cards} layoutKey={layoutKey} />
 
+          {/* 해석이 막혔을 때 — 대화 쪽과 같은 상자를 씁니다.
+              여기서 다시 하기는 "해석을 다시 받기"(onRegenerate)입니다.
+              같은 판이라 크레딧은 더 나가지 않습니다. */}
           {error && (
-            <div className="mt-4 rounded-xl border border-border bg-muted px-4 py-4">
-              <p className="text-reading text-foreground">
-                흐음... 카드를 읽다가 막혔구먼. 잠시 뒤에 다시 청해보라냥.
-              </p>
-              <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{error}</p>
-            </div>
+            <ChatErrorBox
+              info={error}
+              onRetry={onRegenerate}
+              busy={streaming}
+              className="mt-4"
+            />
           )}
 
           {result.title ? (
@@ -524,11 +529,15 @@ export function ReadingResultView({
           </div>
         )}
 
+        {/* 대화가 막혔을 때 — 해석 쪽과 같은 상자입니다.
+            여기서 다시 하기는 "마지막 물음을 다시 던지기"(retryLast)입니다. */}
         {chatError && (
-          <div className="mt-5 rounded-xl border border-border bg-muted px-4 py-4">
-            <p className="text-reading text-foreground">흐음... 말이 막혔구먼. 다시 물어보라냥.</p>
-            <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{chatError}</p>
-          </div>
+          <ChatErrorBox
+            info={chatError}
+            onRetry={() => void retryLast()}
+            busy={busy}
+            className="mt-5"
+          />
         )}
 
         {/* 샨티는 여기 하나뿐입니다 — 대화의 맨 끝, 입력창 바로 위.

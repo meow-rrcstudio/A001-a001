@@ -21,6 +21,20 @@ import {
 } from "@/lib/ai/reading-chat"
 import type { ReadingResult } from "@/lib/mock-reading"
 import type { PickedCard } from "@/components/reading-result-view"
+import { describeChatError, type ChatErrorInfo } from "@/lib/chat-errors"
+
+/**
+ * 흐름이 막힌 사정을 담아 던지는 오류.
+ *
+ * 서버가 알려준 갈래(kind)를 그대로 들고 위로 올라갑니다 — 중간에서
+ * 문자열로 납작하게 눌리면 화면이 다시 짐작해야 합니다.
+ */
+class ChatFailure extends Error {
+  constructor(readonly info: ChatErrorInfo) {
+    super(info.message)
+    this.name = "ChatFailure"
+  }
+}
 
 /** 면담 한 마디 */
 export interface ChatTurn {
@@ -87,7 +101,14 @@ export function useReadingChat({
   /** 지금 흘러들어오는 중인 샨티의 말 */
   const [streamingText, setStreamingText] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  /**
+   * 막혔을 때의 사정.
+   *
+   * ⚠️ 문자열이 아니라 갈래까지 담은 값입니다. 예전에는 서버가 준 문장을
+   *    그대로 들고 화면에 찍었고, 그래서 제미나이의 영어 JSON 이 고스란히
+   *    떴습니다. 말과 다음 걸음은 lib/chat-errors.ts 가 정합니다.
+   */
+  const [error, setError] = useState<ChatErrorInfo | null>(null)
   /** 묻는 이가 직접 뽑아야 할 때 채워집니다 */
   const [pendingDraw, setPendingDraw] = useState<ChatDrawRequest | null>(null)
   /**
@@ -146,28 +167,49 @@ export function useReadingChat({
       setSuggestions([])
 
       try {
-        const response = await fetch("/api/reading/chat", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            question,
-            cards: cardsRef.current,
-            reading: reading?.title ? reading : undefined,
-            turns: turnsRef.current.map((t) => ({ role: t.role, text: t.text })),
-            message,
-            readingId,
-          }),
-        })
+        let response: Response
+        try {
+          response = await fetch("/api/reading/chat", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              question,
+              cards: cardsRef.current,
+              reading: reading?.title ? reading : undefined,
+              turns: turnsRef.current.map((t) => ({ role: t.role, text: t.text })),
+              message,
+              readingId,
+            }),
+          })
+        } catch (networkError) {
+          // fetch 자체가 실패하는 건 대개 연결이 끊긴 것입니다 (기내·지하철·터널).
+          // 여기서 잡지 않으면 "TypeError: Failed to fetch" 가 화면에 뜹니다.
+          console.warn("[chat] 요청이 나가지 못했습니다:", networkError)
+          throw new ChatFailure(
+            describeChatError({ offline: true })
+          )
+        }
 
         if (!response.ok || !response.body) {
+          // 몸통이 JSON 이 아닐 수 있습니다 (Vercel 의 시간 초과는 HTML 을 줍니다).
           const raw = await response.text().catch(() => "")
-          let detail = raw
+          let kind: unknown
+          let retryAfterSeconds: number | undefined
           try {
-            detail = (JSON.parse(raw) as { error?: string }).error ?? raw
+            const parsed = JSON.parse(raw) as { kind?: unknown; retryAfterSeconds?: number }
+            kind = parsed.kind
+            retryAfterSeconds = parsed.retryAfterSeconds
           } catch {
-            // JSON 이 아니면 원문 그대로
+            // JSON 이 아니면 상태 코드로만 판단합니다
           }
-          throw new Error(detail || `답을 불러오지 못했습니다 (${response.status})`)
+          // 헤더에 적혀 오는 경우도 받아냅니다 (표준은 이쪽입니다)
+          const header = Number(response.headers.get("retry-after"))
+          if (!retryAfterSeconds && header > 0) retryAfterSeconds = header
+
+          console.warn(`[chat] 서버가 거절했습니다 (${response.status})`, raw.slice(0, 300))
+          throw new ChatFailure(
+            describeChatError({ status: response.status, kind, retryAfterSeconds })
+          )
         }
 
         const reader = response.body.getReader()
@@ -177,20 +219,44 @@ export function useReadingChat({
         let drawnCards: PickedCard[] | null = null
 
         while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
+          // 이어졌던 연결이 도중에 끊길 수 있습니다 (와이파이가 바뀌는 순간 등).
+          let chunk: ReadableStreamReadResult<Uint8Array>
+          try {
+            chunk = await reader.read()
+          } catch (readError) {
+            console.warn("[chat] 답을 받다 연결이 끊겼습니다:", readError)
+            throw new ChatFailure(describeChatError({ offline: true }))
+          }
+          if (chunk.done) break
+          buffer += decoder.decode(chunk.value, { stream: true })
 
           const lines = buffer.split("\n")
           buffer = lines.pop() ?? ""
           for (const line of lines) {
             if (!line.trim()) continue
-            const payload = JSON.parse(line) as {
+            // 한 줄이 깨져 있어도 대화를 통째로 잃지 않습니다.
+            let payload: {
               partial?: string
               error?: string
+              kind?: unknown
+              retryAfterSeconds?: number
               drawnCards?: PickedCard[]
             }
-            if (payload.error) throw new Error(payload.error)
+            try {
+              payload = JSON.parse(line)
+            } catch {
+              console.warn("[chat] 읽을 수 없는 줄을 건너뜁니다:", line.slice(0, 120))
+              continue
+            }
+            if (payload.error || payload.kind) {
+              throw new ChatFailure(
+                describeChatError({
+                  kind: payload.kind,
+                  retryAfterSeconds: payload.retryAfterSeconds,
+                  detail: payload.error,
+                })
+              )
+            }
             if (payload.drawnCards) drawnCards = payload.drawnCards
             if (!payload.partial) continue
 
@@ -204,7 +270,8 @@ export function useReadingChat({
 
         const replyText = latest?.reply?.trim()
         if (!replyText) {
-          throw new Error("답이 한 글자도 오지 않았습니다. 잠시 뒤 다시 물어봐 주세요.")
+          // 연결은 됐는데 글자가 없는 경우 — 다시 물으면 대개 됩니다.
+          throw new ChatFailure(describeChatError({ kind: "empty" }))
         }
 
         setStreamingText(null)
@@ -249,7 +316,14 @@ export function useReadingChat({
         )
       } catch (e) {
         setStreamingText(null)
-        setError(e instanceof Error ? e.message : String(e))
+        // 갈래를 들고 온 것이면 그대로, 아니면 "알 수 없음"으로 담습니다.
+        // ⚠️ 어떤 경우에도 날오류 문장을 화면으로 보내지 않습니다.
+        if (e instanceof ChatFailure) {
+          setError(e.info)
+        } else {
+          console.error("[chat] 예상 못한 실패:", e)
+          setError(describeChatError({ kind: "unknown" }))
+        }
       } finally {
         setBusy(false)
       }
@@ -303,6 +377,10 @@ export function useReadingChat({
     const n = Math.max(1, Math.min(count, CHAT_DRAW_MAX))
     setPendingDraw({
       mode: "user",
+      // ⚠️ intro 는 카드 고르기 화면의 말풍선 문구입니다. 비우면 그 자리에
+      //    아무 말도 없는 빈 말풍선이 뜹니다 (샨티가 청해서 뽑는 경우에는
+      //    샨티가 직접 써 보냅니다).
+      intro: "그래, 네가 직접 뽑아보라냥. 마음을 담아 섞고 끌리는 카드를 골라보게.",
       positions: Array.from({ length: n }, (_, i) => ({
         label: n === 1 ? "지금 마음에 걸리는 것" : `${i + 1}번째로 궁금한 것`,
         guide: "끌리는 카드를 골라보라냥",
