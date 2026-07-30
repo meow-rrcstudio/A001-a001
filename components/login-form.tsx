@@ -95,8 +95,24 @@ const KAKAO_SCOPES =
  * │   https://*.vercel.app/auth/callback   (미리보기용)
  * └──────────────────────────────────────────────────────────────────
  */
-const SHOW_KAKAO = process.env.NEXT_PUBLIC_LOGIN_KAKAO === "on"
-const SHOW_GOOGLE = process.env.NEXT_PUBLIC_LOGIN_GOOGLE === "on"
+/**
+ * 기본을 "보임"으로 둡니다 (2026-07-30 부터).
+ *
+ * 감춰 두었던 것은 콘솔 설정이 어긋난 채로는 눌러도 남의 오류 화면만
+ * 보이기 때문이었습니다. 지금은 그 설정을 잡는 중이라 직접 눌러봐야
+ * 고쳐졌는지 알 수 있어서, 기본을 뒤집고 끄는 쪽을 스위치로 둡니다.
+ *
+ * ⚠️ 끄려면 Vercel 환경변수에 정확히 off 를 넣고 재배포하세요.
+ *      NEXT_PUBLIC_LOGIN_KAKAO=off   ·   NEXT_PUBLIC_LOGIN_GOOGLE=off
+ *    (NEXT_PUBLIC_ 은 빌드에 박히므로 값을 바꾼 뒤 재배포해야 합니다)
+ *
+ * 이제 실패해도 남의 오류 화면에서 끝나지 않습니다 — 돌아오는 길에
+ * 붙은 사유를 로그인 화면이 우리말로 보여줍니다 (app/login/page.tsx).
+ * 다만 카카오 KOE205 처럼 카카오 화면에서 먼저 막히는 것은 우리에게
+ * 돌아오지 않으므로, 그건 콘솔에서 고쳐야 합니다.
+ */
+const SHOW_KAKAO = process.env.NEXT_PUBLIC_LOGIN_KAKAO !== "off"
+const SHOW_GOOGLE = process.env.NEXT_PUBLIC_LOGIN_GOOGLE !== "off"
 
 export function LoginForm({
   next = "/my",
