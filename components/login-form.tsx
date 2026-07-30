@@ -29,15 +29,25 @@ type Mode = "buttons" | "email" | "forgot"
  *    없습니다. 설정하지 않은 항목을 요청하면 카카오가 로그인 창 대신
  *    KOE205("잘못된 요청 — 서비스 설정에 오류가 있습니다")를 띄웁니다.
  *
- * 그래서 일반 앱에서도 켤 수 있는 닉네임만 요청합니다. 카카오 계정에
- * 이메일이 없어도 되도록 이미 만들어 두었습니다 (app/api/account/route.ts
- * 의 nameOf, app/my/settings 의 표시 규칙).
+ * 그래서 기본은 닉네임만입니다. 카카오 계정에 이메일이 없어도 되도록
+ * 이미 만들어 두었습니다 (app/api/account/route.ts 의 nameOf,
+ * app/my/settings 의 표시 규칙).
  *
- * 사업자등록이 끝나 비즈 앱으로 전환하면 콘솔에서 이메일 동의항목을 켜고
- * 여기에 " account_email" 을 덧붙이면 됩니다. 콘솔에서 켜는 것이 먼저입니다 —
- * 순서가 바뀌면 다시 KOE205 가 납니다.
+ * ┌─ 이메일까지 받고 싶을 때 (사업자등록이 나온 지금 할 수 있습니다) ──
+ * │ 순서를 지켜야 합니다. 뒤집으면 그 자리에서 KOE205 가 납니다.
+ * │   1) 카카오 개발자센터 → 내 애플리케이션 → 비즈니스
+ * │      → 사업자등록번호를 넣어 "비즈 앱"으로 전환
+ * │   2) 카카오 로그인 → 동의항목 → 카카오계정(이메일)을 "필수 동의"로
+ * │   3) 그 다음에 Vercel 환경변수 NEXT_PUBLIC_KAKAO_EMAIL=on → 재배포
+ * │
+ * │ 켜다가 KOE205 가 다시 나면 이 환경변수만 지우고 재배포하면
+ * │ 곧바로 예전 상태(닉네임만)로 돌아갑니다 — 코드는 건드릴 게 없습니다.
+ * └──────────────────────────────────────────────────────────────────
  */
-const KAKAO_SCOPES = "profile_nickname"
+const KAKAO_SCOPES =
+  process.env.NEXT_PUBLIC_KAKAO_EMAIL === "on"
+    ? "profile_nickname account_email"
+    : "profile_nickname"
 
 /**
  * 어떤 로그인 방식을 보여줄지.
@@ -52,15 +62,57 @@ const KAKAO_SCOPES = "profile_nickname"
  *    NEXT_PUBLIC_LOGIN_KAKAO=on   ·   NEXT_PUBLIC_LOGIN_GOOGLE=on
  *    (환경변수는 빌드에 박히므로 값을 바꾼 뒤 재배포해야 합니다)
  *
- * 지금 상태:
- *   카카오 — 동의항목(KOE205) 고친 것을 확인하면 켭니다
- *   구글   — Supabase 에 들어간 클라이언트 ID 가 구글에 없습니다
- *            (401 invalid_client). ID 를 바로잡아야 켤 수 있습니다
+ * ┌─ 켜기 전에 확인할 것 ─────────────────────────────────────────────
+ * │ 두 실패 모두 우리 코드가 아니라 바깥 콘솔 설정이 원인이었습니다.
+ * │ 그래서 여기를 켜기 전에 콘솔부터 맞춰야 합니다.
+ * │
+ * │ 카카오 (KOE205 — "잘못된 요청")
+ * │   · 원인: 콘솔에 없는 동의항목(account_email)을 요청했습니다.
+ * │   · 코드 쪽은 닉네임만 요청하도록 이미 고쳐 두었습니다.
+ * │   · 콘솔에서 확인할 것:
+ * │       - 카카오 로그인 "활성화 ON"
+ * │       - Redirect URI 에 Supabase 콜백 주소가 들어 있는지
+ * │         (https://<프로젝트>.supabase.co/auth/v1/callback —
+ * │          우리 도메인이 아니라 Supabase 주소입니다. 자주 헷갈립니다)
+ * │       - 동의항목에 profile_nickname 이 켜져 있는지
+ * │   · Supabase → Authentication → Providers → Kakao 에
+ * │     REST API 키와 Client Secret 이 들어 있어야 합니다.
+ * │
+ * │ 구글 (401 invalid_client — "OAuth client was not found")
+ * │   · 원인: Supabase 에 넣은 클라이언트 ID 가 구글에 없는 값입니다.
+ * │     (오타이거나, 지운 사용자 인증 정보이거나, 다른 프로젝트의 것)
+ * │   · Google Cloud → API 및 서비스 → 사용자 인증 정보에서
+ * │     OAuth 2.0 클라이언트 ID 를 새로 만들거나 기존 것을 열어
+ * │       - 승인된 리디렉션 URI:
+ * │         https://<프로젝트>.supabase.co/auth/v1/callback
+ * │     를 넣고, 클라이언트 ID·보안 비밀번호를 Supabase 에 그대로 붙여넣습니다.
+ * │   · ID 는 반드시 .apps.googleusercontent.com 으로 끝납니다.
+ * │     그렇지 않다면 잘못 붙여넣은 것입니다.
+ * │
+ * │ 양쪽 모두 Supabase → Authentication → URL Configuration 의
+ * │ Redirect URLs 에 우리 콜백이 있어야 합니다:
+ * │   https://soulseoul.xyz/auth/callback
+ * │   https://*.vercel.app/auth/callback   (미리보기용)
+ * └──────────────────────────────────────────────────────────────────
  */
 const SHOW_KAKAO = process.env.NEXT_PUBLIC_LOGIN_KAKAO === "on"
 const SHOW_GOOGLE = process.env.NEXT_PUBLIC_LOGIN_GOOGLE === "on"
 
-export function LoginForm({ next = "/my" }: { next?: string }) {
+export function LoginForm({
+  next = "/my",
+  /**
+   * 돌아오는 길에 실패해서 붙어 온 사유 (app/login/page.tsx 가 넘겨줍니다).
+   *
+   * 카카오·구글 창에서 승인을 취소했거나, 세션을 끼우다 막혔을 때
+   * /auth/callback 이 /login?error=... 로 되돌려 보냅니다. 그 사유를
+   * 받아 첫 화면에 그대로 띄웁니다 — 예전에는 아무 말 없이 로그인
+   * 화면만 다시 떠서, 누른 사람은 자기가 잘못 눌렀는지조차 몰랐습니다.
+   */
+  notice,
+}: {
+  next?: string
+  notice?: string
+}) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("buttons")
   // 이메일은 가입과 로그인이 한 화면입니다 (칸이 같아서 나눌 이유가 없습니다)
@@ -68,7 +120,7 @@ export function LoginForm({ next = "/my" }: { next?: string }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(notice ?? null)
 
   async function signInWith(provider: "kakao" | "google") {
     const supabase = getSupabaseBrowser()

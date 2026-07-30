@@ -36,6 +36,20 @@ const MAP: [RegExp, string][] = [
   [/missing oauth secret/i, "이 로그인 방식의 설정이 아직 끝나지 않았어요."],
   [/invalid_client|oauth client was not found/i, "이 로그인 방식의 설정이 잘못됐어요. 다른 방법으로 로그인해 주세요."],
 
+  // ── 돌아오는 길에 실패한 경우 (app/auth/callback → /login?error=) ─
+  // 카카오·구글이 붙여 보내는 표준 사유들입니다. 사람이 취소한 것과
+  // 설정이 틀린 것은 완전히 다른 일이라, 같은 말로 뭉뚱그리지 않습니다.
+  [/access_denied|user_cancelled|consent_required/i, "로그인을 취소하셨어요. 다시 시도해 주세요."],
+  [
+    /redirect_uri_mismatch|redirect_uri/i,
+    "돌아오는 주소 설정이 맞지 않아요. 다른 방법으로 로그인해 주세요.",
+  ],
+  // Supabase 가 OAuth 왕복에 쓰는 임시 상태값이 만료·유실된 경우입니다.
+  // 창을 오래 열어두었거나 뒤로가기로 돌아왔을 때 납니다 — 다시 누르면 됩니다.
+  [/bad_oauth_state|flow_state|state.*(not found|expired)/i, "로그인이 중간에 끊겼어요. 다시 시도해 주세요."],
+  [/unable to exchange external code|code.*exchange/i, "로그인을 마치지 못했어요. 다시 시도해 주세요."],
+  [/server_error|temporarily_unavailable/i, "로그인 서버가 잠시 불안정해요. 잠시 뒤 다시 시도해 주세요."],
+
   // ── 그 밖에 ──────────────────────────────────────────────────────
   [/rate limit|too many|for security purposes/i, "잠시 뒤에 다시 시도해 주세요."],
   [/network|fetch failed|failed to fetch/i, "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요."],
@@ -46,6 +60,13 @@ const FALLBACK = "잠시 문제가 생겼어요. 잠시 뒤 다시 시도해 주
 
 export function translateAuthError(raw: string): string {
   if (!raw) return FALLBACK
+
+  // ⚠️ 이미 우리말인 것은 건드리지 않고 그대로 돌려줍니다.
+  //    app/auth/callback 은 "코드가 없습니다"처럼 우리가 지은 사유를
+  //    붙여 보내기도 합니다. 그걸 아래 표에 물리면 하나도 안 맞아서
+  //    FALLBACK("잠시 문제가 생겼어요")으로 뭉개집니다 — 이미 정확히
+  //    적어 둔 말을 뭉뚱그리는 셈입니다.
+  if (/[가-힣]/.test(raw)) return raw
 
   // "after 57 seconds" 처럼 기다릴 시간을 알려줄 때가 있습니다.
   // "잠시 뒤"보다 "57초 뒤"가 훨씬 낫습니다 — 얼마나 기다릴지 알 수 있으니까요.
