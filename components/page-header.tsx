@@ -47,6 +47,15 @@ export function PageHeader({
   backHref,
   showShare = false,
   title,
+  /**
+   * 가운데에 제목 대신 워드마크를 놓습니다 (로그인 화면).
+   *
+   * variant="home" 의 워드마크는 왼쪽에 있습니다 — 홈은 뒤로 갈 곳이
+   * 없어서 그 자리가 비기 때문입니다. 로그인은 뒤로가 있어야 하므로
+   * 워드마크가 가운데로 옵니다. 두 자리를 한 variant 로 묶으면
+   * "홈이냐 아니냐"와 "워드마크가 어디냐"가 엉키므로 따로 둡니다.
+   */
+  centerMark = false,
   variant = "sub",
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
@@ -78,6 +87,7 @@ export function PageHeader({
   showShare?: boolean
   /** 헤더 가운데에 놓을 제목. 길면 말줄임 (글 상세·타로 리딩) */
   title?: string
+  centerMark?: boolean
   variant?: "sub" | "reading" | "home" | "minimal"
   fixed?: boolean
   surface?: "cream" | "lime"
@@ -141,6 +151,15 @@ export function PageHeader({
               넓히면 글이 가운데에서 밀려나기 때문입니다.
                 버튼 하나  44 + 사이 16 = 60
                 버튼 둘    44 + 8 + 44 + 사이 16 = 112 (공유가 붙는 글 상세) */}
+          {/* 가운데 워드마크 — 제목과 같은 자리를 씁니다.
+              pointer-events-none: 뒤로·더보기 버튼 사이를 덮고 있어서,
+              여기서 클릭을 먹으면 양옆 버튼 가장자리가 안 눌립니다. */}
+          {centerMark && (
+            <span className="pointer-events-none absolute inset-x-0 flex justify-center">
+              <Wordmark className="h-8" priority />
+            </span>
+          )}
+
           {title && (
             <p
               className={`pointer-events-none absolute inset-x-0 mx-auto max-w-site truncate text-center text-[15px] font-semibold text-brand-ink ${
