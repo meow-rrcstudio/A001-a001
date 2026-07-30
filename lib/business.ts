@@ -40,8 +40,8 @@ export const BUSINESS: Record<
   ceo: "",
   /** 사업장 주소 — 등록증에 적힌 소재지 */
   address: "",
-  /** 사업자등록번호 — "000-00-00000" 모양 */
-  registrationNumber: "",
+  /** 사업자등록번호 — "000-00-00000" 모양 (검증식 통과 확인함) */
+  registrationNumber: "674-54-01045",
   /** 통신판매업 신고번호 — "제0000-지역0000호" 모양. 신고 전이면 빈 칸 */
   mailOrderNumber: "",
   /** 고객 문의 전화 */

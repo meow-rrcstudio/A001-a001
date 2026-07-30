@@ -13,15 +13,23 @@
 // └──────────────────────────────────────────────────────────────────
 //
 // 값은 lib/business.ts 한 곳에서 옵니다. 아직 안 채운 항목은 그 줄이
-// 통째로 빠지고, 사업자등록번호가 비어 있으면 이 블록 자체가 그려지지
-// 않습니다 (등록 전에 "사업자정보"라고 써 두면 그게 거짓말이 됩니다).
+// 통째로 빠집니다.
 import { BUSINESS, businessLines } from "@/lib/business"
 
 export function BusinessInfo({ className = "" }: { className?: string }) {
   const lines = businessLines()
 
-  // 등록번호가 없으면 아직 사업자로 팔 수 있는 상태가 아닙니다.
-  if (!BUSINESS.registrationNumber.trim()) return null
+  // ┌─ 언제 그리는가 ─────────────────────────────────────────────────
+  // │ 상호와 등록번호가 둘 다 있어야 그립니다.
+  // │
+  // │ 등록번호 하나만 보고 그리면, 상호가 아직 안 들어왔을 때 푸터에
+  // │ "사업자정보 › 사업자등록번호 674-...-..., 이메일 ..." 두 줄만 뜹니다.
+  // │ 누구의 등록번호인지가 빠진 표기라 안 하느니만 못합니다.
+  // │
+  // │ ⚠️ 여기를 통과한다고 표시 의무를 지킨 것은 아닙니다. 주소·전화까지
+  // │    있어야 합니다 — lib/business.ts 의 BUSINESS_INFO_READY 로 봅니다.
+  // └──────────────────────────────────────────────────────────────────
+  if (!BUSINESS.name.trim() || !BUSINESS.registrationNumber.trim()) return null
 
   return (
     <details className={`text-xs ${className}`}>
