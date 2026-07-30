@@ -13,7 +13,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { parsePartialJson } from "@/lib/ai/reading-schema"
-import { CHAT_DRAW_MAX, type ChatDrawRequest, type ChatReply } from "@/lib/ai/reading-chat"
+import {
+  CHAT_DRAW_MAX,
+  CHAT_SUGGESTION_MAX,
+  type ChatDrawRequest,
+  type ChatReply,
+} from "@/lib/ai/reading-chat"
 import type { ReadingResult } from "@/lib/mock-reading"
 import type { PickedCard } from "@/components/reading-result-view"
 
@@ -85,6 +90,13 @@ export function useReadingChat({
   const [error, setError] = useState<string | null>(null)
   /** 묻는 이가 직접 뽑아야 할 때 채워집니다 */
   const [pendingDraw, setPendingDraw] = useState<ChatDrawRequest | null>(null)
+  /**
+   * 이어서 물을 만한 것 — 샨티의 답과 같은 요청에서 함께 옵니다.
+   *
+   * 따로 부르면 요청 한 번을 더 쓰는데, 하루 한도가 곧 요청 수입니다.
+   * 같은 한 번에서 더 받아오는 쪽이 언제나 낫습니다.
+   */
+  const [suggestions, setSuggestions] = useState<string[]>([])
 
   // 면담 도중 카드가 늘어납니다. 다음 물음에는 늘어난 채로 들려보내야
   // 샨티가 "아까 더 뽑은 그 카드"를 기억합니다.
@@ -128,6 +140,10 @@ export function useReadingChat({
       setBusy(true)
       setError(null)
       setStreamingText("")
+      // 앞 답에 딸려온 제안은 여기서 걷습니다 — 새 물음을 던지는 중에
+      // 지난 제안이 남아 있으면 그걸 누를 수 있게 되고, 그러면 방금 던진
+      // 물음과 순서가 뒤엉킵니다.
+      setSuggestions([])
 
       try {
         const response = await fetch("/api/reading/chat", {
@@ -197,8 +213,17 @@ export function useReadingChat({
         // 흐름이 중간에 끊기면 draw 가 반쪽으로 남을 수 있습니다.
         // 온전한 것만 씁니다 (반쪽짜리로 카드를 뽑게 하면 자리가 비어버립니다).
         const draw = depth >= 1 ? null : validDraw(latest?.draw)
+
         if (draw && drawnCards?.length) {
-          // 샨티가 직접 뽑았습니다 — 뽑은 카드를 사정에 더하고 바로 읽어줍니다.
+          // 샨티가 대신 뽑았습니다. 서버가 미리 뽑아 함께 들려보낸 예비 카드라
+          // 방금 받은 답이 이미 그 카드를 읽고 있습니다.
+          //
+          // ⚠️ 예전에는 여기서 "이 카드를 읽어달라"고 한 번 더 물었습니다.
+          //    한 물음에 제미나이 호출이 두 번 나갔고, 사람은 두 번 기다렸습니다.
+          //    하루 한도가 요청 수라 이 한 번이 비쌌습니다
+          //    (app/api/reading/chat/route.ts 의 예비 카드 주석 참고).
+          //
+          // 늘어난 카드는 다음 물음에도 실어보내야 샨티가 기억합니다.
           cardsRef.current = [
             ...cardsRef.current,
             ...toPromptCards(
@@ -206,19 +231,22 @@ export function useReadingChat({
               draw.positions.map((p) => p.label)
             ),
           ]
-          await ask(
-            `방금 이 몸이 뽑은 카드다: ${drawnCards
-              .map((c, i) => `${draw.positions[i]?.label ?? `추가${i + 1}`}=${c.name}(${c.reversed ? "역방향" : "정방향"})`)
-              .join(", ")}. 이 카드로 앞선 물음에 이어서 읽어달라.`,
-            depth + 1
-          )
-          return
-        }
-
-        if (draw?.mode === "user") {
+        } else if (draw?.mode === "user") {
           // 묻는 이가 직접 뽑을 차례입니다. 화면이 카드 고르기로 넘깁니다.
           setPendingDraw(draw)
         }
+
+        // 이어서 물을 만한 것 — 같은 요청 안에서 함께 왔습니다 (공짜입니다).
+        // 카드를 직접 뽑아야 하는 차례에는 내밀지 않습니다. 뽑으라고 해놓고
+        // 다른 걸 누르라고 같이 권하면 무엇을 해야 하는지 흐려집니다.
+        setSuggestions(
+          draw?.mode === "user"
+            ? []
+            : (latest?.suggestions ?? [])
+                .filter((s) => typeof s === "string" && s.trim())
+                .slice(0, CHAT_SUGGESTION_MAX)
+                .map((s) => s.trim())
+        )
       } catch (e) {
         setStreamingText(null)
         setError(e instanceof Error ? e.message : String(e))
@@ -312,6 +340,7 @@ export function useReadingChat({
     busy,
     error,
     pendingDraw,
+    suggestions,
     send,
     retryLast,
     submitDrawnCards,

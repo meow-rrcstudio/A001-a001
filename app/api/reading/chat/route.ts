@@ -82,14 +82,33 @@ export async function POST(request: Request) {
     }
   }
 
+  const cards = Array.isArray(body.cards) ? body.cards.slice(0, 20) : []
+
+  // ── 예비 카드를 미리 뽑아 함께 들려보냅니다 ─────────────────────────
+  // 샨티가 대신 뽑는 경우에 요청을 두 번 쓰지 않기 위해서입니다.
+  // 예전 흐름: ① "더 뽑아야겠다" ② (서버가 뽑음) ③ "그 카드를 읽어달라"
+  //            → 한 물음에 제미나이 호출 두 번.
+  // 지금 흐름: 아직 안 나온 카드에서 미리 CHAT_DRAW_MAX 장을 뽑아 함께
+  //            보내고, 샨티가 필요하면 앞에서부터 가져다 쓰면서 그 자리에서
+  //            읽습니다 → 호출 한 번.
+  //
+  // 무작위성은 그대로입니다 — 뽑는 시점이 모델보다 앞이라 모델이 마음에
+  // 드는 카드를 골라올 수 없습니다. 쓰지 않은 예비 카드는 아무에게도
+  // 보이지 않으므로 없던 일이 됩니다.
+  const reserve = drawCards(CHAT_DRAW_MAX, cards.map((c) => c.name))
+
   const context: ChatContext = {
     question: String(body.question ?? "").slice(0, 300),
-    cards: Array.isArray(body.cards) ? body.cards.slice(0, 20) : [],
+    cards,
     reading: body.reading,
     // 대화가 길어지면 앞쪽은 흘려보냅니다 (프롬프트가 무한정 자라지 않도록).
     turns: Array.isArray(body.turns) ? body.turns.slice(-12) : [],
     message: message.slice(0, 1000),
     readingId: body.readingId,
+    reserve: reserve.map((c) => ({
+      name: c.name,
+      orientation: c.reversed ? "역방향" : "정방향",
+    })),
   }
 
   const { system, user } = buildChatMessages(context)
@@ -120,8 +139,10 @@ export async function POST(request: Request) {
         const draw = readDrawRequest(last)
         let drawn: { name: string; reversed: boolean; imageUrl: string }[] | null = null
         if (draw?.mode === "shanti") {
-          const exclude = context.cards.map((c) => c.name)
-          drawn = drawCards(draw.positions.length, exclude)
+          // 샨티는 예비 카드를 앞에서부터 쓰기로 약속했습니다. 그 약속대로
+          // 앞에서 필요한 장수만 떼어 화면에 보냅니다 — 여기서 새로 뽑으면
+          // 답에 적힌 카드 이름과 화면에 깔리는 카드가 어긋납니다.
+          drawn = reserve.slice(0, draw.positions.length)
           send({ drawnCards: drawn })
         }
 

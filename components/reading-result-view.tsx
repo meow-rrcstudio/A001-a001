@@ -299,6 +299,7 @@ export function ReadingResultView({
     busy,
     error: chatError,
     pendingDraw,
+    suggestions,
     send,
     retryLast,
     submitDrawnCards,
@@ -619,6 +620,26 @@ export function ReadingResultView({
                     이 판으로 {leftToAsk}번 더 물어볼 수 있어냥
                   </p>
                 )
+              )}
+
+              {/* ── 이어서 물을 만한 것 ─────────────────────────────────
+                  샨티의 답과 "같은 요청"에서 함께 온 것입니다 — 따로 부르지
+                  않으니 요청 수가 늘지 않습니다 (하루 한도가 곧 요청 수입니다).
+                  타로를 처음 보는 사람은 해석을 받고도 무엇을 더 물어야 할지
+                  몰라 그대로 나갑니다. 그때 대화가 끊기지 않게 하는 자리입니다. */}
+              {suggestions.length > 0 && !busy && (
+                <div className="pointer-events-auto mb-2 flex flex-wrap justify-center gap-1.5">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => void send(s)}
+                      className="rounded-full bg-card px-3.5 py-2 text-xs text-foreground shadow-raised transition-colors hover:bg-muted"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               )}
 
               {/* 직접 뽑기 — 샨티가 권하지 않아도 언제든 스스로 뽑을 수 있습니다.

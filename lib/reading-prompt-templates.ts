@@ -138,6 +138,21 @@ export interface ChatContext {
   message: string
   /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
   readingId?: string
+  /**
+   * 예비 카드 — 아직 안 나온 카드에서 서버가 미리 섞어 올려둔 몇 장.
+   *
+   * ⚠️ 왜 미리 올려두는가
+   *    예전에는 샨티가 대신 뽑을 때 요청을 두 번 썼습니다. 한 번은
+   *    "더 뽑아야겠다"고 말하러, 또 한 번은 그렇게 뽑힌 카드를 읽으러.
+   *    무료 등급의 벽은 하루 "요청 수"라, 한 번을 더 쓰는 건 비쌉니다.
+   *    카드를 먼저 뽑아 함께 들려보내면 한 번에 끝납니다 — 말하면서
+   *    바로 읽어주니 사람에게도 기다림이 한 번 줄어듭니다.
+   *
+   * ⚠️ 이래도 카드는 여전히 무작위입니다. 뽑는 시점이 모델보다 앞이라
+   *    모델이 마음에 드는 카드를 골라올 수가 없습니다 (오히려 더 깨끗합니다).
+   *    쓰지 않은 예비 카드는 아무에게도 보이지 않으므로 없던 일이 됩니다.
+   */
+  reserve?: { name: string; orientation: "정방향" | "역방향" }[]
 }
 
 function describeCards(cards: ChatContext["cards"]): string {
@@ -157,7 +172,7 @@ export function buildChatMessages(
   context: ChatContext,
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
-  const { question, cards, reading, turns, message } = context
+  const { question, cards, reading, turns, message, reserve } = context
 
   const parts = [
     `### 처음 던진 물음\n${question}`,
@@ -176,6 +191,15 @@ export function buildChatMessages(
     parts.push(
       `### 그 뒤로 오간 말\n` +
       turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
+    )
+  }
+
+  // 예비 카드는 이번 물음보다 먼저 놓습니다 — 물음이 마지막에 오는 게
+  // 낫습니다. 모델은 끝에 있는 것을 가장 무겁게 봅니다.
+  if (reserve && reserve.length > 0) {
+    parts.push(
+      `### 예비 카드 (draw.mode=shanti 일 때만 앞에서부터 쓴다)\n` +
+        reserve.map((c, i) => `${i + 1}. ${c.name} (${c.orientation})`).join("\n")
     )
   }
 
