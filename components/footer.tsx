@@ -17,7 +17,40 @@
 // └──────────────────────────────────────────────────────────────────
 import Link from "next/link"
 import { Wordmark } from "@/components/brand-mark"
+import { BusinessInfo } from "@/components/business-info"
 import { SITE, copyrightLine } from "@/lib/site"
+
+/**
+ * 푸터에 다는 문서 링크.
+ *
+ * 약관·개인정보·환불은 유료 판매를 하는 이상 "어느 페이지에서든 닿을 수
+ * 있어야" 하는 것들이라 푸터에 둡니다. 한 줄이 길어져도 나누지 않습니다 —
+ * 나누면 어느 줄에 무엇이 있는지 눈이 한 번 더 헤맵니다.
+ */
+const LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/terms", label: "이용약관" },
+  { href: "/privacy", label: "개인정보처리방침" },
+  { href: "/refund", label: "환불정책" },
+] as const
+
+function FooterLinks({ hover }: { hover: string }) {
+  return (
+    <p className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs">
+      {LINKS.map((link, i) => (
+        <span key={link.href} className="inline-flex items-center gap-1">
+          {i > 0 && <span aria-hidden="true">·</span>}
+          <Link
+            href={link.href}
+            className={`underline underline-offset-4 transition-colors ${hover}`}
+          >
+            {link.label}
+          </Link>
+        </span>
+      ))}
+    </p>
+  )
+}
 
 type Tone = {
   /** 푸터 바깥 배경·기본 글자색 */
@@ -44,18 +77,11 @@ function FooterContent({ tone }: { tone: Tone }) {
 
       <p className={`text-xs leading-relaxed ${tone.sub}`}>{copyrightLine()}</p>
 
-      <p className={`text-xs ${tone.sub}`}>
-        <Link href="/about" className={`underline underline-offset-4 transition-colors ${tone.hover}`}>
-          About
-        </Link>
-        <span className="px-1">and</span>
-        <Link
-          href="/privacy"
-          className={`underline underline-offset-4 transition-colors ${tone.hover}`}
-        >
-          Privacy Policy
-        </Link>
-      </p>
+      <div className={tone.sub}>
+        <FooterLinks hover={tone.hover} />
+      </div>
+
+      <BusinessInfo className={tone.sub} />
     </div>
   )
 }
@@ -103,15 +129,10 @@ export function Footer({
         <div className="mx-auto flex max-w-site flex-col items-center gap-3 px-4 py-10 text-center sm:px-6">
           <Wordmark className="h-8" />
           <p className="font-mono text-xs text-muted-foreground">{copyrightLine()}</p>
-          <p className="text-xs text-muted-foreground">
-            <Link href="/about" className="underline underline-offset-4 hover:text-foreground">
-              About
-            </Link>
-            <span className="px-1">and</span>
-            <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
-              Privacy Policy
-            </Link>
-          </p>
+          <div className="text-muted-foreground">
+            <FooterLinks hover="hover:text-foreground" />
+          </div>
+          <BusinessInfo className="text-muted-foreground" />
         </div>
       </footer>
     )

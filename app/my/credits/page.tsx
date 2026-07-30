@@ -105,6 +105,22 @@ export default function CreditsPage() {
           ))}
         </div>
 
+        {/* 사기 전에 알아야 하는 것 — 전자상거래법은 청약철회 조건을 "구매
+            전에" 알 수 있게 하라고 합니다. 결제 버튼 옆이 아니라 묶음 바로
+            아래에 두는 이유입니다: 고르는 눈이 여기를 지나갑니다. */}
+        <div className="mt-4 px-6">
+          <p className="text-xs leading-relaxed text-black/70">
+            쓰지 않은 {CREDIT_UNIT.one}은 언제든 돌려드려요. 이미 본 해석은 돌려드리지 못해요.{" "}
+            <Link href="/refund" className="underline underline-offset-4 hover:opacity-70">
+              환불정책
+            </Link>
+            <span className="px-1">·</span>
+            <Link href="/terms" className="underline underline-offset-4 hover:opacity-70">
+              이용약관
+            </Link>
+          </p>
+        </div>
+
         {/* 어디에 썼는지 — 잔액만 보여주고 내역을 감추면 셈이 맞는지
             아무도 확인할 수 없습니다 (로그인 전에는 그려지지 않습니다). */}
         <div className="px-6">
