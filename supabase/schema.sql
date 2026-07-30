@@ -113,6 +113,19 @@ create table if not exists public.readings (
   result       jsonb,
   -- 이 판에 허락된 이어묻기 횟수. 한 장 더 쓸 때마다 늘어납니다.
   followups_allowed integer not null default 20,
+  -- 이 판에서 지금까지 오간 이야기를 한 덩어리로 접어둔 것.
+  --
+  -- ⚠️ 왜 있는가
+  --    면담에 들려보내는 대화는 최근 열두 마디까지입니다. 그보다 앞의
+  --    말은 그냥 버려졌습니다 — 대화 초반에 묻는 이가 털어놓은 사정이
+  --    열세 마디째부터 사라져서, 깊은 이야기일수록 그 지점에서 답이
+  --    얕아졌습니다. 밀려나기 전에 여기 접어두고, 다음 물음에 함께
+  --    들려보냅니다.
+  --
+  --    샨티가 답을 쓰면서 같은 응답 안에 함께 적어 보냅니다. 요약하려고
+  --    AI 를 한 번 더 부르지 않습니다 — 무료 등급의 벽은 하루 "요청 수"라
+  --    한 번을 더 쓰는 것이 비쌉니다 (lib/ai/gemini.ts 주석 참고).
+  thread_digest text,
   -- 해석 자체에 대한 좋아요 1 / 싫어요 -1.
   -- 이어지는 대화의 평가는 reading_turns.rating 에 따로 남습니다.
   rating       smallint check (rating in (-1, 1)),
@@ -309,3 +322,7 @@ alter table public.readings
 -- 면담 중 더 뽑은 카드
 alter table public.reading_turns
   add column if not exists cards jsonb;
+
+-- 이 판에서 지금까지 오간 이야기를 접어둔 것 (밀려난 마디를 대신합니다)
+alter table public.readings
+  add column if not exists thread_digest text;

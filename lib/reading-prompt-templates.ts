@@ -132,6 +132,17 @@ export interface ChatContext {
   cards: { name: string; orientation: "정방향" | "역방향"; position?: string }[]
   /** 앞서 해준 해석 */
   reading?: { title: string; summary: string; keywords: string[]; sections: { heading: string; body: string }[] }
+  /**
+   * 이 판에서 지금까지 오간 이야기를 접어둔 것.
+   *
+   * ⚠️ turns 는 최근 열두 마디까지만 실어보냅니다. 그보다 앞의 말은
+   *    사라지므로, 밀려나기 전에 접어둔 이 한 덩어리가 그 자리를 대신합니다.
+   *    없으면(짧은 대화) 그냥 빠집니다.
+   *
+   * 샨티가 답할 때마다 같은 응답 안에서 새로 써서 보내주고, 서버가 판에
+   * 남겨둡니다 (app/api/reading/chat/route.ts).
+   */
+  digest?: string
   /** 그 뒤로 오간 말. 카드를 더 뽑았으면 그것도 한 마디로 들어옵니다 */
   turns: { role: "user" | "shanti"; text: string }[]
   /** 이번에 새로 던진 물음 */
@@ -172,7 +183,7 @@ export function buildChatMessages(
   context: ChatContext,
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
-  const { question, cards, reading, turns, message, reserve } = context
+  const { question, cards, reading, digest, turns, message, reserve } = context
 
   const parts = [
     `### 처음 던진 물음\n${question}`,
@@ -184,6 +195,14 @@ export function buildChatMessages(
       `### 이 몸이 앞서 해준 해석\n${reading.title}\n\n${reading.summary}\n\n` +
       `키워드: ${reading.keywords.join(" · ")}\n\n` +
       reading.sections.map((s) => `[${s.heading}]\n${s.body}`).join("\n\n")
+    )
+  }
+
+  // 접어둔 이야기가 먼저, 최근 열두 마디가 그 뒤. 앞뒤 순서가 곧 시간
+  // 순서라, 이걸 뒤집으면 오래된 이야기가 방금 한 말처럼 읽힙니다.
+  if (digest) {
+    parts.push(
+      `### 지금까지 오간 이야기 (앞쪽은 여기 접혀 있다)\n${digest}`
     )
   }
 

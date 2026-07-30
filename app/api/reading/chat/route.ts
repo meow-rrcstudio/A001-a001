@@ -14,7 +14,7 @@ import { NextResponse } from "next/server"
 import { allTarotCards } from "@/lib/tarot-cards"
 import { buildChatMessages, type ChatContext } from "@/lib/reading-prompt-templates"
 import { streamErrorPayload, streamGeminiJson } from "@/lib/ai/gemini"
-import { CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
+import { CHAT_DIGEST_MAX_CHARS, CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
@@ -64,6 +64,9 @@ export async function POST(request: Request) {
   const limited = rateLimit(rateKey("chat", guard.value?.id, request), 20, 5 * 60_000)
   if (limited) return limited
 
+  // 접어둔 이야기 — 열두 마디 밖으로 밀려난 앞부분이 여기 들어 있습니다.
+  let digest: string | undefined
+
   // 한 장 몫을 다 썼는지 — 세는 곳도 서버여야 합니다.
   // 화면에서만 세면 새로고침 한 번으로 초기화됩니다.
   if (owned.value) {
@@ -80,6 +83,22 @@ export async function POST(request: Request) {
         { status: 402 }
       )
     }
+
+    // ⚠️ 못 읽어도 대화를 막지 않습니다. 칸을 더하는 SQL 을 아직 안 돌린
+    //    배포가 있을 수 있는데, 여기서 던져버리면 대화가 통째로 죽습니다.
+    //    예전에 rating 칸으로 실제로 그렇게 막혔습니다
+    //    (app/api/readings/[id]/route.ts 주석 참고). 접어둔 이야기가 없으면
+    //    최근 열두 마디만으로 답합니다 — 예전과 같은 상태일 뿐입니다.
+    const folded = await admin
+      ?.from("readings")
+      .select("thread_digest")
+      .eq("id", owned.value.id)
+      .maybeSingle()
+
+    if (folded?.error) {
+      console.warn("[reading/chat] 접어둔 이야기를 못 읽었습니다:", folded.error.message)
+    }
+    digest = folded?.data?.thread_digest ?? undefined
   }
 
   const cards = Array.isArray(body.cards) ? body.cards.slice(0, 20) : []
@@ -101,7 +120,11 @@ export async function POST(request: Request) {
     question: String(body.question ?? "").slice(0, 300),
     cards,
     reading: body.reading,
+    // ⚠️ 화면이 보내주는 값이 아닙니다. 판에 남아 있는 것을 서버가 꺼냅니다 —
+    //    앞 이야기의 출처가 화면이면 새로고침 한 번에 사라집니다.
+    digest,
     // 대화가 길어지면 앞쪽은 흘려보냅니다 (프롬프트가 무한정 자라지 않도록).
+    // 흘려보낸 만큼은 위의 digest 에 접혀 있습니다.
     turns: Array.isArray(body.turns) ? body.turns.slice(-12) : [],
     message: message.slice(0, 1000),
     readingId: body.readingId,
@@ -169,6 +192,25 @@ export async function POST(request: Request) {
                 { reading_id: owned.value.id, role: "user", body: context.message },
                 { reading_id: owned.value.id, role: "shanti", body: reply, cards: drawn },
               ])
+
+            // 접어둔 이야기를 새것으로 갈아끼웁니다.
+            //
+            // ⚠️ 비어 있으면 건드리지 않습니다. 짧은 대화에서는 샨티가
+            //    일부러 비워 보내는데(아직 접을 것이 없으니), 그걸 그대로
+            //    덮으면 앞서 접어둔 것이 지워집니다.
+            const folded = readDigest(last)
+            if (folded) {
+              const saved = await getSupabaseAdmin()
+                ?.from("readings")
+                .update({ thread_digest: folded })
+                .eq("id", owned.value.id)
+
+              // 남기지 못해도 이번 답은 이미 나갔습니다. 다음 물음에서
+              // 앞 이야기를 조금 덜 아는 것뿐이라 대화를 깨지 않습니다.
+              if (saved?.error) {
+                console.warn("[reading/chat] 접어둔 이야기를 못 남겼습니다:", saved.error.message)
+              }
+            }
           } else {
             console.warn(`[reading/chat] 답이 비어 마디를 남기지 않았습니다 — ${owned.value.id}`)
           }
@@ -190,6 +232,22 @@ export async function POST(request: Request) {
       "cache-control": "no-store",
     },
   })
+}
+
+/**
+ * 다 받은 JSON 에서 접어둔 이야기만 꺼냅니다.
+ *
+ * 비었거나 이상하면 null 입니다 — 부르는 쪽이 그때는 앞서 접어둔 것을
+ * 그대로 둡니다.
+ */
+function readDigest(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw) as { digest?: unknown }
+    const text = typeof parsed.digest === "string" ? parsed.digest.trim() : ""
+    return text ? text.slice(0, CHAT_DIGEST_MAX_CHARS) : null
+  } catch {
+    return null
+  }
 }
 
 /** 다 받은 JSON 에서 뽑기 요청만 꺼냅니다. 이상하면 없는 셈 칩니다. */
