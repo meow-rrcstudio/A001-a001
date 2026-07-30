@@ -15,6 +15,82 @@ import { READING_JSON_SCHEMA } from "@/lib/ai/reading-schema"
 export const GEMINI_READING_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"
 
 /**
+ * 배열(몇 장·어떤 자리)을 고르는 모델 — 해석과 다른 모델을 씁니다.
+ *
+ * ⚠️ 취향이 아니라 한도 때문입니다. 무료 등급의 하루 요청 한도는
+ *    "프로젝트 × 모델" 단위입니다. 429 응답이 그렇게 적어 보냅니다:
+ *
+ *      quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+ *      quotaDimensions: { model: "gemini-2.5-flash" }, quotaValue: "20"
+ *
+ *    해석과 같은 모델로 배열까지 고르면 한 판에 같은 통에서 두 번 꺼냅니다.
+ *    다른 모델로 옮기면 배열은 자기 통을 쓰고, 해석 통은 그만큼 남습니다.
+ *    배열 고르기는 "이 질문에 몇 장이 맞나"를 정하는 가벼운 일이라
+ *    작은 모델로 충분합니다.
+ */
+export const GEMINI_PLAN_MODEL = process.env.GEMINI_PLAN_MODEL || "gemini-2.5-flash-lite"
+
+/**
+ * 하루 한도에 닿았을 때(429) 한 번 더 시도할 모델.
+ *
+ * 위와 같은 이유로, 모델이 다르면 통도 다릅니다. 해석 통이 비었어도
+ * 이 통이 남아 있으면 답을 받을 수 있습니다 — 사람에게는 "오늘은 여기까지"
+ * 보다 "조금 다른 목소리"가 훨씬 낫습니다.
+ *
+ * ⚠️ 이건 응급처치입니다. 무료 등급의 하루 스무 번은 지인 스무 명을 감당
+ *    하지 못합니다. 통을 하나 더 쓰는 것으로 두 배가 되는 것뿐입니다.
+ *    제대로 된 해결은 결제를 붙여 유료 등급으로 올리는 것입니다.
+ *    빈 문자열로 두면 이 재시도를 끕니다.
+ */
+export const GEMINI_FALLBACK_MODEL =
+  process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash-lite"
+
+/**
+ * 제미나이가 거절했을 때의 오류. 사람에게 보여줄 우리말과 원문을 함께 듭니다.
+ *
+ * ⚠️ 예전에는 구글이 준 영어 JSON 덩어리가 그대로 화면에 떴습니다.
+ *    읽는 사람에게는 무슨 일이 났는지도, 무엇을 하면 되는지도 알 수 없는
+ *    글자입니다. 원문은 우리(서버 로그)가 보고, 화면에는 우리말만 갑니다.
+ */
+export class GeminiError extends Error {
+  constructor(
+    /** 사람에게 보여줄 우리말 */
+    message: string,
+    readonly status: number,
+    /** 구글이 준 원문 — 로그에만 남깁니다 */
+    readonly detail: string
+  ) {
+    super(message)
+    this.name = "GeminiError"
+  }
+}
+
+/** 상태 코드를 사람이 읽을 수 있는 우리말로 바꿉니다 */
+function describeFailure(status: number, body: string): string {
+  if (status === 429) {
+    // 하루 한도인지 순간 속도인지에 따라 할 수 있는 일이 다릅니다.
+    const perDay = body.includes("PerDay")
+    return perDay
+      ? "오늘 이 몸이 볼 수 있는 몫을 다 썼다냥... 내일 다시 물어봐주게."
+      : "잠깐, 너무 빠르구먼. 조금 쉬었다가 다시 물어보라냥."
+  }
+  if (status === 401 || status === 403) {
+    return "이 몸이 카드를 들 수 없는 상태다냥. (열쇠 설정을 확인해야 합니다)"
+  }
+  if (status >= 500) {
+    return "지금은 이 몸의 눈이 흐리구먼. 잠시 뒤에 다시 물어보라냥."
+  }
+  return "해석을 받아오지 못했다냥. 잠시 뒤에 다시 물어보게."
+}
+
+/** 응답이 실패면 우리말을 담은 오류를 만듭니다 (원문은 로그로) */
+async function failureFrom(response: Response, model: string) {
+  const body = await response.text()
+  console.error(`[gemini] ${model} 호출 실패 (${response.status})`, body.slice(0, 800))
+  return new GeminiError(describeFailure(response.status, body), response.status, body)
+}
+
+/**
  * 한 번에 받을 수 있는 토큰 한도.
  *
  * ⚠️ 생각(thinking)에 쓴 토큰도 여기서 같이 깎입니다. 그래서 생각을 켤
@@ -95,8 +171,7 @@ export async function runReadingWithGemini({
   )
 
   if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`제미나이 호출 실패 (${response.status})\n\n${body}`)
+    throw await failureFrom(response, GEMINI_READING_MODEL)
   }
 
   const data = await response.json()
@@ -173,27 +248,40 @@ export async function* streamGeminiJson({
     throw new Error("GEMINI_API_KEY 가 없습니다. Vercel 환경변수를 확인하세요.")
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_READING_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: {
-          maxOutputTokens,
-          thinkingConfig: purpose === "chat" ? CHAT_THINKING : THINKING,
-          // 화면이 바로 쓸 수 있는 조각으로 받습니다.
-          responseMimeType: "application/json",
-          responseSchema: schema,
-        },
-      }),
-    }
-  )
+  const ask = (model: string) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }],
+          generationConfig: {
+            maxOutputTokens,
+            thinkingConfig: purpose === "chat" ? CHAT_THINKING : THINKING,
+            // 화면이 바로 쓸 수 있는 조각으로 받습니다.
+            responseMimeType: "application/json",
+            responseSchema: schema,
+          },
+        }),
+      }
+    )
+
+  let response = await ask(GEMINI_READING_MODEL)
+
+  // 한도에 닿았으면 다른 모델로 한 번 더 — 통이 모델마다 따로입니다
+  // (위 GEMINI_FALLBACK_MODEL 주석 참고).
+  if (response.status === 429 && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_READING_MODEL) {
+    console.warn(
+      `[gemini] ${GEMINI_READING_MODEL} 한도에 닿아 ${GEMINI_FALLBACK_MODEL} 로 다시 시도합니다`
+    )
+    await response.text() // 몸통을 비워 연결을 놓아줍니다
+    response = await ask(GEMINI_FALLBACK_MODEL)
+  }
 
   if (!response.ok || !response.body) {
-    throw new Error(`제미나이 호출 실패 (${response.status})\n\n${await response.text()}`)
+    throw await failureFrom(response, GEMINI_READING_MODEL)
   }
 
   const reader = response.body.getReader()

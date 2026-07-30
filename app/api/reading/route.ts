@@ -5,8 +5,11 @@
 // 보입니다. 그래서 만들어지는 대로 흘려보냅니다 — 받는 쪽은 제목부터
 // 차례로 채워 그립니다.
 //
-// 로그인한 사람이, 자기가 크레딧을 낸 판에 대해서만 부를 수 있습니다.
-// (크레딧은 /api/reading/plan 에서 이미 깎였습니다 — 한 판에 한 장)
+// 로그인한 사람이, 자기 판에 대해서만 부를 수 있습니다.
+//
+// 크레딧 한 장은 여기서 깎습니다 — 그것도 "첫 글자가 실제로 도착한 뒤"에.
+// 잔액만 미리 보고, 깎기는 뒤로 미룹니다. 해석을 못 받았는데 크레딧이
+// 사라지는 일을 만들지 않기 위해서입니다.
 import { NextResponse } from "next/server"
 import { topicContent } from "@/lib/reading-content"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
@@ -86,28 +89,25 @@ export async function POST(request: Request) {
     )
   }
 
-  // ── 크레딧은 여기서 깎습니다 ────────────────────────────────────────
-  // 질문을 고른 순간이 아니라, 해석을 실제로 만들기 직전입니다. 카드를
-  // 다 뽑고 해석을 받으러 온 상태라 "받은 것 없이 사라지는" 일이 없습니다.
-  // 열쇠가 reading:<판id> 라 같은 판을 다시 읽어도 두 번 깎이지 않습니다
-  // (새로고침·다시 만들기가 공짜인 이유).
+  // ── 잔액 확인 ────────────────────────────────────────────────────
+  // 여기서는 아직 깎지 않습니다. 깎는 것은 아래에서 "첫 글자가 실제로
+  // 도착했을 때"입니다.
+  //
+  // ⚠️ 깎아놓고 스트림을 열었더니 제미나이가 429(하루 한도)를 주는 일이
+  //    있었습니다. 그러면 화면에는 오류만 뜨고 크레딧은 없어집니다 —
+  //    받은 것 없이 사라지는, 전에 고쳤던 바로 그 모양입니다.
   if (owned.value) {
     const admin = getSupabaseAdmin()
     if (!admin) return NextResponse.json({ error: "서버 설정이 아직 없어요." }, { status: 503 })
 
-    const { data: left, error: spendError } = await admin.rpc("spend_credit", {
-      p_user_id: guard.value!.id,
-      p_reason: "reading",
-      p_reading_id: owned.value.id,
-      p_key: `reading:${owned.value.id}`,
-    })
+    const { data: balance } = await admin
+      .from("credit_balance")
+      .select("credits")
+      .eq("user_id", guard.value!.id)
+      .maybeSingle()
 
-    if (spendError || typeof left !== "number" || left < 0) {
-      if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
-      return NextResponse.json(
-        { error: "크레딧이 부족해요.", needCredits: true },
-        { status: 402 }
-      )
+    if ((balance?.credits ?? 0) < 1) {
+      return NextResponse.json({ error: "크레딧이 부족해요.", needCredits: true }, { status: 402 })
     }
   }
 
@@ -115,8 +115,36 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       let last = ""
+      // 크레딧은 첫 글자가 온 뒤에 한 번만 깎습니다.
+      // 열쇠가 reading:<판id> 라 같은 판을 다시 읽어도 두 번 깎이지 않습니다
+      // (새로고침·다시 만들기가 공짜인 이유).
+      let charged = false
+      async function chargeOnce(): Promise<string | null> {
+        if (charged || !owned.value) return null
+        charged = true
+        const admin = getSupabaseAdmin()
+        if (!admin) return "서버 설정이 아직 없어요."
+        const { data: left, error: spendError } = await admin.rpc("spend_credit", {
+          p_user_id: guard.value!.id,
+          p_reason: "reading",
+          p_reading_id: owned.value.id,
+          p_key: `reading:${owned.value.id}`,
+        })
+        if (spendError || typeof left !== "number" || left < 0) {
+          if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
+          return "크레딧이 부족해요."
+        }
+        return null
+      }
+
       try {
         for await (const accumulated of streamReadingWithGemini({ topicKey, question, cards })) {
+          // 첫 조각 = 제미나이가 실제로 답하기 시작한 순간입니다.
+          const failed = await chargeOnce()
+          if (failed) {
+            controller.enqueue(encoder.encode(JSON.stringify({ error: failed }) + "\n"))
+            return
+          }
           last = accumulated
           // 지금까지 쌓인 JSON 을 통째로 보냅니다. 받는 쪽이 마지막 줄만
           // 읽으면 되도록 줄바꿈으로 끊습니다.

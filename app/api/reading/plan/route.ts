@@ -12,7 +12,10 @@ import {
   SPREAD_CHOICES,
   type ReadingPlan,
 } from "@/lib/ai/reading-plan"
-import { GEMINI_READING_MODEL } from "@/lib/ai/gemini"
+// ⚠️ 배열 고르기는 해석과 "다른 모델"을 씁니다. 무료 등급의 하루 요청
+//    한도가 모델별이라, 같은 모델로 두 번 부르면 한 판에 해석 몫까지
+//    같이 깎입니다 (lib/ai/gemini.ts 의 GEMINI_PLAN_MODEL 주석 참고).
+import { GEMINI_PLAN_MODEL } from "@/lib/ai/gemini"
 import { requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_READING_MODEL}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_PLAN_MODEL}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
