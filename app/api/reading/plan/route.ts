@@ -4,6 +4,7 @@
 // 해석보다 훨씬 짧은 호출이라 2초 안팎이면 끝납니다.
 // 실패해도 흐름이 끊기지 않도록 기본 배열로 되돌아갑니다.
 import { NextResponse } from "next/server"
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { ACTIVE_CHARACTER } from "@/lib/character"
 import {
   FALLBACK_PLAN,
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
 
     if ((balance?.credits ?? 0) < 1) {
       return NextResponse.json(
-        { error: "크레딧이 부족해요.", needCredits: true },
+        { error: `${withJosa(CREDIT_UNIT.one, "이가")} 부족해요.`, needCredits: true },
         { status: 402 }
       )
     }

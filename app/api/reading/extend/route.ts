@@ -4,6 +4,7 @@
 // 늘리는 것도 서버가 해야 합니다. 화면에서만 늘리면 새로고침 한 번으로
 // 얼마든지 늘릴 수 있습니다.
 import { NextResponse } from "next/server"
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   })
 
   if (error || typeof left !== "number" || left < 0) {
-    return NextResponse.json({ error: "크레딧이 부족해요.", needCredits: true }, { status: 402 })
+    return NextResponse.json({ error: `${withJosa(CREDIT_UNIT.one, "이가")} 부족해요.`, needCredits: true }, { status: 402 })
   }
 
   await admin.from("readings").update({ followups_allowed: next }).eq("id", owned.value.id)

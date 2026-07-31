@@ -31,6 +31,7 @@
 import "server-only"
 
 import { Redis } from "@upstash/redis"
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 
 /** 하루에 내줄 무료 리딩 수 = 쌓일 수 있는 최대치(이월 상한) */
 export const FREE_READING_LIMIT = Number(process.env.FREE_READING_LIMIT || 1000)
@@ -199,6 +200,6 @@ export function doorClosedMessage(resetAt: number): { message: string; hint: str
   const when = reopenLabel(resetAt)
   return {
     message: "오늘은 이 몸이 카드를 볼 만큼 봤다냥. 잠시 문을 내리겠네.",
-    hint: `${when}에 다시 열린다냥. 기다리기 싫으면 크레딧으로 지금 볼 수 있어.`,
+    hint: `${when}에 다시 열린다냥. 기다리기 싫으면 ${withJosa(CREDIT_UNIT.one, "으로로")} 지금 볼 수 있어.`,
   }
 }

@@ -24,6 +24,8 @@
 //    분류하면(문장에 "quota" 가 들었나 보는 식) 문장을 다듬는 순간
 //    분류가 조용히 깨집니다.
 
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
+
 /** 무엇 때문에 막혔는가 */
 export type ChatErrorKind =
   /** 인터넷이 끊겼거나 요청이 아예 나가지 못했다 */
@@ -218,9 +220,9 @@ export function describeChatError(input: {
         // 서버가 보낸 말이 있으면 그쪽입니다 — 언제 열리는지가 들어 있습니다.
         // 없으면(옛 배포·연결 끊김) 시각 없이 뜻만 전합니다.
         message: input.message || "오늘은 이 몸이 카드를 볼 만큼 봤다냥. 잠시 문을 내리겠네.",
-        hint: input.hint || "크레딧이 있으면 지금 바로 볼 수 있어.",
+        hint: input.hint || `${withJosa(CREDIT_UNIT.one, "이가")} 있으면 지금 바로 볼 수 있어.`,
         canRetry: false,
-        action: { label: "크레딧 보기", href: "/my/credits" },
+        action: { label: `${CREDIT_UNIT.one} 보기`, href: "/my/credits" },
       }
 
     case "quotaSpeed":

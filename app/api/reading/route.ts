@@ -11,6 +11,7 @@
 // 잔액만 미리 보고, 깎기는 뒤로 미룹니다. 해석을 못 받았는데 크레딧이
 // 사라지는 일을 만들지 않기 위해서입니다.
 import { NextResponse } from "next/server"
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { topicContent } from "@/lib/reading-content"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { streamErrorPayload, streamReadingWithGemini } from "@/lib/ai/gemini"
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if ((balance?.credits ?? 0) < 1) {
-      return NextResponse.json({ error: "크레딧이 부족해요.", needCredits: true }, { status: 402 })
+      return NextResponse.json({ error: `${withJosa(CREDIT_UNIT.one, "이가")} 부족해요.`, needCredits: true }, { status: 402 })
     }
   }
 
@@ -152,7 +153,7 @@ export async function POST(request: Request) {
         })
         if (spendError || typeof left !== "number" || left < 0) {
           if (spendError) console.error("[reading] 크레딧을 못 깎았습니다:", spendError.message)
-          return "크레딧이 부족해요."
+          return `${withJosa(CREDIT_UNIT.one, "이가")} 부족해요.`
         }
         charged = true
         return null
