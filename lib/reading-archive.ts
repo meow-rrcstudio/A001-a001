@@ -42,6 +42,13 @@ export interface SavedReading {
   result: ReadingResult
   /** 해석에 매긴 좋아요(1)·싫어요(-1) */
   rating?: number | null
+  /**
+   * 이 판에 허락된 이어묻기 횟수 (서버가 정합니다).
+   *
+   * 브라우저 보관함에는 없습니다 — 서버에서 온 기록에만 실려 옵니다.
+   * 없으면 화면이 산 판(FOLLOWUPS_PER_CREDIT)으로 봅니다.
+   */
+  followupsAllowed?: number
   /** 해석을 받은 뒤 이어서 나눈 대화 */
   turns: ReadingTurn[]
   /**

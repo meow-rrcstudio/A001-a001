@@ -73,6 +73,11 @@ const KINDS: ChatErrorKind[] = [
   "needCredits",
   "tooFast",
   "quotaDay",
+  // ⚠️ 이 줄이 빠져 있으면 서버가 doorClosed 를 보내도 화면은 못 알아보고
+  //    상태 코드(429)만 보고 "조금 빠르구먼"(tooFast)으로 떨어집니다.
+  //    문을 내린 것과 과속은 다음 걸음이 다릅니다 — 하나는 크레딧, 하나는
+  //    잠깐 쉬기입니다. 갈래를 새로 만들 때는 여기에도 반드시 적으세요.
+  "doorClosed",
   "quotaSpeed",
   "timeout",
   "empty",
@@ -123,6 +128,16 @@ export function describeChatError(input: {
   kind?: unknown
   /** 서버가 준 원문 — 화면에 쓰지 않습니다. 콘솔에만 남깁니다 */
   detail?: string
+  /**
+   * 서버가 지어 보낸 문장.
+   *
+   * ⚠️ 아무 갈래에나 쓰지 않습니다 — 서버 문장을 그대로 찍던 것이 바로
+   *    이 파일이 생긴 까닭입니다. 오직 doorClosed 에만 씁니다. 문이 다시
+   *    열리는 시각("18시"·"자정")은 창 길이에 달려 있어서 서버만 알고,
+   *    화면이 지어낼 수가 없습니다. 그 밖의 갈래는 여기 적힌 말을 씁니다.
+   */
+  message?: string
+  hint?: string
   /** 몇 초 뒤에 다시 되는지 */
   retryAfterSeconds?: number
   /** 브라우저가 인터넷이 끊겼다고 말하는가 */
@@ -200,8 +215,10 @@ export function describeChatError(input: {
       //    창 길이에 따라 "자정"·"18시"가 달라지기 때문입니다.
       return {
         kind,
-        message: "오늘은 이 몸이 카드를 볼 만큼 봤다냥. 잠시 문을 내리겠네.",
-        hint: "크레딧이 있으면 지금 바로 볼 수 있어.",
+        // 서버가 보낸 말이 있으면 그쪽입니다 — 언제 열리는지가 들어 있습니다.
+        // 없으면(옛 배포·연결 끊김) 시각 없이 뜻만 전합니다.
+        message: input.message || "오늘은 이 몸이 카드를 볼 만큼 봤다냥. 잠시 문을 내리겠네.",
+        hint: input.hint || "크레딧이 있으면 지금 바로 볼 수 있어.",
         canRetry: false,
         action: { label: "크레딧 보기", href: "/my/credits" },
       }

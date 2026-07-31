@@ -252,6 +252,7 @@ export function ReadingResultView({
   positions,
   layoutKey,
   readingId,
+  followupsAllowed,
   resultRating,
   streaming = false,
   error = null,
@@ -272,6 +273,18 @@ export function ReadingResultView({
   layoutKey?: string
   /** 어느 판인지. 서버가 주인과 이어묻기 횟수를 확인합니다 */
   readingId?: string
+  /**
+   * 이 판에 허락된 이어묻기 횟수 (readings.followups_allowed).
+   *
+   * ⚠️ 판마다 다릅니다 — 가입 선물로 본 판은 WELCOME_FOLLOWUPS(3), 산
+   *    크레딧으로 본 판은 FOLLOWUPS_PER_CREDIT(10)입니다. 그래서 화면이
+   *    숫자를 직접 알고 있으면 안 됩니다. 예전에 여기서 곱셈으로 세다가,
+   *    선물 판에서 "10번 남았어냥"이라고 말해놓고 3번째에 서버가 막는
+   *    모양이 됐습니다 — 화면이 한 거짓말을 서버가 뒤집는 꼴입니다.
+   *
+   * 안 주면 산 판으로 봅니다 (연결 전·옛 기록).
+   */
+  followupsAllowed?: number
   /** 해석에 이미 매긴 평가 (1 좋아요 · -1 싫어요). 다시 열었을 때 켜둡니다 */
   resultRating?: number | null
   /** 해석이 아직 흘러들어오는 중인지. 커서를 깜빡여 살아있음을 보여줍니다 */
@@ -342,14 +355,20 @@ export function ReadingResultView({
   // 크레딧 한 장에 이어묻기 FOLLOWUPS_PER_CREDIT 번이 딸려옵니다. 다 쓰면
   // 대화를 끊지 않고 "한 장 더 쓰고 이어가기"를 권합니다.
   //
-  // ⚠️ 이 셈은 브라우저에만 있습니다. 크레딧과 마찬가지로, 로그인이
-  //    붙으면 서버가 다시 세야 합니다 (지금은 새로고침하면 초기화됩니다).
-  const [extraCredits, setExtraCredits] = useState(0)
+  // 이 판의 몫은 서버가 정합니다 (readings.followups_allowed). 화면은
+  // 그 값을 받아 세기만 합니다.
+  //
+  // 한 장 더 쓰면 서버가 늘어난 몫을 돌려주는데, prop 은 그대로라 그걸
+  // 여기 따로 담아둡니다. prop 을 덮어쓰는 상태 하나로 합치면, 판이
+  // 늦게 도착하는 화면(기록에서 열기)에서 기본값 10 이 먼저 자리를 잡고
+  // 뒤늦게 온 3 을 밀어냅니다.
+  const [extendedTo, setExtendedTo] = useState<number | null>(null)
+  const allowance = extendedTo ?? followupsAllowed ?? FOLLOWUPS_PER_CREDIT
+
   const { account, ready: accountReady, refresh: refreshAccount } = useAccount()
   const credits = accountReady ? account.credits : null
 
   const asked = turns.filter((t) => t.role === "user").length
-  const allowance = FOLLOWUPS_PER_CREDIT * (1 + extraCredits)
   const leftToAsk = allowance - asked
   const outOfAsks = leftToAsk <= 0
 
@@ -380,10 +399,13 @@ export function ReadingResultView({
         body: JSON.stringify({ readingId }),
       })
       if (!response.ok) return
+      // 늘어난 몫은 서버가 알려줍니다 — 화면에서 더하면 두 셈이 어긋납니다.
+      const data = (await response.json()) as { followupsAllowed?: number }
+      if (typeof data.followupsAllowed === "number") setExtendedTo(data.followupsAllowed)
+      else setExtendedTo(allowance + FOLLOWUPS_PER_CREDIT)
     } catch {
       return
     }
-    setExtraCredits((n) => n + 1)
     void refreshAccount()
   }
 

@@ -25,6 +25,8 @@ import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
+import { ChatErrorBox } from "@/components/chat-error-box"
+import { describeChatError, type ChatErrorInfo } from "@/lib/chat-errors"
 import { canUseInsiteReading } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
 import { useKeyboardInset } from "@/lib/use-keyboard-inset"
@@ -44,6 +46,10 @@ export default function AskPage() {
   // 샨티가 이 질문에 맞게 고른 배열 (몇 장 · 어떤 자리)
   const [plan, setPlan] = useState<ReadingPlan | null>(null)
   const [planning, setPlanning] = useState(false)
+  // 판을 시작하지도 못하고 막혔을 때의 사유 (지금은 무료 총량 문 하나입니다).
+  // ⚠️ 카드를 뽑기 전에 말해줘야 합니다. 다 뽑고 나서 막히면 한 판을
+  //    통째로 헛수고시킨 셈입니다.
+  const [startError, setStartError] = useState<ChatErrorInfo | null>(null)
   // 해석은 흘려받습니다 — 제목부터 차례로 화면에 채워집니다.
   const { reading, streaming, error, run } = useReadingStream()
   // 보관된 타로점 id — 이어서 나눈 대화를 여기에 계속 쌓습니다
@@ -83,6 +89,7 @@ export default function AskPage() {
     if (!q || planning) return
     setQuestion(q)
     setPlanning(true)
+    setStartError(null)
     // 이 질문에 어떤 배열이 어울릴지 정합니다 (2초 안팎).
     //
     // 크레딧은 이 호출 안에서 서버가 깎습니다. 화면에서 깎던 예전 방식은
@@ -101,14 +108,42 @@ export default function AskPage() {
         return
       }
 
-      setPlan(response.ok ? ((await response.json()) as ReadingPlan) : FALLBACK_PLAN)
+      // ── 판을 시작하지 못한 경우 ──────────────────────────────────
+      // 지금은 무료 총량 문 하나입니다(kind: "doorClosed"). 카드를 뽑기
+      // 전에 이 자리에서 말해주고, 크레딧으로 가는 길을 함께 내줍니다.
+      //
+      // ⚠️ 여기서 뽑기 화면으로 넘어가면 안 됩니다. 판(readingId)이 없어서
+      //    다 뽑고 난 뒤 해석을 부르는 자리에서 막힙니다 — 한 판을 통째로
+      //    헛수고시키고, 그제서야 이유를 말하는 셈입니다.
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string
+          hint?: string
+          kind?: string
+        }
+        setPlanning(false)
+        setStartError(
+          describeChatError({
+            status: response.status,
+            kind: body.kind,
+            message: body.error,
+            hint: body.hint,
+          })
+        )
+        void refreshAccount()
+        return
+      }
+
+      setPlan((await response.json()) as ReadingPlan)
     } catch {
+      // 연결이 끊긴 것뿐일 수 있습니다. 배열은 기본값으로 두고 흐름은 잇습니다
+      // (해석을 부를 때 다시 한 번 막힐 기회가 있습니다).
       setPlan(FALLBACK_PLAN)
-    } finally {
-      setPlanning(false)
-      setStep("draw")
-      void refreshAccount()
     }
+
+    setPlanning(false)
+    setStep("draw")
+    void refreshAccount()
   }
 
   /**
@@ -181,6 +216,9 @@ export default function AskPage() {
           positions={plan?.positions.map((p) => p.label)}
           layoutKey={plan?.layoutKey}
           readingId={plan?.readingId}
+          // 이 판에 딸려온 이어묻기 몫 — 선물 판과 산 판이 다릅니다.
+          // 화면이 숫자를 직접 알고 있으면 안 됩니다 (서버가 정합니다).
+          followupsAllowed={plan?.followupsAllowed}
           streaming={streaming}
           error={error}
           onTurn={(turn) => readingId && appendTurn(readingId, turn)}
@@ -264,6 +302,10 @@ export default function AskPage() {
           }`}
           style={{ marginBottom: keyboardInset }}
         >
+          {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
+              입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
+          {startError && <ChatErrorBox info={startError} className="mb-4" />}
+
           <p className="mb-2 text-sm text-muted-foreground">제안</p>
           <div className="flex flex-col items-start gap-2">
             {SUGGESTED_QUESTIONS.map((q) => (

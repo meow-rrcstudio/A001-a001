@@ -151,6 +151,9 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
         cards={reading.cards}
         layoutKey={reading.layoutKey}
         readingId={reading.id}
+        // 그때 그 판에 딸렸던 몫 그대로 셉니다 (선물 판과 산 판이 다릅니다).
+        // 브라우저 보관함에만 있는 옛 기록에는 없어서, 그때는 산 판으로 봅니다.
+        followupsAllowed={reading.followupsAllowed}
         resultRating={reading.rating}
         positions={reading.positions}
         backHref="/my"

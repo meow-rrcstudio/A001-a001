@@ -19,7 +19,9 @@ import { GEMINI_PLAN_MODEL } from "@/lib/ai/gemini"
 import { requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
-import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
+import { FOLLOWUPS_PER_CREDIT, WELCOME_FOLLOWUPS } from "@/lib/credit-rules"
+import { hasEverPaid } from "@/lib/server/free-reading"
+import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
@@ -49,28 +51,13 @@ export async function POST(request: Request) {
   if (limited) return limited
 
   let readingId: string | undefined
+  // 이 판에 딸려가는 이어묻기 몫. 화면이 남은 횟수를 셀 때 이 값을 봅니다
+  // (연결 전에는 산 판과 같게 둡니다 — 깎을 근거가 없으니까요).
+  let followupsAllowed = FOLLOWUPS_PER_CREDIT
+
   if (user) {
     const admin = getSupabaseAdmin()
     if (!admin) return NextResponse.json({ error: "서버 설정이 아직 없어요." }, { status: 503 })
-
-    // 판을 먼저 만들고, 그 id 를 열쇠 삼아 크레딧을 깎습니다.
-    // 열쇠가 판마다 달라서 같은 판으로 두 번 깎이지 않습니다.
-    const { data: created, error: createError } = await admin
-      .from("readings")
-      .insert({
-        user_id: user.id,
-        question: question.slice(0, 500),
-        followups_allowed: FOLLOWUPS_PER_CREDIT,
-      })
-      .select("id")
-      .single()
-
-    if (createError || !created) {
-      console.error("[reading/plan] 판을 못 만들었습니다:", createError?.message)
-      return NextResponse.json({ error: "타로점을 시작하지 못했어요." }, { status: 500 })
-    }
-
-    readingId = created.id
 
     // ⚠️ 여기서는 크레딧을 깎지 않습니다. 잔액이 있는지만 봅니다.
     //
@@ -82,6 +69,11 @@ export async function POST(request: Request) {
     //
     //    깎는 자리는 해석이 실제로 도착하는 곳(app/api/reading/route.ts)으로
     //    옮겼습니다. 열쇠가 reading:<판id> 라 판 하나에 한 번만 깎입니다.
+    //
+    // ⚠️ 잔액 확인이 판 만들기보다 먼저입니다. 예전에는 판을 먼저 만들고
+    //    모자라면 지웠는데, 그 사이에 아래 무료 문까지 끼어들면서 "시작도
+    //    못 한 판"이 남을 자리가 늘었습니다. 아무것도 만들지 않고 돌려보내는
+    //    편이 되돌릴 것이 없습니다.
     const { data: balance } = await admin
       .from("credit_balance")
       .select("credits")
@@ -89,17 +81,61 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if ((balance?.credits ?? 0) < 1) {
-      // 시작도 못 한 판이 기록에 남으면 안 됩니다.
-      await admin.from("readings").delete().eq("id", readingId)
       return NextResponse.json(
         { error: "크레딧이 부족해요.", needCredits: true },
         { status: 402 }
       )
     }
+
+    // ── 선물로 보는 판인가, 산 판인가 ──────────────────────────────
+    // 한 번이라도 결제한 적이 있으면 손님입니다 (lib/server/free-reading.ts).
+    const paid = await hasEverPaid(admin, user.id)
+
+    if (!paid) {
+      // 선물 판은 이어묻기 몫이 적습니다. 선물은 맛보기고, 더 묻고 싶으면
+      // 사는 것이 자연스럽습니다 (lib/credit-rules.ts 의 WELCOME_FOLLOWUPS).
+      followupsAllowed = WELCOME_FOLLOWUPS
+
+      // 그리고 사이트 전체의 무료 총량에서 한 판을 꺼내 씁니다.
+      // 다 떨어졌으면 문을 내립니다 — 하지만 크레딧으로 가는 길은
+      // 열어둔 채로입니다 (우리 사정으로 막는 것이지, 이 사람이 뭘
+      // 잘못해서가 아닙니다).
+      //
+      // ⚠️ 무료 몫은 여기서 한 번만 꺼냅니다. 이어묻기·카드 더 뽑기는
+      //    같은 판이라 다시 꺼내지 않습니다 — 판을 시작하는 자리가
+      //    크레딧과 마찬가지로 여기 한 곳뿐이기 때문입니다.
+      const quota = await takeFreeReading()
+      if (!quota.allowed) {
+        const { message, hint } = doorClosedMessage(quota.resetAt)
+        return NextResponse.json(
+          { error: message, hint, kind: "doorClosed", reopenAt: quota.resetAt },
+          { status: 429 }
+        )
+      }
+    }
+
+    // 판을 만들고, 그 id 를 열쇠 삼아 (나중에) 크레딧을 깎습니다.
+    // 열쇠가 판마다 달라서 같은 판으로 두 번 깎이지 않습니다.
+    const { data: created, error: createError } = await admin
+      .from("readings")
+      .insert({
+        user_id: user.id,
+        question: question.slice(0, 500),
+        followups_allowed: followupsAllowed,
+      })
+      .select("id")
+      .single()
+
+    if (createError || !created) {
+      console.error("[reading/plan] 판을 못 만들었습니다:", createError?.message)
+      return NextResponse.json({ error: "타로점을 시작하지 못했어요." }, { status: 500 })
+    }
+
+    readingId = created.id
   }
 
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId })
+  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
 
   try {
     const response = await fetch(
@@ -138,7 +174,7 @@ export async function POST(request: Request) {
           `positions=${Array.isArray(plan?.positions) ? plan.positions.length : "없음"}, ` +
           `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
       )
-      return NextResponse.json({ ...FALLBACK_PLAN, readingId })
+      return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
     }
 
     // 고른 배열을 판에 적어둡니다 (다시 열었을 때 그때 모양 그대로 놓이도록)
@@ -152,10 +188,10 @@ export async function POST(request: Request) {
         .eq("id", readingId)
     }
 
-    return NextResponse.json({ ...plan, readingId })
+    return NextResponse.json({ ...plan, readingId, followupsAllowed })
   } catch (error) {
     // 배열을 못 골랐다고 흐름을 멈추진 않습니다. 대신 까닭은 로그로 남깁니다.
     console.warn("[reading/plan] 배열 고르기 실패 — 기본값으로 갑니다:", error)
-    return NextResponse.json({ ...FALLBACK_PLAN, readingId })
+    return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
   }
 }

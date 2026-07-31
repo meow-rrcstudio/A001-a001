@@ -2,12 +2,14 @@
 // 토스페이먼츠 설정과 승인 호출.
 //
 // ┌─ 결제가 흘러가는 길 ──────────────────────────────────────────────
-// │ 1. 화면에서 묶음을 고름
+// │ 1. 화면에서 묶음을 고름 (app/my/credits/page.tsx)
 // │ 2. POST /api/payments/checkout
 // │      서버가 주문번호를 만들고 purchases 에 pending 한 줄을 남깁니다.
 // │      ⚠️ 금액은 여기서 정합니다. 화면이 보내온 금액은 쓰지 않습니다.
-// │ 3. 브라우저가 토스 결제창을 띄움 (결제수단 입력은 전부 토스 쪽)
+// │ 3. 브라우저가 토스 결제창을 띄움 (lib/toss-checkout.ts)
+// │      결제수단 입력은 전부 토스 쪽입니다. 우리는 카드번호를 보지 않습니다.
 // │ 4. 토스가 successUrl 로 되돌려 보냄 (paymentKey·orderId·amount)
+// │      app/my/credits/success — 실패·취소는 /my/credits/fail 입니다.
 // │ 5. POST /api/payments/confirm
 // │      우리가 남긴 pending 줄과 대조한 뒤 토스에 승인을 요청하고,
 // │      승인이 떨어지면 크레딧을 얹습니다.
@@ -18,8 +20,11 @@
 // └──────────────────────────────────────────────────────────────────
 import "server-only"
 
-/** 브라우저에서 결제창을 띄울 때 쓰는 키. 나가도 되는 값입니다. */
-export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? ""
+// 화면에도 나가는 값(결제창 키)은 lib/toss-client.ts 에 있습니다.
+// 이 파일은 server-only 라 화면이 가져올 수 없어서 나눠 두었습니다.
+import { TOSS_CLIENT_KEY, isTossTestKey } from "@/lib/toss-client"
+
+export { TOSS_CLIENT_KEY }
 
 /**
  * 승인에 쓰는 키.
@@ -32,14 +37,8 @@ const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY ?? ""
 /** 결제를 열 준비가 됐는지 (두 키가 다 있어야 합니다) */
 export const isTossConfigured = Boolean(TOSS_CLIENT_KEY && TOSS_SECRET_KEY)
 
-/**
- * 테스트 키인지.
- *
- * 토스는 테스트 키를 test_ 로 시작하게 만듭니다. 화면에 "지금은 테스트예요"
- * 라고 알려주는 데 씁니다 — 테스트 키인 줄 모르고 진짜 결제를 기다리는
- * 일이 없도록.
- */
-export const isTossTestMode = TOSS_CLIENT_KEY.startsWith("test_")
+/** 테스트 키인지 (lib/toss-client.ts 참고) */
+export const isTossTestMode = isTossTestKey
 
 const TOSS_API = "https://api.tosspayments.com/v1/payments"
 

@@ -51,6 +51,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       cards: restoreCards(data.cards),
       result: data.result,
       rating: data.rating ?? null,
+      // 이 판에 허락된 이어묻기 횟수. 화면의 남은 횟수 셈이 이걸 봅니다 —
+      // 판마다 다르므로(선물 판 3 · 산 판 10) 반드시 함께 돌려줍니다.
+      followupsAllowed: data.followups_allowed ?? undefined,
       turns: (turns ?? []).map((t) => ({
         role: t.role as "user" | "shanti",
         text: t.body,

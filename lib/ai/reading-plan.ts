@@ -14,6 +14,14 @@ export interface ReadingPlan {
    * 서버는 이걸로 "크레딧을 낸 판인지"를 확인합니다.
    */
   readingId?: string
+  /**
+   * 이 판에 딸려온 이어묻기 몫.
+   *
+   * 판마다 다릅니다 — 가입 선물로 보는 판은 WELCOME_FOLLOWUPS, 산 크레딧으로
+   * 보는 판은 FOLLOWUPS_PER_CREDIT 입니다. 그래서 화면이 숫자를 직접 알고
+   * 있으면 안 되고, 서버가 알려준 이 값을 세야 합니다.
+   */
+  followupsAllowed?: number
 }
 
 /** AI 가 실패하거나 이상한 값을 줬을 때 쓰는 기본 배열 */

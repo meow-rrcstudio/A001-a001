@@ -53,6 +53,7 @@ export function useReadingStream() {
       plan,
       cards,
       readingId,
+      free = false,
     }: {
       topicKey: string
       questionSlug: string
@@ -63,11 +64,22 @@ export function useReadingStream() {
       cards: PickedCard[]
       /** 어느 판인지. 서버가 "크레딧을 낸 판인지" 확인합니다 */
       readingId?: string
+      /**
+       * 로그인 전 맛보기인지.
+       *
+       * 참이면 /api/reading/free 로 갑니다 — 로그인도 크레딧도 필요 없고,
+       * 판을 남기지도 않습니다. 대신 낮은 등급 모델이라 글이 얕고, 이어서
+       * 물을 수 없습니다 (app/api/reading/free/route.ts 참고).
+       *
+       * ⚠️ 봉투가 같아서 아래 읽는 코드는 그대로 씁니다. 두 벌로 나누면
+       *    한쪽만 고쳐진 채로 남습니다.
+       */
+      free?: boolean
     }): Promise<ReadingResult | null> => {
       setState({ reading: null, streaming: true, error: null })
 
       try {
-        const response = await fetch("/api/reading", {
+        const response = await fetch(free ? "/api/reading/free" : "/api/reading", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -95,10 +107,21 @@ export function useReadingStream() {
           const raw = await response.text().catch(() => "")
           let kind: unknown
           let retryAfterSeconds: number | undefined
+          // 서버가 지어 보낸 말 — 문이 내려갔을 때만 쓰입니다(언제 열리는지는
+          // 서버만 압니다). 그 밖의 갈래는 lib/chat-errors.ts 의 말을 씁니다.
+          let message: string | undefined
+          let hint: string | undefined
           try {
-            const parsed = JSON.parse(raw) as { kind?: unknown; retryAfterSeconds?: number }
+            const parsed = JSON.parse(raw) as {
+              kind?: unknown
+              retryAfterSeconds?: number
+              error?: string
+              hint?: string
+            }
             kind = parsed.kind
             retryAfterSeconds = parsed.retryAfterSeconds
+            message = parsed.error
+            hint = parsed.hint
           } catch {
             // JSON 이 아니면 상태 코드로만 판단합니다
           }
@@ -107,7 +130,7 @@ export function useReadingStream() {
 
           console.warn(`[reading] 서버가 거절했습니다 (${response.status})`, raw.slice(0, 300))
           throw new ReadingFailure(
-            describeChatError({ status: response.status, kind, retryAfterSeconds })
+            describeChatError({ status: response.status, kind, retryAfterSeconds, message, hint })
           )
         }
 

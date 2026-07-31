@@ -19,6 +19,7 @@ import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 import { buildReadingPrompt, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
 import { FreeReadingNudge } from "@/components/free-reading-nudge"
+import { FreeReadingPreview } from "@/components/free-reading-preview"
 import { saveFreeReading } from "@/lib/save-free-reading"
 import { useAccount } from "@/lib/use-account"
 
@@ -466,14 +467,35 @@ export function CardReadingFlow({
                 : flippedIndices.length >= requiredPicks
                   ? mode === "inline"
                     ? "흠! 카드는 다 뽑혔구먼. 이 몸이 고심해서 들여다보는 중이니 잠깐만 기다려보라냥..."
-                    : `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 아래 내용을 복사해서 좋아하는 AI에게 물어봐!`
+                      : // 이제 이 몸이 아래에서 직접 읽어줍니다(FreeReadingPreview).
+                      // 프롬프트 복사는 없애지 않았지만, 첫 마디로 내밀지는
+                      // 않습니다 — 읽어주는 쪽이 먼저입니다.
+                      `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 이 몸이 아래에 읽어줄 테니 내려서 보라냥.`
                   : "카드를 하나씩 뒤집어보는 중이야냥..."
           }
           promptText={freeDone ? buildPrompt() : undefined}
           onHeightChange={(h) => setBubbleReservedHeight((prev) => (h > prev ? h : prev))}
         />
 
-        {/* 프롬프트를 다 보여준 뒤 다음 걸음을 권합니다.
+        {/* 샨티가 이 자리에서 한 판 읽어줍니다 (로그인 전에도).
+            ⚠️ 말풍선의 프롬프트 복사 위에 얹히는 것이지, 대신하는 것이
+               아닙니다 — 밖의 AI 로 가져가려던 사람의 길은 그대로 둡니다. */}
+        {freeDone && (
+          <FreeReadingPreview
+            topicSlug={topicSlug}
+            question={question}
+            cards={selected.map((cardIndex) => {
+              const card = shuffledDeck[cardIndex]
+              return {
+                name: card.nameKo,
+                reversed: cardOrientations[cardIndex] === "역방향",
+                imageUrl: card.imageUrl,
+              }
+            })}
+          />
+        )}
+
+        {/* 해석 뒤에 다음 걸음을 권합니다.
             로그인 여부에 따라 말이 갈립니다 (components/free-reading-nudge.tsx) */}
         {freeDone && (
           <FreeReadingNudge
