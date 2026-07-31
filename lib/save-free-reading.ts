@@ -27,6 +27,8 @@ export interface FreeReadingInput {
    *    남아서, 다시 열었을 때 방금 읽은 해석이 없습니다.
    */
   result?: { title?: string; summary?: string; sections?: { heading: string; body: string }[] }
+  /** 이 판을 어떻게 뽑았는지 (재서 남기기만 합니다) */
+  signals?: unknown
 }
 
 export interface SavedFreeReading {

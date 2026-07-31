@@ -45,12 +45,15 @@ export function FreeReadingResult({
   question,
   cards,
   isLoggedIn,
+  signals,
   onBack,
 }: {
   topicSlug: ReadingTopicKey
   question: ReadingQuestion
   cards: PickedCard[]
   isLoggedIn: boolean
+  /** 이 판을 어떻게 뽑았는지 (재서 남기기만 합니다) */
+  signals?: unknown
   onBack: () => void
 }) {
   const { reading, streaming, error, run } = useReadingStream()
@@ -100,6 +103,7 @@ export function FreeReadingResult({
       positions: question.positions.map((p) => p.label),
       promptText,
       result: reading,
+      signals,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streaming, reading])

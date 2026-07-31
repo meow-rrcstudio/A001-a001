@@ -18,6 +18,7 @@ import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 import type { ReadingQuestion, ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
+import type { DrawTracker } from "@/lib/draw-signals"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
@@ -88,6 +89,7 @@ export function CardReadingFlow({
   introMessage,
   excludeNames,
   skipShuffle = false,
+  signals,
   onComplete,
 }: {
   topicSlug: ReadingTopicKey
@@ -115,6 +117,14 @@ export function CardReadingFlow({
    *    excludeNames 로 빠집니다.
    */
   skipShuffle?: boolean
+  /**
+   * 이 판을 어떻게 뽑았는지 재는 자 (lib/draw-signals.ts).
+   *
+   * ⚠️ 면담 중에 카드를 더 뽑는 화면에는 넘기지 않습니다. 그건 같은 판을
+   *    이어가는 것이라, "이 판을 어떻게 시작했는가"와 섞이면 안 됩니다.
+   *    안 넘기면 아무것도 재지 않습니다.
+   */
+  signals?: DrawTracker
   /** 카드를 다 뒤집었을 때. 뽑은 카드 이름과 정/역방향을 넘깁니다. */
   onComplete?: (picked: { name: string; reversed: boolean; imageUrl: string }[]) => void
 }) {
@@ -123,6 +133,9 @@ export function CardReadingFlow({
 
   const [phase, setPhase] = useState<Phase>(skipShuffle ? "selecting" : "shuffling")
   const [shuffleStep, setShuffleStep] = useState(0)
+  // ⚠️ finishShuffling 은 setTimeout 으로 늦게 불려서 위 상태가 낡아 있습니다.
+  //    (steps 3 인데 endedEarly false 처럼 앞뒤가 안 맞는 값이 나왔습니다)
+  const shuffleStepRef = useRef(0)
   const [entered, setEntered] = useState(false)
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null)
   // 말풍선이 지금까지 차지한 가장 큰 높이. 글이 짧아져도 자리를 도로
@@ -144,6 +157,19 @@ export function CardReadingFlow({
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isTouchDevice = useIsTouchDevice()
+
+  // 이 화면에 들어온 시각을 재둡니다 — "화면을 보며 망설인 시간"의 기준입니다.
+  // ⚠️ 예전에는 첫 터치부터 쟀습니다. 그러면 정작 망설인 시간이 통째로 빠집니다.
+  useEffect(() => {
+    // ⚠️ isTouchDevice(상태)를 쓰지 않습니다. 그 값은 첫 그림 뒤에야
+    //    자리잡아서, 여기서 읽으면 언제나 초기값(touch)이 나옵니다 —
+    //    실제로 마우스로 뽑아도 "touch" 로 남았습니다.
+    const coarse =
+      typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches
+    signals?.drawStarted(coarse ? "touch" : "mouse")
+    // 화면이 뜨는 것은 판마다 한 번뿐이라 그 신호만 봅니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [selected, setSelected] = useState<number[]>([])
   const [flippedIndices, setFlippedIndices] = useState<number[]>([])
@@ -231,14 +257,18 @@ export function CardReadingFlow({
     return () => observer.disconnect()
   }, [phase])
 
-  function finishShuffling() {
+  function finishShuffling(endedEarly = false) {
+    signals?.shuffleDone({ steps: shuffleStepRef.current, endedEarly })
     setPhase("selecting")
   }
 
   function bumpProgress(delta: number) {
+    signals?.shuffleInput(delta)
     traveledRef.current += delta
     const next = Math.min(100, Math.round((traveledRef.current / SHUFFLE_TARGET_DISTANCE) * 100))
-    setShuffleStep(Math.min(SHUFFLE_STEPS, Math.ceil((next / 100) * SHUFFLE_STEPS)))
+    const step = Math.min(SHUFFLE_STEPS, Math.ceil((next / 100) * SHUFFLE_STEPS))
+    shuffleStepRef.current = step
+    setShuffleStep(step)
     if (next >= 100) {
       setTimeout(finishShuffling, 500)
     }
@@ -262,7 +292,8 @@ export function CardReadingFlow({
 
   function handleGoToPick() {
     if (shuffleStep >= MIN_STEPS_FOR_QUICK_DRAW) {
-      finishShuffling()
+      // 끝까지 안 채우고 넘긴 것 — 다 채워 저절로 넘어간 것과 구분합니다
+      finishShuffling(shuffleStepRef.current < SHUFFLE_STEPS)
       return
     }
     if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current)
@@ -273,6 +304,7 @@ export function CardReadingFlow({
 
   function handlePick(index: number) {
     if (selected.includes(index) || selected.length >= requiredPicks) return
+    signals?.picked(index)
     setPeekedIndex(null)
     const next = [...selected, index]
     setSelected(next)
@@ -543,6 +575,7 @@ export function CardReadingFlow({
                   onTouchStart={
                     isTouchDevice && canClick
                       ? () => {
+                          signals?.peeked(index)
                           setPeekedIndex(index)
                         }
                       : undefined
@@ -554,6 +587,7 @@ export function CardReadingFlow({
                           const el = document.elementFromPoint(touch.clientX, touch.clientY)
                           const cardEl = el?.closest("[data-fan-card]") as HTMLElement | null
                           if (cardEl) {
+                            signals?.peeked(Number(cardEl.dataset.fanCard))
                             setPeekedIndex(Number(cardEl.dataset.fanCard))
                           } else {
                             setPeekedIndex(null)
@@ -599,7 +633,11 @@ export function CardReadingFlow({
             max={1}
             step={0.002}
             value={fanRoll}
-            onChange={(e) => setFanRoll(Number(e.target.value))}
+            onChange={(e) => {
+              const next = Number(e.target.value)
+              signals?.fanMoved(next)
+              setFanRoll(next)
+            }}
             aria-label="카드 굴리기"
             /* ── 요구사항 반영: 손잡이 동그라미 크기 20x20으로 변경 ── */
             className="mx-auto block h-1 w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20

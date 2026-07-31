@@ -53,6 +53,7 @@ export function useReadingStream() {
       plan,
       cards,
       readingId,
+      signals,
       free = false,
     }: {
       topicKey: string
@@ -64,6 +65,13 @@ export function useReadingStream() {
       cards: PickedCard[]
       /** 어느 판인지. 서버가 "크레딧을 낸 판인지" 확인합니다 */
       readingId?: string
+      /**
+       * 이 판을 어떻게 뽑았는지 잰 값 (lib/draw-signals.ts).
+       *
+       * ⚠️ 지금은 남기기만 합니다 — 프롬프트에 실리지 않습니다. 무엇이
+       *    오래이고 무엇이 짧은지를 아직 모르기 때문입니다.
+       */
+      signals?: unknown
       /**
        * 로그인 전 맛보기인지.
        *
@@ -88,6 +96,7 @@ export function useReadingStream() {
             questionLabel,
             plan,
             readingId,
+            signals,
             // ⚠️ 그림 주소까지 함께 보냅니다. 서버가 받은 그대로 보관하기
             //    때문에, 여기서 빼면 기록을 다시 열었을 때 카드가 회색
             //    네모로만 나옵니다 (실제로 그렇게 됐었습니다).

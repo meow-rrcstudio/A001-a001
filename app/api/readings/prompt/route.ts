@@ -18,6 +18,7 @@ import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
+import { readDrawSignals } from "@/lib/server/draw-signals"
 
 export const dynamic = "force-dynamic"
 
@@ -28,6 +29,8 @@ interface Body {
   positions?: string[]
   cards?: { name: string; reversed: boolean; imageUrl: string }[]
   promptText?: string
+  /** 이 판을 어떻게 뽑았는지 (lib/draw-signals.ts). 남기기만 합니다 */
+  signals?: unknown
   /** 맛보기 해석 (샨티가 읽어준 글). 없으면 카드만 뽑은 판입니다 */
   result?: {
     title?: string
@@ -112,6 +115,22 @@ export async function POST(request: Request) {
   if (error) {
     console.error("[readings/prompt] 못 남겼습니다:", error.message)
     return NextResponse.json({ id: null })
+  }
+
+  // ── 이 판을 어떻게 뽑았는지 ──────────────────────────────────────
+  // ⚠️ 위 insert 에 끼워 넣지 않고 따로 씁니다. draw_signals 칸을 아직
+  //    안 만든 배포에서는 이 줄이 실패하는데, 함께 넣었다면 판 저장이
+  //    통째로 실패했을 겁니다 — 기록이 안 남는 것이 신호를 잃는 것보다
+  //    훨씬 나쁩니다. (rating 칸 때 실제로 그렇게 죽었습니다)
+  const signals = readDrawSignals(body.signals)
+  if (signals) {
+    const { error: signalError } = await admin
+      .from("readings")
+      .update({ draw_signals: signals })
+      .eq("id", data.id)
+    if (signalError) {
+      console.warn("[readings/prompt] 뽑기 신호를 못 남겼습니다:", signalError.message)
+    }
   }
 
   return NextResponse.json({ id: data.id })

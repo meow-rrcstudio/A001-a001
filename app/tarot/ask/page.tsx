@@ -23,7 +23,7 @@
 // 이어지는 면담은 /api/reading/chat 이 맡습니다.
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { QuestionPicker } from "@/components/question-picker"
@@ -48,6 +48,7 @@ import { useAccount } from "@/lib/use-account"
 import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 import { resetReadingDeck } from "@/lib/reading-session"
+import { createDrawTracker, type DrawTracker } from "@/lib/draw-signals"
 
 type Step = "ask" | "draw" | "result"
 
@@ -121,6 +122,11 @@ export default function AskPage() {
   // 되고, 다음 뽑기의 부채에서 빠집니다 (같은 카드가 두 번 나오지 않도록).
   const [extraCards, setExtraCards] = useState<PickedCard[]>([])
 
+  // 이 판을 어떻게 뽑았는지 재는 자 (lib/draw-signals.ts).
+  // ⚠️ 지금은 재서 남기기만 합니다 — 해석에는 싣지 않습니다.
+  //    판마다 새로 만듭니다. 하나를 계속 쓰면 앞 판의 시간이 섞입니다.
+  const trackerRef = useRef<DrawTracker>(createDrawTracker())
+
   const handleDrawRequest = useCallback(
     (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
       setFollowup({ draw, done })
@@ -149,6 +155,9 @@ export default function AskPage() {
     if (!q || planning) return
     setQuestion(q)
     setStartError(null)
+
+    // 어떻게 질문을 정했는지 — 칩인가, 주제 고르기 전 추천인가, 직접 쳤는가
+    trackerRef.current.chose(prepared ? (topicSlug ? "chip" : "opener") : "typed")
 
     // 새 판이니 덱을 새로 섞습니다.
     //
@@ -271,6 +280,8 @@ export default function AskPage() {
       plan,
       cards: picked,
       readingId: plan?.readingId,
+      // 이 판을 어떻게 뽑았는지 (재서 남기기만 합니다 — 해석에는 안 실립니다)
+      signals: trackerRef.current.snapshot(),
     })
     // 다 받았을 때만 보관합니다 — 메뉴의 "최근 본 타로점"과 MY 기록이 이걸 봅니다
     if (built) {
@@ -307,6 +318,9 @@ export default function AskPage() {
             topicSlug={asked.topicSlug}
             question={asked.question}
             introMessage={drawIntro(asked, question, plan)}
+            // 이 판을 시작하는 뽑기에만 넘깁니다 — 면담 중 더 뽑기에는
+            // 넘기지 않습니다 (같은 판을 이어가는 것이라 섞이면 안 됩니다)
+            signals={trackerRef.current}
             onComplete={(picked) => {
               setCards(picked)
               setStep("result")
@@ -329,6 +343,7 @@ export default function AskPage() {
         question={asked.question}
         cards={cards}
         isLoggedIn={account.isLoggedIn}
+        signals={trackerRef.current.snapshot()}
         onBack={() => setStep("ask")}
       />
     )
@@ -441,7 +456,11 @@ export default function AskPage() {
 
             <QuestionPicker
               topic={topic}
-              onTopicChange={setTopic}
+              onTopicChange={(next) => {
+                // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
+                if (topic !== null) trackerRef.current.topicChanged()
+                setTopic(next)
+              }}
               onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
               disabled={planning}
             />
@@ -460,7 +479,10 @@ export default function AskPage() {
         >
           <ChatInput
             value={question}
-            onChange={setQuestion}
+            onChange={(next) => {
+              trackerRef.current.typing(next.length)
+              setQuestion(next)
+            }}
             onSubmit={() => submit(question)}
             disabled={planning}
             placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}

@@ -18,6 +18,7 @@ import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
+import { readDrawSignals } from "@/lib/server/draw-signals"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -33,6 +34,13 @@ interface ReadingRequestBody {
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
   /** /api/reading/plan 이 돌려준 판 id. 크레딧을 낸 판인지 확인합니다 */
   readingId?: string
+  /**
+   * 이 판을 어떻게 뽑았는지 잰 값 (lib/draw-signals.ts).
+   *
+   * ⚠️ 남기기만 합니다 — 프롬프트에 실리지 않습니다. 무엇이 오래이고
+   *    무엇이 짧은지를 아직 모르기 때문입니다.
+   */
+  signals?: unknown
 }
 
 export async function POST(request: Request) {
@@ -115,6 +123,7 @@ export async function POST(request: Request) {
   // 않습니다. 필요한 값만 미리 꺼내둡니다.
   const ownedReading = owned.value
   const userId = guard.value?.id
+  const drawSignals = readDrawSignals(body.signals)
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -193,6 +202,21 @@ export async function POST(request: Request) {
                 .update({ cards, result })
                 .eq("id", ownedReading.id)
               saved = true
+
+              // ── 이 판을 어떻게 뽑았는지 ────────────────────────────
+              // ⚠️ 위 update 에 끼워 넣지 않고 따로 씁니다. draw_signals
+              //    칸이 없는 배포에서는 이 줄이 실패하는데, 함께 넣었다면
+              //    해석 저장까지 같이 죽습니다 — 해석을 잃는 쪽이 훨씬
+              //    나쁩니다. 신호는 없으면 없는 대로 둡니다.
+              if (drawSignals) {
+                const { error: signalError } = await (getSupabaseAdmin()
+                  ?.from("readings")
+                  .update({ draw_signals: drawSignals })
+                  .eq("id", ownedReading.id) ?? { error: null })
+                if (signalError) {
+                  console.warn("[reading] 뽑기 신호를 못 남겼습니다:", signalError.message)
+                }
+              }
             }
           } catch {
             // 잘린 JSON — 적지 않습니다 (반쪽짜리 기록보다 없는 게 낫습니다)
