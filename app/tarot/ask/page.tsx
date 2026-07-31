@@ -30,7 +30,7 @@ import { QuestionPicker } from "@/components/question-picker"
 import { FreeReadingResult } from "@/components/free-reading-result"
 import { readingTopics, type ReadingTopicSlug } from "@/lib/reading-topics"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
-import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
@@ -49,6 +49,36 @@ import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
 
 type Step = "ask" | "draw" | "result"
+
+/**
+ * 카드를 섞기 시작할 때 샨티가 하는 말.
+ *
+ * ┌─ 어느 말을 쓰는가 ────────────────────────────────────────────────
+ * │ 준비된 질문   주제마다 손으로 쓴 확인 문구 (confirmTemplate)
+ * │               "그 사람이 마음에 걸리는구먼… 마음을 담아 섞어보라냥"
+ * │ 주제 전체보기 그 주제를 통째로 보는 것이라 질문을 되뇌지 않습니다
+ * │ 직접 친 질문  샨티가 배열을 고르며 함께 지은 말(plan.intro)
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 예전에는 전부 plan.intro 하나로 갔습니다. 준비된 질문의 확인 문구가
+ *    그때 통째로 묻혔습니다 — 주제마다 말투를 달리 써둔 것이 있는데도
+ *    무슨 질문이든 같은 말이 나왔습니다.
+ */
+function drawIntro(
+  asked: { topicSlug: ReadingTopicKey; question: ReadingQuestion } | null,
+  typed: string,
+  plan: ReadingPlan | null
+): string {
+  if (asked && asked.question.slug !== FREE_QUESTION_SLUG) {
+    const config = getTopicConfig(asked.topicSlug)
+    // "그냥 요즘 ~ 궁금해"는 주제를 통째로 보는 것이라 질문을 되읽지 않습니다
+    if (asked.question.slug === "general") {
+      return `${topicContent[asked.topicSlug].titleLabel}에 대해 마음을 담아 섞어보라냥.`
+    }
+    return config.confirmLine(asked.question.label)
+  }
+  return plan?.intro ?? `"${typed}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`
+}
 
 export default function AskPage() {
   const router = useRouter()
@@ -148,7 +178,15 @@ export default function AskPage() {
       const response = await fetch("/api/reading/plan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({
+          question: q,
+          // 준비된 질문이면 그 질문에 딸린 배열을 함께 보냅니다. 서버는
+          // 이걸 받으면 AI 에게 배열을 묻지 않고 그대로 씁니다 — 손으로
+          // 쓴 자리 이름과 뽑을 때 문구가 살아남습니다.
+          prepared: prepared
+            ? { layoutKey: prepared.layoutKey, positions: prepared.positions }
+            : undefined,
+        }),
       })
 
       // 별조각이 모자라면 받으러 가는 길로 보냅니다 (빈손으로 뽑게 두지 않습니다).
@@ -195,11 +233,13 @@ export default function AskPage() {
     }
 
     setPlan(nextPlan)
-    // 샨티가 고른 배열로 뽑습니다. 준비된 질문이어도 그렇습니다 — 질문 글을
-    // 보고 고른 것이라 그 질문에 더 맞습니다.
+    // ⚠️ 준비된 질문은 그대로 씁니다. 예전에 여기서 buildFreeQuestion 으로
+    //    덮어썼더니, 손으로 쓴 배열(켈틱 십자 열 장의 자리 이름과 뽑을 때
+    //    들려주는 말)이 통째로 사라지고 일반 문구로 바뀌었습니다.
+    //    직접 친 질문일 때만 샨티가 고른 배열을 입힙니다.
     setAsked({
       topicSlug: (topicSlug ?? "self") as ReadingTopicKey,
-      question: buildFreeQuestion(q, nextPlan),
+      question: prepared ?? buildFreeQuestion(q, nextPlan),
     })
     setPlanning(false)
     setStep("draw")
@@ -255,7 +295,7 @@ export default function AskPage() {
             topicLabel={question}
             topicSlug={asked.topicSlug}
             question={asked.question}
-            introMessage={plan?.intro ?? `"${question}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`}
+            introMessage={drawIntro(asked, question, plan)}
             onComplete={(picked) => {
               setCards(picked)
               setStep("result")

@@ -27,10 +27,49 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 30
 
 
+/**
+ * 화면이 "이미 정해진 배열"을 함께 보냈는지 봅니다.
+ *
+ * 준비된 질문(lib/reading-content.ts)에는 사람이 손으로 쓴 배열이 딸려
+ * 있습니다 — 자리 이름도, 뽑을 때 들려주는 말도 그 질문에 맞춰 쓰인 것입니다.
+ * 그런 질문에까지 AI 를 부르면, 공들여 쓴 글이 일반적인 문구로 덮입니다.
+ *
+ * ⚠️ 화면이 보낸 값이라 그대로 믿지 않습니다. 배열 이름이 우리가 아는
+ *    것인지, 자리 수가 그 배열과 맞는지 대조하고, 글자 수도 자릅니다 —
+ *    이 글은 그대로 AI 프롬프트에 실려 나갑니다.
+ */
+type PreparedSpread = { layoutKey: string; positions: { label: string; guide: string }[] }
+
+function readPreparedSpread(raw: unknown): PreparedSpread | null {
+  if (!raw || typeof raw !== "object") return null
+  const { layoutKey, positions } = raw as {
+    layoutKey?: unknown
+    positions?: unknown
+  }
+  if (typeof layoutKey !== "string" || !Array.isArray(positions)) return null
+
+  const choice = SPREAD_CHOICES.find((s) => s.key === layoutKey)
+  if (!choice || positions.length !== choice.count) return null
+
+  const cleaned = positions.map((p) => {
+    const { label, guide } = (p ?? {}) as { label?: unknown; guide?: unknown }
+    return {
+      label: String(label ?? "").slice(0, 40),
+      guide: String(guide ?? "").slice(0, 120),
+    }
+  })
+  if (cleaned.some((p) => !p.label)) return null
+
+  return { layoutKey, positions: cleaned }
+}
+
 export async function POST(request: Request) {
   let question = ""
+  let prepared: PreparedSpread | null = null
   try {
-    question = String(((await request.json()) as { question?: string }).question ?? "").trim()
+    const body = (await request.json()) as { question?: string; prepared?: unknown }
+    question = String(body.question ?? "").trim()
+    prepared = readPreparedSpread(body.prepared)
   } catch {
     return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 })
   }
@@ -132,6 +171,31 @@ export async function POST(request: Request) {
     }
 
     readingId = created.id
+  }
+
+  // ── 이미 배열이 정해진 질문 ──────────────────────────────────────
+  // 준비된 질문에는 사람이 손으로 쓴 배열이 딸려 있습니다. 자리 이름도,
+  // 뽑을 때 들려주는 말도 그 질문에 맞춰 쓰인 것이라 AI 가 고른 일반적인
+  // 문구보다 낫습니다. 그러니 묻지 않고 그대로 씁니다.
+  //
+  // ⚠️ 예전에는 준비된 질문에도 AI 를 불러 덮어썼습니다. "그 사람은 지금
+  //    나를 어떻게 생각할까?"의 켈틱 십자 열 장(지나온 흐름 · 밑바닥의
+  //    진심 · 마음의 최종 방향…)이 통째로 세 장짜리 일반 배열로 바뀌었고,
+  //    뽑을 때 들려주는 말도 함께 밋밋해졌습니다.
+  //
+  // 덤으로 호출이 한 번 줄어 2초쯤 빨라지고, 제미나이 하루 몫도 아낍니다.
+  if (prepared) {
+    if (readingId) {
+      await getSupabaseAdmin()
+        ?.from("readings")
+        .update({
+          layout_key: prepared.layoutKey,
+          positions: prepared.positions.map((p) => p.label),
+        })
+        .eq("id", readingId)
+    }
+    // intro 는 화면이 주제별 확인 문구로 채웁니다 (lib/reading-prompt-templates.ts).
+    return NextResponse.json({ ...prepared, intro: "", readingId, followupsAllowed })
   }
 
   const apiKey = process.env.GEMINI_API_KEY

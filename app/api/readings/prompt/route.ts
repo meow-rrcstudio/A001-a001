@@ -28,6 +28,13 @@ interface Body {
   positions?: string[]
   cards?: { name: string; reversed: boolean; imageUrl: string }[]
   promptText?: string
+  /** 맛보기 해석 (샨티가 읽어준 글). 없으면 카드만 뽑은 판입니다 */
+  result?: {
+    title?: string
+    summary?: string
+    keywords?: string[]
+    sections?: { heading?: string; body?: string }[]
+  }
 }
 
 export async function POST(request: Request) {
@@ -54,6 +61,24 @@ export async function POST(request: Request) {
   const question = String(body.question ?? "").trim().slice(0, 500)
   const cards = Array.isArray(body.cards) ? body.cards.slice(0, 12) : []
 
+  // 화면이 보낸 해석 — 길이만 잘라 담습니다. 이 글은 이 사람에게 다시
+  // 보여줄 뿐이라 다른 곳으로 새지 않습니다.
+  const reading = body.result?.title
+    ? {
+        title: String(body.result.title).slice(0, 200),
+        summary: String(body.result.summary ?? "").slice(0, 1000),
+        keywords: Array.isArray(body.result.keywords)
+          ? body.result.keywords.slice(0, 12).map((k) => String(k).slice(0, 60))
+          : undefined,
+        sections: Array.isArray(body.result.sections)
+          ? body.result.sections.slice(0, 12).map((s) => ({
+              heading: String(s?.heading ?? "").slice(0, 120),
+              body: String(s?.body ?? "").slice(0, 4000),
+            }))
+          : undefined,
+      }
+    : null
+
   const { data, error } = await admin
     .from("readings")
     .insert({
@@ -62,10 +87,20 @@ export async function POST(request: Request) {
       layout_key: body.layoutKey ?? null,
       positions: body.positions ?? null,
       cards,
+      // 맛보기 해석을 받았으면 그 글을 그대로 남깁니다. 안 남기면 기록에서
+      // 다시 열었을 때 "카드만 뽑은 판"으로 보입니다.
+      //
+      // ⚠️ kind:"prompt" 는 해석이 있어도 그대로 둡니다. 이 값은 "글이
+      //    있느냐"가 아니라 "이어서 물을 수 있는 판이냐"를 가릅니다 —
+      //    맛보기 판은 이어묻기 몫이 0 이라 대화 화면을 열면 안 됩니다.
       result: {
         kind: "prompt",
-        title: question || body.topicLabel || "타로점",
-        summary: `카드 ${cards.length}장을 뽑았어요. 프롬프트를 복사해 밖에서 읽어본 타로점입니다.`,
+        title: reading?.title || question || body.topicLabel || "타로점",
+        summary:
+          reading?.summary ||
+          `카드 ${cards.length}장을 뽑았어요. 프롬프트를 복사해 밖에서 읽어본 타로점입니다.`,
+        ...(reading?.keywords ? { keywords: reading.keywords } : {}),
+        ...(reading?.sections ? { sections: reading.sections } : {}),
         promptText: String(body.promptText ?? "").slice(0, 8000),
       },
       // 무료로 본 판이라 이어묻기 몫이 없습니다. 유료로 이어갈 때 늘려줍니다.

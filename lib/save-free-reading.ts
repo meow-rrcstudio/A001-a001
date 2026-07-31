@@ -20,6 +20,13 @@ export interface FreeReadingInput {
   layoutKey?: string
   positions?: string[]
   promptText: string
+  /**
+   * 맛보기 해석 (샨티가 읽어준 글).
+   *
+   * ⚠️ 이걸 함께 보내야 기록에 글까지 남습니다. 안 보내면 카드와 프롬프트만
+   *    남아서, 다시 열었을 때 방금 읽은 해석이 없습니다.
+   */
+  result?: { title?: string; summary?: string; sections?: { heading: string; body: string }[] }
 }
 
 export interface SavedFreeReading {
@@ -29,6 +36,11 @@ export interface SavedFreeReading {
 }
 
 export async function saveFreeReading(input: FreeReadingInput): Promise<SavedFreeReading | null> {
+  // ⚠️ 로그인한 사람에게는 서버 저장이 필수입니다. MY 기록 화면은 로그인
+  //    상태면 서버만 보고 브라우저 보관함을 아예 안 봅니다(로그아웃 뒤에도
+  //    앞사람 기록이 보이던 것을 막느라 그렇게 해두었습니다).
+  //    그래서 여기서 서버로 안 보내면, 맛보기로 본 판이 기록에서 통째로
+  //    사라집니다 — 실제로 그렇게 됐었습니다.
   // 브라우저에는 언제나 남깁니다. 서버 저장이 실패해도 방금 본 것은
   // 볼 수 있어야 하고, 로그인 전이면 이것이 유일한 기록입니다.
   const localId = savePromptReading(input)

@@ -29,7 +29,7 @@ import { ChatErrorBox } from "@/components/chat-error-box"
 import { MiniSpread, type PickedCard } from "@/components/reading-result-view"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { buildReadingPrompt, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
-import { savePromptReading } from "@/lib/reading-archive"
+import { saveFreeReading } from "@/lib/save-free-reading"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
 import type { ReadingQuestion } from "@/lib/reading-content"
 
@@ -89,7 +89,10 @@ export function FreeReadingResult({
     if (savedRef.current || streaming) return
     if (!reading?.title || !reading.sections?.length) return
     savedRef.current = true
-    savePromptReading({
+    // ⚠️ savePromptReading(브라우저) 이 아니라 saveFreeReading 입니다.
+    //    로그인한 사람의 기록 화면은 서버만 봅니다 — 브라우저에만 담으면
+    //    맛보기로 본 판이 기록에서 통째로 사라집니다.
+    void saveFreeReading({
       question: question.label,
       topicLabel: question.label,
       cards,
