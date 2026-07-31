@@ -104,17 +104,27 @@ export async function POST(request: Request) {
     )
   }
 
+  // ⚠️ 회원 해석(app/api/reading)과 똑같은 봉투로 보냅니다 — 한 줄에 JSON
+  //    하나(NDJSON)이고, 받는 쪽은 마지막 줄만 읽으면 됩니다. 그래야 화면이
+  //    같은 코드(lib/use-reading-stream.ts)로 두 곳을 다 읽습니다.
+  //
+  //    조각을 그냥 이어붙이면 안 됩니다. streamFreeReadingWithGemini 가
+  //    내놓는 것은 "지금까지 쌓인 전체"라서, 그대로 붙이면
+  //    `{"ti` + `{"title":"컵` + … 처럼 겹쳐 쌓여 아무도 못 읽는 몸통이
+  //    됩니다. 줄바꿈으로 끊어야 마지막 것만 골라 읽을 수 있습니다.
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       try {
         for await (const accumulated of streamFreeReadingWithGemini({ topicKey, question, cards })) {
-          controller.enqueue(encoder.encode(accumulated))
+          controller.enqueue(encoder.encode(JSON.stringify({ partial: accumulated }) + "\n"))
         }
       } catch (error) {
-        // 흘려보내는 중에 막히면 몸통 끝에 오류 조각을 붙입니다
+        // 흘려보내는 중에 막히면 오류 조각을 한 줄 더 붙입니다
         // (회원 해석과 같은 방식이라 화면이 같은 코드로 읽습니다).
-        controller.enqueue(encoder.encode(JSON.stringify(streamErrorPayload(error, "free-reading"))))
+        controller.enqueue(
+          encoder.encode(JSON.stringify(streamErrorPayload(error, "free-reading")) + "\n")
+        )
       } finally {
         controller.close()
       }
@@ -123,7 +133,7 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
+      "content-type": "application/x-ndjson; charset=utf-8",
       "cache-control": "no-store",
     },
   })
