@@ -16,7 +16,7 @@
 //    것은 전혀 다른 일입니다 — 주는 자리는 승인이 떨어지는
 //    app/api/payments/confirm 한 곳뿐입니다.
 import { NextResponse } from "next/server"
-import { findPack } from "@/lib/credit-packs"
+import { findPack, nameCredits } from "@/lib/credit-packs"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
 import { TOSS_CLIENT_KEY, isTossConfigured, makeOrderId } from "@/lib/toss"
@@ -79,8 +79,11 @@ export async function POST(request: Request) {
   return NextResponse.json({
     orderId,
     amount: pack.priceKrw,
-    // 결제 내역에 남는 이름입니다 (토스 화면과 카드 명세서에 보입니다)
-    orderName: `크레딧 ${pack.credits}장`,
+    // 결제 내역에 남는 이름입니다 (토스 화면과 카드 명세서에 보입니다).
+    // ⚠️ 여기에 이름을 직접 적지 마세요 — lib/credit-packs.ts 에서 가져옵니다.
+    //    직접 적었더니 "크레딧"에서 "별조각"으로 바꾼 뒤에도 결제창에만
+    //    옛 이름이 남았습니다. 카드 명세서에 찍히는 글자라 더 나쁩니다.
+    orderName: nameCredits(pack.credits),
     clientKey: TOSS_CLIENT_KEY,
     // 토스가 같은 사람의 결제를 묶어 보는 데 씁니다. 이메일 대신 id 를
     // 넘깁니다 — 남에게 넘어가도 그것만으로는 누구인지 알 수 없습니다.

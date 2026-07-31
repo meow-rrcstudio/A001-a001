@@ -20,6 +20,7 @@ import { NextResponse } from "next/server"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
 import { confirmPayment } from "@/lib/toss"
+import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
       grantError.message
     )
     return NextResponse.json(
-      { error: "결제는 됐는데 크레딧을 얹지 못했어요. 잠시 뒤 다시 열어주세요.", pending: true },
+      { error: `결제는 됐는데 ${withJosa(CREDIT_UNIT.one, "을를")} 얹지 못했어요. 잠시 뒤 다시 열어주세요.`, pending: true },
       { status: 500 }
     )
   }
