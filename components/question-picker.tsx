@@ -2,7 +2,7 @@
 // 타로보기 진입 화면의 "제안" 영역 — 주제 칩과 질문 칩.
 //
 // ┌─ 어떻게 움직이는가 ───────────────────────────────────────────────
-// │ 처음      검정 칩 6개(주제) + 흰 칩 몇 개(전체에서 고른 추천 질문)
+// │ 처음      검정 칩 6개(주제) + 주제마다 "그냥 ~ 궁금해" 한 줄씩
 // │ 주제 고름 검정 칩이 고른 것 하나로 접히고(✕ 로 되돌림),
 // │           흰 칩이 그 주제의 질문들로 갈립니다
 // └──────────────────────────────────────────────────────────────────
@@ -26,8 +26,6 @@ export function QuestionPicker({
   topic,
   onTopicChange,
   onPick,
-  /** 주제를 안 골랐을 때 보여줄 추천 질문 (문구만 있는 자유 질문입니다) */
-  suggestions,
   disabled = false,
 }: {
   topic: ReadingTopicSlug | null
@@ -39,16 +37,42 @@ export function QuestionPicker({
    * 이미 정해져 있어서, 무료 흐름은 샨티에게 배열을 묻지 않아도 됩니다.
    */
   onPick: (label: string, question?: ReadingQuestion, topicSlug?: ReadingTopicSlug) => void
-  suggestions: readonly string[]
   disabled?: boolean
 }) {
   const chosen = topic ? readingTopics.find((t) => t.slug === topic) : null
-  const questions = topic ? topicContent[topic].questions : null
 
+  // 주제를 고르기 전에는 주제마다 대표 질문 하나씩을 내놓습니다.
+  //
+  // ┌─ 왜 각 주제의 첫 질문인가 ───────────────────────────────────────
+  // │ · 여섯 주제가 고르게 한 번씩 나와서, 무엇을 물을 수 있는 곳인지가
+  // │   목록만 봐도 읽힙니다
+  // │ · 목록의 첫 줄은 그 주제에서 가장 많이 묻는 것입니다 (lib/reading-
+  // │   content.ts 의 차례가 그렇게 짜여 있습니다)
+  // │ · 준비된 질문이라 배열(몇 장·어떤 자리)이 딸려 있습니다. 직접 친
+  // │   질문은 맛보기에서 기본 여섯 장으로 가지만, 이건 그 질문에 맞는
+  // │   배열로 뽑습니다
+  // │
+  // │ ⚠️ 주제마다 있는 "그냥 요즘 ~ 궁금해"(general)로 채우지 않습니다.
+  // │    말투는 진입 화면에 맞지만 여섯 줄이 전부 "그냥 요즘"으로 시작해서,
+  // │    읽으면 한 덩어리로 뭉개지고 무엇이 다른지가 안 보입니다.
+  // └──────────────────────────────────────────────────────────────────
+  const openers = readingTopics
+    .map((t) => {
+      const q = topicContent[t.slug].questions[0]
+      return q ? { topic: t.slug, question: q } : null
+    })
+    .filter((x): x is { topic: ReadingTopicSlug; question: ReadingQuestion } => x !== null)
+
+  const shown = topic
+    ? topicContent[topic].questions.map((q) => ({ topic, question: q }))
+    : openers
+
+  // 시안 실측: 알약 높이 48px · 글자 15px · 좌우 20px.
+  // 손가락으로 고르는 칩이라 44px 아래로 내리지 않습니다.
   const topicChip =
-    "rounded-full bg-brand-ink px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+    "rounded-full bg-brand-ink px-5 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
   const askChip =
-    "rounded-full bg-card px-4 py-2.5 text-left text-sm text-foreground shadow-raised transition-colors hover:bg-muted disabled:opacity-50"
+    "rounded-full bg-card px-5 py-3 text-left text-[15px] text-foreground shadow-raised transition-colors hover:bg-muted disabled:opacity-50"
 
   return (
     <div>
@@ -56,7 +80,7 @@ export function QuestionPicker({
 
       {/* ── 주제 ──────────────────────────────────────────────────── */}
       {chosen ? (
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => onTopicChange(null)}
@@ -69,7 +93,7 @@ export function QuestionPicker({
           </button>
         </div>
       ) : (
-        <div className="mb-2 flex flex-wrap gap-2">
+        <div className="mb-2.5 flex flex-wrap gap-2.5">
           {readingTopics.map((t) => (
             <button
               key={t.slug}
@@ -88,30 +112,18 @@ export function QuestionPicker({
           주제가 바뀌면 통째로 갈리므로 key 를 주제로 둡니다. 리액트가
           같은 자리를 고쳐 쓰지 않고 새로 그려서, 살짝 떠오르는 것으로
           "목록이 바뀌었다"가 읽힙니다. */}
-      <div key={topic ?? "all"} className="flex animate-in flex-col items-start gap-2 fade-in duration-200">
-        {questions
-          ? questions.map((q) => (
-              <button
-                key={q.slug}
-                type="button"
-                onClick={() => onPick(q.label, q, topic ?? undefined)}
-                disabled={disabled}
-                className={askChip}
-              >
-                {q.label}
-              </button>
-            ))
-          : suggestions.map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => onPick(q)}
-                disabled={disabled}
-                className={askChip}
-              >
-                {q}
-              </button>
-            ))}
+      <div key={topic ?? "all"} className="flex animate-in flex-col items-start gap-2.5 fade-in duration-200">
+        {shown.map(({ topic: slug, question }) => (
+          <button
+            key={`${slug}-${question.slug}`}
+            type="button"
+            onClick={() => onPick(question.label, question, slug)}
+            disabled={disabled}
+            className={askChip}
+          >
+            {question.label}
+          </button>
+        ))}
       </div>
     </div>
   )

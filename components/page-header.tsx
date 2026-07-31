@@ -12,9 +12,11 @@
 // │ ⚠️ 공유 버튼은 글 상세(노션 글)에만 답니다. 목록 화면에서 "이 페이지를
 // │    공유"는 뜻이 흐릿하고, 헤더가 버튼으로 붐빕니다.
 // │
-// │ ⚠️ 캐릭터(샨티)는 이제 헤더에 없습니다. 대화 영역으로 내려갔습니다
-// │    (클로드가 답변 옆에 로고를 두는 것과 같은 자리).
-// │    헤더 가운데는 제목 자리입니다.
+// │ ⚠️ 헤더 가운데는 기본적으로 제목 자리입니다. 다만 무엇을 물을지
+// │    고르는 화면처럼 제목이 없는 자리에서는 centerCharacter 로 샨티를
+// │    놓습니다 — 시안이 그렇고, "지금 샨티와 있다"가 읽힙니다.
+// │    해석·대화 화면은 답변 옆에 샨티를 두므로(클로드가 로고를 두는
+// │    자리) 헤더에는 제목만 둡니다. 둘을 함께 켜지 않습니다.
 // │
 // │ 홈을 뺀 세 케이스는 화면 위에서 16px 떨어진 자리에 "고정"됩니다.
 // │ 스크롤해도 따라 내려오지 않고 그 자리에 그대로 있습니다.
@@ -33,6 +35,8 @@ import Link from "next/link"
 import { ArrowLeft, Menu, MoreHorizontal, Share } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
 import { Wordmark } from "@/components/brand-mark"
+import { BlinkingShanti } from "@/components/pixel-sprite"
+import { ACTIVE_CHARACTER } from "@/lib/character"
 
 // 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다).
 // 값은 lib/layout.ts 에 있습니다 — 서버 컴포넌트도 읽어야 하기 때문입니다.
@@ -56,6 +60,7 @@ export function PageHeader({
    * "홈이냐 아니냐"와 "워드마크가 어디냐"가 엉키므로 따로 둡니다.
    */
   centerMark = false,
+  centerCharacter = false,
   variant = "sub",
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
@@ -99,6 +104,8 @@ export function PageHeader({
   /** 헤더 가운데에 놓을 제목. 길면 말줄임 (글 상세·타로 리딩) */
   title?: string
   centerMark?: boolean
+  /** 가운데에 캐릭터(샨티)를 놓을지. 타로를 보는 화면에서 씁니다 */
+  centerCharacter?: boolean
   variant?: "sub" | "reading" | "home" | "minimal"
   fixed?: boolean
   surface?: "cream" | "lime"
@@ -172,6 +179,14 @@ export function PageHeader({
           {centerMark && (
             <span className="pointer-events-none absolute inset-x-0 flex justify-center">
               <Wordmark className="h-8" priority />
+            </span>
+          )}
+
+          {/* 캐릭터 표식 — 타로를 보는 동안 "지금 샨티와 있다"를 가리킵니다.
+              워드마크(centerMark)와 같은 자리라 둘을 함께 켜지 않습니다. */}
+          {centerCharacter && !centerMark && (
+            <span className="pointer-events-none absolute inset-x-0 flex justify-center">
+              <BlinkingShanti className="h-7" title={ACTIVE_CHARACTER.name} />
             </span>
           )}
 

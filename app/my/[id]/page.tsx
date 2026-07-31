@@ -176,6 +176,9 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
                 빈 배열 = 뽑기를 물렀다는 뜻입니다. */}
             <PageHeader
               variant="reading"
+              // 카드를 뽑는 화면이라 헤더에 샨티가 섭니다
+              // (해석·대화 화면은 제목을 두고, 샨티는 대화 안에 있습니다)
+              centerCharacter
               onBack={() => {
                 followup.done([])
                 setFollowup(null)

@@ -43,6 +43,7 @@ export function ChatInput({
   placeholder,
   disabled = false,
   ariaLabel,
+  tone = "raised",
   className = "",
 }: {
   value: string
@@ -51,6 +52,8 @@ export function ChatInput({
   placeholder: string
   disabled?: boolean
   ariaLabel: string
+  /** 배경 — 흰 상자(raised) 또는 회색으로 눌러둔 것(muted) */
+  tone?: "raised" | "muted"
   className?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -102,9 +105,13 @@ export function ChatInput({
 
   return (
     <div
-      className={`relative rounded-2xl bg-card shadow-raised transition-opacity focus-within:ring-2 focus-within:ring-accent/40 ${
-        disabled ? "opacity-60" : ""
-      } ${className}`}
+      className={`relative rounded-2xl transition-opacity focus-within:ring-2 focus-within:ring-accent/40 ${
+        // 질문을 고르는 화면은 흰 칩이 잔뜩 깔려 있어서, 입력창까지 희면
+        // 칩 하나가 길게 늘어난 것처럼 보입니다. 거기서는 회색으로 눌러
+        // "이건 다른 것"이라고 알립니다 (시안이 그렇습니다).
+        // 대화 화면은 배경이 비어 있어 흰 상자가 떠 보이는 편이 낫습니다.
+        tone === "muted" ? "bg-muted" : "bg-card shadow-raised"
+      } ${disabled ? "opacity-60" : ""} ${className}`}
     >
       <div
         ref={ref}

@@ -36,7 +36,6 @@ import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { SUGGESTED_QUESTIONS } from "@/lib/mock-reading"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
@@ -250,7 +249,7 @@ export default function AskPage() {
         >
           {/* 뒤로가면 질문 고르기로 돌아옵니다. 주소를 옮기지 않고 단계만
               되돌립니다 — 옮기면 고른 주제와 친 글이 사라집니다. */}
-          <PageHeader variant="reading" onBack={() => setStep("ask")} />
+          <PageHeader variant="reading" centerCharacter onBack={() => setStep("ask")} />
           <CardReadingFlow
             mode="inline"
             topicLabel={question}
@@ -316,6 +315,8 @@ export default function AskPage() {
                   "뽑기를 물렀다"는 뜻이라, 대화 쪽이 되묻는 칩을 내밉니다. */}
               <PageHeader
                 variant="reading"
+                // 이것도 카드를 뽑는 화면이라 헤더에 샨티가 섭니다
+                centerCharacter
                 onBack={() => {
                   followup.done([])
                   setFollowup(null)
@@ -361,7 +362,7 @@ export default function AskPage() {
       <main
         className={`mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
       >
-        <PageHeader variant="reading" backHref="/" />
+        <PageHeader variant="reading" centerCharacter backHref="/" />
 
         {/* 말풍선은 상단에 고정합니다 — 아래 칩이 길어 스크롤돼도 샨티의
             말은 자리를 지킵니다. */}
@@ -377,11 +378,14 @@ export default function AskPage() {
         </div>
 
         {/* ── 제안 ───────────────────────────────────────────────────
-            칩이 많으면(주제 하나에 질문이 여남은 개입니다) 화면을 넘깁니다.
-            그래서 이 영역만 스크롤합니다. 적을 때는 아래에 붙어 있어야
-            입력창과 한 덩어리로 읽혀서, 안쪽을 justify-end 로 둡니다. */}
+            말풍선 바로 아래에서 시작해 아래로 흘러내립니다. 칩이 많으면
+            (주제 하나에 질문이 여남은 개입니다) 이 영역만 스크롤합니다.
+
+            ⚠️ 아래에 붙이지 않습니다(justify-end 아님). 붙여놨더니 화면이
+               큰 기기에서 말풍선과 칩 사이가 텅 비고, 칩 묶음이 입력창에
+               딸린 부속처럼 보였습니다. 시안은 위에서부터 떨어집니다. */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="flex min-h-full flex-col justify-end pt-4">
+          <div className="flex flex-col pt-5">
             {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
                 입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
             {startError && <ChatErrorBox info={startError} className="mb-4" />}
@@ -390,7 +394,6 @@ export default function AskPage() {
               topic={topic}
               onTopicChange={setTopic}
               onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
-              suggestions={SUGGESTED_QUESTIONS}
               disabled={planning}
             />
           </div>
@@ -413,6 +416,8 @@ export default function AskPage() {
             disabled={planning}
             placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
             ariaLabel="질문 입력"
+            // 흰 질문 칩이 깔린 화면이라 입력창은 회색으로 눌러둡니다
+            tone="muted"
             className="mt-4"
           />
         </div>
