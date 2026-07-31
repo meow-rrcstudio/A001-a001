@@ -35,7 +35,7 @@ export const BUSINESS: Record<
   string
 > = {
   /** 상호 — 사업자등록증의 "상호" 칸 그대로 */
-  name: "",
+  name: "소울서울",
   /** 대표자 이름 */
   ceo: "",
   /** 사업장 주소 — 등록증에 적힌 소재지 */
