@@ -26,6 +26,7 @@ import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
 import { ChatErrorBox } from "@/components/chat-error-box"
+import { FollowupBanner } from "@/components/followup-banner"
 import type { ChatErrorInfo } from "@/lib/chat-errors"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
@@ -363,6 +364,13 @@ export function ReadingResultView({
   // 늦게 도착하는 화면(기록에서 열기)에서 기본값 10 이 먼저 자리를 잡고
   // 뒤늦게 온 3 을 밀어냅니다.
   const [extendedTo, setExtendedTo] = useState<number | null>(null)
+  // 미리 알림 띠를 닫았는지.
+  //
+  // ⚠️ 이 판에서만 닫힙니다(기억해 두지 않습니다). 다 쓴 뒤에는 닫히지 않는
+  //    카드로 바뀌므로, 닫아놓고 벽에 부딪히는 일은 없습니다.
+  //    한 개 더 써서 몫이 늘면 다시 열어줍니다 — 새로 받은 몫의 끝이
+  //    가까워지면 그때도 알려야 하니까요.
+  const [warnDismissed, setWarnDismissed] = useState(false)
   const allowance = extendedTo ?? followupsAllowed ?? FOLLOWUPS_PER_CREDIT
 
   const { account, ready: accountReady, refresh: refreshAccount } = useAccount()
@@ -403,6 +411,8 @@ export function ReadingResultView({
       const data = (await response.json()) as { followupsAllowed?: number }
       if (typeof data.followupsAllowed === "number") setExtendedTo(data.followupsAllowed)
       else setExtendedTo(allowance + FOLLOWUPS_PER_CREDIT)
+      // 몫이 늘었으니 알림도 새로 시작합니다 (닫아둔 것을 되돌립니다)
+      setWarnDismissed(false)
     } catch {
       return
     }
@@ -644,33 +654,24 @@ export function ReadingResultView({
           ) : (
             <>
               {/* ── 끝이 가까울 때 ──────────────────────────────────────
-                  두 단계로 알립니다.
-                  · 5번 남으면 — 작은 글씨로 세어만 줍니다 (평소엔 미터기처럼
+                  입력창 위에 얇은 띠로 얹습니다. 대화를 밀어 올리지 않고,
+                  마음에 안 들면 닫을 수 있습니다 (components/followup-banner.tsx).
+
+                  두 단계입니다.
+                  · 5번 남으면 — 남은 횟수만 셉니다 (평소엔 미터기처럼
                     보이면 안 되니까요)
-                  · 2번 남으면 — 한 장 더 쓸 수 있는 버튼을 미리 내줍니다.
-                    ⚠️ 예전에는 이 버튼이 "다 쓴 뒤"에만 나왔습니다. 그러면
+                  · 2번 남으면 — 미리 한 개 더 쓰는 길을 함께 냅니다.
+                    ⚠️ 예전에는 이 길이 "다 쓴 뒤"에만 나왔습니다. 그러면
                        한창 이야기하다 벽에 부딪히고, 그 자리에서 흐름이
                        끊깁니다. 끝나기 전에 내주면 벽을 만나지 않습니다. */}
-              {leftToAsk <= FOLLOWUP_NEARLY_DONE_AT && credits !== null && credits > 0 ? (
-                <div className="pointer-events-auto mb-2 rounded-2xl bg-card p-3 shadow-raised">
-                  <p className="text-center text-sm leading-relaxed text-foreground">
-                    이 판으로는 {leftToAsk}번 더 물어볼 수 있다냥. 더 이어가고 싶으면 한{" "}
-                    {CREDIT_UNIT.counter} 더 쓰면 된다네.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void spendAnotherCredit()}
-                    className="mt-2 w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                  >
-                    미리 한 {CREDIT_UNIT.counter} 더 쓰기 (남은 {countCredits(credits)})
-                  </button>
-                </div>
-              ) : (
-                leftToAsk <= FOLLOWUP_WARN_AT && (
-                  <p className="pointer-events-auto mb-2 text-center text-xs text-muted-foreground">
-                    이 판으로 {leftToAsk}번 더 물어볼 수 있어냥
-                  </p>
-                )
+              {leftToAsk <= FOLLOWUP_WARN_AT && !warnDismissed && (
+                <FollowupBanner
+                  leftToAsk={leftToAsk}
+                  credits={credits ?? 0}
+                  offerMore={leftToAsk <= FOLLOWUP_NEARLY_DONE_AT}
+                  onSpend={() => void spendAnotherCredit()}
+                  onDismiss={() => setWarnDismissed(true)}
+                />
               )}
 
               {/* ── 이어서 물을 만한 것 ─────────────────────────────────

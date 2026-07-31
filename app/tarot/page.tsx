@@ -44,20 +44,47 @@ export default async function TarotListPage() {
         <div className="mt-10 grid grid-cols-3 gap-3 sm:gap-4">
           {allTarotCards.map((card) => {
             const isPublished = publishedSet.has(card.slug)
+
+            // 비율은 저장된 카드 이미지(300x527)와 동일하게 — 다르면 잘리며 확대되어 보임.
+            // 라인은 안쪽 border 가 아니라 바깥쪽 outline 으로 — 그림을 먹지 않음.
+            // 카드 그림의 검정 외곽선에 맞춰 0.2px 블랙(헤어라인) · 라운드 6px
+            const box =
+              "group relative aspect-[300/527] overflow-hidden rounded-lg outline outline-[0.2px] outline-black bg-muted shadow-raised"
+
+            const image = (
+              <TarotCardImage
+                src={card.imageUrl}
+                alt={`${card.nameKo} (${card.nameEn})`}
+                className={isPublished ? undefined : "opacity-40"}
+              />
+            )
+
+            // ⚠️ 글이 없는 카드는 링크를 걸지 않습니다.
+            //    예전에는 78장 모두에 링크가 걸려 있었고, 글이 없는 카드는
+            //    흐리게만 그렸습니다. 그런데 흐린 것도 눌리기는 해서, 누르면
+            //    "게시글을 찾을 수 없습니다"가 떴습니다 — 대부분의 카드가
+            //    그랬습니다. 흐린 것은 "아직 없다"는 표시지 "눌러도 된다"는
+            //    표시가 아닙니다.
+            if (!isPublished) {
+              return (
+                <div
+                  key={card.slug}
+                  className={box}
+                  title={`${card.nameKo} — 아직 글이 없어요`}
+                  aria-label={`${card.nameKo} (${card.nameEn}) — 아직 글이 없어요`}
+                >
+                  {image}
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={card.slug}
                 href={`/blog/${card.slug}`}
-                // 비율은 저장된 카드 이미지(300x527)와 동일하게 — 다르면 잘리며 확대되어 보임.
-                // 라인은 안쪽 border 가 아니라 바깥쪽 outline 으로 — 그림을 먹지 않음.
-                // 카드 그림의 검정 외곽선에 맞춰 0.2px 블랙(헤어라인) · 라운드 6px · 그림자 0 2px 6px
-                className="group relative aspect-[300/527] overflow-hidden rounded-lg outline outline-[0.2px] outline-black bg-muted shadow-raised transition-transform hover:-translate-y-1"
+                className={`${box} transition-transform hover:-translate-y-1`}
               >
-                <TarotCardImage
-                  src={card.imageUrl}
-                  alt={`${card.nameKo} (${card.nameEn})`}
-                  className={isPublished ? undefined : "opacity-40"}
-                />
+                {image}
               </Link>
             )
           })}
