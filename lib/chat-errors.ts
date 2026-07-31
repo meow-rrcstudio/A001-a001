@@ -38,6 +38,8 @@ export type ChatErrorKind =
   | "tooFast"
   /** 제미나이의 하루 몫을 다 썼다 */
   | "quotaDay"
+  /** 무료 리딩 몫이 이 창에서 동났다 (우리가 정한 한도) */
+  | "doorClosed"
   /** 제미나이가 순간적으로 몰렸다 */
   | "quotaSpeed"
   /** 답이 오다 시간이 다 됐다 (504) */
@@ -188,6 +190,20 @@ export function describeChatError(input: {
         hint: "내일 다시 오면 또 읽어줄게. 지금까지 나눈 이야기는 그대로 남아 있어.",
         canRetry: false,
         action: { label: "기록 보기", href: "/my" },
+      }
+
+    case "doorClosed":
+      // ⚠️ quotaDay 와 다릅니다. 그건 제미나이가 우리를 막은 것이고,
+      //    이건 우리가 우리를 막은 것입니다. 그래서 "크레딧으로 지금
+      //    보기"라는 길이 남아 있고, 그 길을 내줘야 합니다.
+      //    문구는 서버가 만들어 보냅니다(lib/server/free-quota.ts) —
+      //    창 길이에 따라 "자정"·"18시"가 달라지기 때문입니다.
+      return {
+        kind,
+        message: "오늘은 이 몸이 카드를 볼 만큼 봤다냥. 잠시 문을 내리겠네.",
+        hint: "크레딧이 있으면 지금 바로 볼 수 있어.",
+        canRetry: false,
+        action: { label: "크레딧 보기", href: "/my/credits" },
       }
 
     case "quotaSpeed":
