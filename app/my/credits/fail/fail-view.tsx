@@ -73,10 +73,10 @@ export function FailView() {
             {CREDIT_UNIT.one} 화면으로
           </Link>
           <Link
-            href="/tarot/reading"
+            href="/tarot/ask"
             className="mt-3 block text-center text-sm text-black underline underline-offset-4 hover:opacity-70"
           >
-            무료로 카드만 뽑아보기
+            맛보기로 먼저 보기
           </Link>
         </div>
       </main>

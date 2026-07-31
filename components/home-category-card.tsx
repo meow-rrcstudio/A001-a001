@@ -41,7 +41,9 @@ export function HomeCategoryCard({
 
   return (
     <Link
-      href={`/tarot/reading/${category.slug}`}
+      // 타로보기 화면으로 가되, 이 주제가 이미 골라진 채로 시작합니다.
+      // 한 번 고른 것을 또 고르게 하지 않으려는 것입니다.
+      href={`/tarot/ask?topic=${category.slug}`}
       onPointerDown={() => setPressed(true)}
       onPointerUp={release}
       onPointerLeave={release}

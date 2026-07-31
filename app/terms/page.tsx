@@ -14,7 +14,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
-import { CREDIT_UNIT } from "@/lib/credit-packs"
+import { CREDIT_UNIT, countCreditsWith } from "@/lib/credit-packs"
 import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
 import { BUSINESS } from "@/lib/business"
 
@@ -104,7 +104,7 @@ export default function TermsPage() {
       <List>
         <li>
           회원은 질문을 고르거나 직접 적고, 카드를 뽑아 샨티의 해석을 받습니다. 리딩 한 판에{" "}
-          {unit} 1{CREDIT_UNIT.counter}이 듭니다.
+          {unit} {countCreditsWith(1, "이가")} 듭니다.
         </li>
         <li>
           해석을 받은 뒤 같은 판에 이어서 묻는 것은 한 판에 {FOLLOWUPS_PER_CREDIT}번까지 포함되며,

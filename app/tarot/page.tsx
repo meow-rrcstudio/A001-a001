@@ -80,7 +80,7 @@ export default async function TarotListPage() {
         <Link
           // 물어보러 가는 버튼이니 주제 고르는 화면으로 보냅니다.
           // 홈("/")으로 보내면 물어보려다 뒤로 간 것처럼 읽힙니다.
-          href="/tarot/reading"
+          href="/tarot/ask"
           className={cn(
             buttonVariants({ variant: "connect", size: "lg" }),
             "h-14 gap-0 rounded-full px-8 shadow-lg"

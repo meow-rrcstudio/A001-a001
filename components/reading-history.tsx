@@ -94,7 +94,7 @@ export function ReadingHistory({ userName }: { userName?: string | null }) {
             타로를 보면 여기에 차곡차곡 쌓여요.
           </p>
           {/* 카드 그림 아카이브(/tarot)가 아니라 주제를 고르는 화면으로 */}
-          <Button variant="solid" size="pill" className="mt-6" render={<Link href="/tarot/reading" />}>
+          <Button variant="solid" size="pill" className="mt-6" render={<Link href="/tarot/ask" />}>
             타로 보러 가기
           </Button>
         </div>

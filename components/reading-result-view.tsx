@@ -214,7 +214,7 @@ function MiniCard({ card, className = "", style }: { card: PickedCard; className
  * layoutKey 가 없거나 자리 수가 안 맞으면 뽑힌 순서대로 1열입니다 —
  * 면담 중 더 뽑은 카드처럼 배열이랄 게 없을 때가 그렇습니다.
  */
-function MiniSpread({ cards, layoutKey }: { cards: PickedCard[]; layoutKey?: string }) {
+export function MiniSpread({ cards, layoutKey }: { cards: PickedCard[]; layoutKey?: string }) {
   if (cards.length === 0) return null
 
   const slots = layoutKey ? spreadLayouts[layoutKey as LayoutKey] : undefined

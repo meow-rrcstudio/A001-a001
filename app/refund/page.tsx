@@ -20,7 +20,15 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
-import { CREDIT_UNIT } from "@/lib/credit-packs"
+import {
+  CREDIT_PACKS,
+  CREDIT_UNIT,
+  countCredits,
+  countCreditsWith,
+  formatKrw,
+  pricePerCredit,
+} from "@/lib/credit-packs"
+import { WELCOME_CREDITS } from "@/lib/credit-rules"
 import { BUSINESS } from "@/lib/business"
 
 export const metadata: Metadata = {
@@ -31,6 +39,32 @@ export const metadata: Metadata = {
 const EFFECTIVE = "2026년 8월 6일"
 
 const linkClass = "text-primary underline underline-offset-4"
+
+/**
+ * 제4조의 계산 예시.
+ *
+ * 값을 손으로 적지 않고 가격표에서 셉니다 — 값이 바뀌면 이 문단도 따라옵니다.
+ * 제일 큰 묶음을 예로 듭니다(할인이 걸려 있어 단가 계산이 보여야 하는 쪽입니다).
+ */
+function RefundExample() {
+  const pack = CREDIT_PACKS[CREDIT_PACKS.length - 1]
+  const unitPrice = pricePerCredit(pack)
+
+  // 무상분을 다 쓰고 유상분까지 조금 쓴 상황이라야 제4조가 하는 말이 보입니다.
+  const used = WELCOME_CREDITS + 3
+  const paidUsed = used - WELCOME_CREDITS
+  const paidLeft = pack.credits - paidUsed
+
+  return (
+    <P>
+      예를 들어 무상 {countCredits(WELCOME_CREDITS)}를 받은 회원이 {countCredits(pack.credits)}{" "}
+      묶음을 {formatKrw(pack.priceKrw)}에 사고 {countCreditsWith(used, "을를")} 썼다면, 그중{" "}
+      {countCredits(WELCOME_CREDITS)}는 무상분에서 빠지므로 유상분은{" "}
+      {countCredits(paidUsed)}만 쓴 것이 됩니다. 남은 유상 {countCredits(paidLeft)} ×{" "}
+      {formatKrw(unitPrice)} = {formatKrw(paidLeft * unitPrice)}을 돌려드립니다.
+    </P>
+  )
+}
 
 export default function RefundPage() {
   const unit = CREDIT_UNIT.one
@@ -103,11 +137,13 @@ export default function RefundPage() {
           금액입니다.
         </li>
       </List>
-      <P>
-        예를 들어 무상 3{CREDIT_UNIT.counter}을 받은 회원이 5{CREDIT_UNIT.counter} 묶음을 8,000원에
-        사고 4{CREDIT_UNIT.counter}을 썼다면, 4장 중 3장은 무상분에서 빠지므로 유상분은 1장만 쓴
-        것이 됩니다. 남은 유상 4{CREDIT_UNIT.counter} × 1,600원 = 6,400원을 돌려드립니다.
-      </P>
+      {/* ⚠️ 예시의 숫자를 손으로 적지 않습니다. 가격표(lib/credit-packs.ts)와
+          가입 선물(lib/credit-rules.ts)에서 그때그때 셉니다.
+
+          손으로 적었더니 실제로 어긋났습니다 — 값을 888원 체계로 내린 뒤에도
+          이 문단만 옛 값(5개 8,000원 · 단가 1,600원)으로 남아 있었습니다.
+          환불 기준을 적은 문서가 파는 값과 다른 말을 하고 있던 셈입니다. */}
+      <RefundExample />
 
       <H>제5조 (회사 잘못으로 받지 못한 경우)</H>
       <List>

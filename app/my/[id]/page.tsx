@@ -100,6 +100,8 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
         at={reading.at}
         cards={reading.cards}
         promptText={result?.promptText ?? reading.promptText}
+        // 맛보기로 받은 해석이 있으면 그때 글까지 그대로 보여줍니다
+        result={reading.result}
         isLoggedIn={account.isLoggedIn}
       />
     )

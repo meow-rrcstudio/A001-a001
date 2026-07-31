@@ -29,9 +29,9 @@ const DRAWER_WIDTH = "78%"
 
 const menuItems = [
   { label: "홈", href: "/", icon: TerminalSquare },
-  // 주제를 고르는 화면으로 보냅니다. 예전에는 /tarot/reading/self 로
-  // 바로 들어가서, 누구나 "나" 주제로 시작하게 됐습니다.
-  { label: "타로보기", href: "/tarot/reading", icon: Archive },
+  // 타로보기의 진입점은 한 곳입니다 (app/tarot/ask/page.tsx). 주제 고르기와
+  // 질문 고르기가 그 화면 안에 칩으로 들어와 있습니다.
+  { label: "타로보기", href: "/tarot/ask", icon: Archive },
   { label: "기록 보기", href: "/my", icon: FolderClosed },
   { label: "아카이빙", href: "/archive", icon: Layers },
   { label: "설정", href: "/my/settings", icon: SlidersHorizontal },

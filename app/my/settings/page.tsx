@@ -49,7 +49,7 @@ export default function SettingsPage() {
   const accountItems: SettingsItem[] = [
     { label: "프로필", href: "#" },
     {
-      // 건별이라 "플랜"이 없습니다. 남은 장수를 그대로 보여줍니다.
+      // 건별이라 "플랜"이 없습니다. 남은 개수를 그대로 보여줍니다.
       // 부르는 말은 lib/credit-packs.ts 한 곳에서 옵니다.
       label: CREDIT_UNIT.one,
       href: "/my/credits",

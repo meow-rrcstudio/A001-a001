@@ -148,20 +148,31 @@ export function savePromptReading(input: {
   layoutKey?: string
   positions?: string[]
   promptText: string
+  /**
+   * 맛보기 해석 (있으면).
+   *
+   * ⚠️ 이걸 안 남기면 새로고침 한 번에 방금 읽은 글이 사라집니다. 로그인
+   *    전이라 서버에 남길 자리가 없어서, 브라우저의 이 줄이 유일한 기록
+   *    입니다. 로그인하러 갔다 돌아온 사람이 읽던 글을 못 찾으면, 우리가
+   *    권해놓고 우리가 뺏는 꼴입니다.
+   */
+  result?: Partial<ReadingResult>
 }): string {
   const id = `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
-  const { promptText, ...rest } = input
+  const { promptText, result, ...rest } = input
   const record: SavedReading = {
     id,
     at: new Date().toISOString(),
     turns: [],
     kind: "prompt",
     promptText,
-    // 목록에 한 줄 요약이 필요합니다. 해석이 없으니 뽑은 카드로 대신합니다.
-    result: {
-      title: rest.question || rest.topicLabel,
-      summary: `카드 ${rest.cards.length}장을 뽑았어요. 프롬프트를 복사해 밖에서 읽어본 타로점입니다.`,
-    } as ReadingResult,
+    // 해석을 받았으면 그대로 남기고, 카드만 뽑았으면 목록에 쓸 한 줄만 지어둡니다.
+    result: (result?.title
+      ? result
+      : {
+          title: rest.question || rest.topicLabel,
+          summary: `카드 ${rest.cards.length}장을 뽑았어요. 프롬프트를 복사해 밖에서 읽어본 타로점입니다.`,
+        }) as ReadingResult,
     ...rest,
   }
   writeAll([record, ...readAll()])

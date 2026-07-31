@@ -25,6 +25,7 @@ export function PromptReadingView({
   at,
   cards,
   promptText,
+  result,
   isLoggedIn,
   backHref = "/my",
 }: {
@@ -32,9 +33,17 @@ export function PromptReadingView({
   at?: string
   cards: PickedCard[]
   promptText?: string
+  /**
+   * 그때 받은 맛보기 해석 (있으면).
+   *
+   * 카드만 뽑고 프롬프트만 복사해 간 옛 기록에는 없습니다. 그때는 지금처럼
+   * "카드만 뽑아둔 판"으로 그립니다.
+   */
+  result?: { title?: string; summary?: string; sections?: { heading: string; body: string }[] }
   isLoggedIn: boolean
   backHref?: string
 }) {
+  const hasReading = Boolean(result?.title && result.sections?.length)
   const [copied, setCopied] = useState(false)
 
   async function copy() {
@@ -54,7 +63,7 @@ export function PromptReadingView({
         <PageHeader backHref={backHref} title={question} />
 
         <p className="mt-1 text-xs text-muted-foreground">
-          {at ? formatDate(at) : ""} · 프롬프트로 본 타로점
+          {at ? formatDate(at) : ""} · {hasReading ? "맛보기로 본 타로점" : "프롬프트로 본 타로점"}
         </p>
         <h1 className="mt-2 text-reading-xl font-bold leading-snug text-foreground">{question}</h1>
 
@@ -82,11 +91,34 @@ export function PromptReadingView({
           </div>
         )}
 
+        {/* 그때 받은 맛보기 해석 — 없으면(옛 기록) 통째로 건너뜁니다 */}
+        {hasReading && (
+          <article className="mt-6">
+            <h2 className="text-reading-xl font-bold leading-snug tracking-tight text-foreground">
+              {result?.title}
+            </h2>
+            {result?.summary && (
+              <p className="mt-3 text-reading leading-relaxed text-foreground/90">
+                {result.summary}
+              </p>
+            )}
+            {result?.sections?.map((s, i) => (
+              <section key={`${s.heading}-${i}`} className="mt-5">
+                <h3 className="text-reading-lg font-semibold text-foreground">{s.heading}</h3>
+                <p className="mt-1.5 whitespace-pre-line text-reading leading-relaxed text-foreground/90">
+                  {s.body}
+                </p>
+              </section>
+            ))}
+          </article>
+        )}
+
         {/* 다음 걸음 — 이 화면의 주된 목적입니다 */}
         <div className="mt-7 rounded-2xl bg-card p-4 shadow-raised">
           <p className="text-reading leading-relaxed text-foreground">
-            이 판은 카드만 뽑아둔 것이라네. 이 몸이 직접 읽어주면 궁금한 걸 이어서 물을 수도
-            있다냥.
+            {hasReading
+              ? "여기까지가 맛보기라네. 이 몸이 더 오래 들여다보면 궁금한 걸 이어서 물을 수도 있다냥."
+              : "이 판은 카드만 뽑아둔 것이라네. 이 몸이 직접 읽어주면 궁금한 걸 이어서 물을 수도 있다냥."}
           </p>
           {isLoggedIn ? (
             <Link

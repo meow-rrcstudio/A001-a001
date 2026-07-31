@@ -135,7 +135,7 @@ export default function CreditsPage() {
           <p className="mt-1.5 text-sm text-black/80">
             {account.isLoggedIn
               ? `지금 ${countCredits(account.credits)} 남았어요.`
-              : "로그인하면 남은 장수를 볼 수 있어요."}
+              : "로그인하면 남은 개수를 볼 수 있어요."}
           </p>
         </div>
 
@@ -154,8 +154,8 @@ export default function CreditsPage() {
 
         {/* 묶음 — 값이 오르는 순서 그대로 두고, 추천 하나만 검정으로
             (홈의 아카이빙 배너와 같은 방식).
-            ⚠️ 추천을 맨 위로 끌어올리지 않습니다. 1장·5장·12장이 뒤섞이면
-               어느 게 큰 묶음인지 한눈에 안 들어옵니다. */}
+            ⚠️ 추천을 맨 위로 끌어올리지 않습니다. 작은 묶음과 큰 묶음이
+               뒤섞이면 어느 게 큰 것인지 한눈에 안 들어옵니다. */}
         <div className="mt-7 divide-y divide-black border-y border-black">
           {CREDIT_PACKS.map((pack) => (
             <div key={pack.key} className={pack.featured ? "bg-black" : ""}>
@@ -235,7 +235,7 @@ export default function CreditsPage() {
         <div className="mt-6 px-6 pb-10 text-center">
           <Link
             // 카드 그림 아카이브(/tarot)가 아니라 실제로 타로를 보는 길입니다
-            href="/tarot/reading"
+            href="/tarot/ask"
             className="text-sm text-black underline underline-offset-4 hover:opacity-70"
           >
             타로 보러 가기
