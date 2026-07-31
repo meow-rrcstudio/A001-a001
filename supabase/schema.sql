@@ -112,7 +112,11 @@ create table if not exists public.readings (
   -- { title, summary, keywords, sections }
   result       jsonb,
   -- 이 판에 허락된 이어묻기 횟수. 한 장 더 쓸 때마다 늘어납니다.
-  followups_allowed integer not null default 20,
+  -- ⚠️ lib/credit-rules.ts 의 FOLLOWUPS_PER_CREDIT 과 같은 값이어야 합니다.
+  --    앱은 판을 만들 때 이 값을 직접 넣으므로 평소엔 기본값이 쓰이지
+  --    않지만, 어긋난 채로 두면 값을 안 넣고 만드는 경로가 하나라도
+  --    생겼을 때 조용히 옛 숫자가 박힙니다.
+  followups_allowed integer not null default 10,
   -- 이 판에서 지금까지 오간 이야기를 한 덩어리로 접어둔 것.
   --
   -- ⚠️ 왜 있는가
@@ -366,8 +370,13 @@ begin
 end $$;
 
 -- 이 판에 허락된 이어묻기 횟수 (한 장 더 쓸 때마다 늘어납니다)
+-- ⚠️ 기본값은 lib/credit-rules.ts 의 FOLLOWUPS_PER_CREDIT 과 맞춥니다.
+--    add column if not exists 는 이미 있는 칸의 기본값을 바꾸지 않으므로,
+--    옛 프로젝트를 따라오게 하려면 아래 alter ... set default 가 필요합니다.
 alter table public.readings
-  add column if not exists followups_allowed integer not null default 20;
+  add column if not exists followups_allowed integer not null default 10;
+alter table public.readings
+  alter column followups_allowed set default 10;
 
 -- 다시 열었을 때 그때 배열 모양 그대로 놓기 위한 값
 alter table public.readings
