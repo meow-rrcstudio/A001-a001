@@ -48,6 +48,23 @@ export const GEMINI_FALLBACK_MODEL =
   process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash-lite"
 
 /**
+ * 로그인 전 맛보기 해석에 쓰는 모델.
+ *
+ * ┌─ 왜 일부러 낮은 등급을 쓰는가 ────────────────────────────────────
+ * │ 값 때문만은 아닙니다. 맛보기와 제대로 된 해석은 눈에 띄게 달라야
+ * │ 합니다 — 같은 것을 공짜로 주면 가입할 이유가 없습니다.
+ * │
+ * │ 생각을 끄면 카드 여러 장을 하나의 이야기로 엮는 힘이 떨어져서
+ * │ 장마다 따로 노는 해설이 나옵니다(THINKING_BUDGET 주석 참고).
+ * │ 회원 해석에서는 그게 흠이지만, 맛보기에서는 그 차이가 곧
+ * │ "가입하면 이렇게 달라진다"가 됩니다. 흠을 일부러 쓰는 자리입니다.
+ * │
+ * │ 원가는 한 판에 몇 원 수준이라, 한도를 다 써도 하루 몇천 원입니다.
+ * └──────────────────────────────────────────────────────────────────
+ */
+export const GEMINI_FREE_MODEL = process.env.GEMINI_FREE_MODEL || "gemini-2.5-flash-lite"
+
+/**
  * 제미나이가 거절했을 때의 오류. 사람에게 보여줄 우리말과 원문을 함께 듭니다.
  *
  * ⚠️ 예전에는 구글이 준 영어 JSON 덩어리가 그대로 화면에 떴습니다.
@@ -184,6 +201,9 @@ const SAFE_MAX_OUTPUT_TOKENS = Math.max(MAX_OUTPUT_TOKENS, THINKING_BUDGET * 4)
 
 const THINKING = { thinkingBudget: THINKING_BUDGET }
 const CHAT_THINKING = { thinkingBudget: CHAT_THINKING_BUDGET }
+// 맛보기는 생각하지 않습니다 — 값도 값이지만, 첫 글자가 빨리 뜨는 것이
+// 로그인 전 사람에게는 품질입니다.
+const NO_THINKING = { thinkingBudget: 0 }
 
 export async function runReadingWithGemini({
   topicKey,
@@ -275,6 +295,35 @@ export function streamReadingWithGemini({
 }
 
 /**
+ * 로그인 전 맛보기 해석.
+ *
+ * 회원 해석과 같은 프롬프트·같은 모양(JSON)을 씁니다 — 다른 것은 모델
+ * 등급과 생각 예산뿐입니다. 프롬프트까지 따로 두면 두 벌이 되어 한쪽만
+ * 고쳐진 채로 남습니다.
+ *
+ * 짧게 끊는 것은 maxOutputTokens 로 합니다. 생각을 끄므로 이 값이 그대로
+ * 글 길이가 됩니다 (회원 해석은 이 값의 대부분을 생각에 씁니다).
+ */
+export function streamFreeReadingWithGemini({
+  topicKey,
+  question,
+  cards,
+}: {
+  topicKey: ReadingTopicKey
+  question: ReadingQuestion
+  cards: { name: string; orientation: "정방향" | "역방향" }[]
+}): AsyncGenerator<string> {
+  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface: "inline" })
+  return streamGeminiJson({
+    system,
+    user,
+    schema: READING_JSON_SCHEMA,
+    purpose: "free",
+    maxOutputTokens: Number(process.env.GEMINI_FREE_MAX_TOKENS || 2000),
+  })
+}
+
+/**
  * 정해진 모양(JSON 스키마)으로 답을 받아 조각내어 흘려보냅니다.
  *
  * 해석·면담이 이 함수를 함께 씁니다. 돌려주는 것은 "지금까지 쌓인 JSON
@@ -286,8 +335,10 @@ export async function* streamGeminiJson({
   schema,
   maxOutputTokens = SAFE_MAX_OUTPUT_TOKENS,
   /**
-   * 무엇을 만드는 중인지 — 생각 예산이 갈립니다.
-   * "reading" 은 넉넉히, "chat" 은 짧게 (위 THINKING_BUDGET 주석 참고).
+   * 무엇을 만드는 중인지 — 모델과 생각 예산이 갈립니다.
+   *   "reading" 넉넉히 생각 · "chat" 짧게 생각
+   *   "free"    생각 없이, 낮은 등급 모델로 (로그인 전 맛보기)
+   * (위 THINKING_BUDGET · GEMINI_FREE_MODEL 주석 참고)
    */
   purpose = "reading",
 }: {
@@ -295,7 +346,7 @@ export async function* streamGeminiJson({
   user: string
   schema: unknown
   maxOutputTokens?: number
-  purpose?: "reading" | "chat"
+  purpose?: "reading" | "chat" | "free"
 }): AsyncGenerator<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
@@ -313,7 +364,8 @@ export async function* streamGeminiJson({
           contents: [{ role: "user", parts: [{ text: user }] }],
           generationConfig: {
             maxOutputTokens,
-            thinkingConfig: purpose === "chat" ? CHAT_THINKING : THINKING,
+            thinkingConfig:
+              purpose === "free" ? NO_THINKING : purpose === "chat" ? CHAT_THINKING : THINKING,
             // 화면이 바로 쓸 수 있는 조각으로 받습니다.
             responseMimeType: "application/json",
             responseSchema: schema,
@@ -322,20 +374,21 @@ export async function* streamGeminiJson({
       }
     )
 
-  let response = await ask(GEMINI_READING_MODEL)
+  // 맛보기는 낮은 등급 모델로 갑니다. 통이 모델마다 따로라 회원 해석의
+  // 하루 한도를 맛보기가 갉아먹지 않는다는 이점도 함께 있습니다.
+  const primary = purpose === "free" ? GEMINI_FREE_MODEL : GEMINI_READING_MODEL
+  let response = await ask(primary)
 
   // 한도에 닿았으면 다른 모델로 한 번 더 — 통이 모델마다 따로입니다
   // (위 GEMINI_FALLBACK_MODEL 주석 참고).
-  if (response.status === 429 && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_READING_MODEL) {
-    console.warn(
-      `[gemini] ${GEMINI_READING_MODEL} 한도에 닿아 ${GEMINI_FALLBACK_MODEL} 로 다시 시도합니다`
-    )
+  if (response.status === 429 && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== primary) {
+    console.warn(`[gemini] ${primary} 한도에 닿아 ${GEMINI_FALLBACK_MODEL} 로 다시 시도합니다`)
     await response.text() // 몸통을 비워 연결을 놓아줍니다
     response = await ask(GEMINI_FALLBACK_MODEL)
   }
 
   if (!response.ok || !response.body) {
-    throw await failureFrom(response, GEMINI_READING_MODEL)
+    throw await failureFrom(response, primary)
   }
 
   const reader = response.body.getReader()

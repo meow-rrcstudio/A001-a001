@@ -1,0 +1,130 @@
+// app/api/reading/free/route.ts
+// 로그인 전에 보는 맛보기 해석.
+//
+// ┌─ /api/reading 과 무엇이 다른가 ───────────────────────────────────
+// │ 저쪽                          이쪽
+// │ 로그인 필요                   누구나
+// │ 크레딧 한 장 깎음             안 깎음 (사이트 전체 총량으로 막습니다)
+// │ 판(readings)을 만들고 남김    아무것도 남기지 않습니다
+// │ 좋은 모델 · 생각 4096         낮은 등급 · 생각 없음
+// │ 이어묻기 가능                 한 판으로 끝
+// └──────────────────────────────────────────────────────────────────
+//
+// ┌─ 왜 판을 남기지 않는가 ───────────────────────────────────────────
+// │ 남길 사람이 없습니다. 로그인 전이라 user_id 가 없고, readings 는
+// │ user_id 가 필수입니다. 브라우저에는 화면 쪽에서 남깁니다
+// │ (lib/save-free-reading.ts) — 기기에만 남는 한 번짜리 기록이고,
+// │ 그게 "기록으로 남기려면 가입하세요"를 권하는 근거가 됩니다.
+// └──────────────────────────────────────────────────────────────────
+//
+// ⚠️ 막는 장치가 둘입니다. 둘 다 있어야 합니다.
+//    · 사람별  rate-limit — 한 사람이 연타하는 것 (서버 한 대 기억)
+//    · 전체    free-quota — 하루에 우리가 쓸 돈의 총량 (Redis 공용)
+//    앞엣것만 있으면 사람이 많아질 때 총량이 안 잡히고, 뒤엣것만 있으면
+//    한 사람이 남의 몫까지 다 써버릴 수 있습니다.
+import { NextResponse } from "next/server"
+import { topicContent } from "@/lib/reading-content"
+import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import { streamErrorPayload, streamFreeReadingWithGemini } from "@/lib/ai/gemini"
+import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
+import { rateKey, rateLimit } from "@/lib/server/rate-limit"
+import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
+
+export const dynamic = "force-dynamic"
+export const maxDuration = 60
+
+interface FreeReadingBody {
+  topicKey?: string
+  questionSlug?: string
+  questionLabel?: string
+  plan?: { layoutKey: string; positions: { label: string; guide: string }[] }
+  cards?: { name: string; orientation: "정방향" | "역방향" }[]
+}
+
+export async function POST(request: Request) {
+  let body: FreeReadingBody
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 })
+  }
+
+  // ── 1. 한 사람이 연타하는 것 ─────────────────────────────────────
+  // 로그인 전이라 접속 주소로 셉니다. 맛보기는 한 판으로 끝나므로
+  // 회원 해석(10분에 8번)보다 좁게 잡습니다.
+  const limited = rateLimit(rateKey("free-reading", null, request), 5, 10 * 60_000)
+  if (limited) return limited
+
+  const topicKey = body.topicKey as ReadingTopicKey
+  const topic = topicContent[topicKey]
+  if (!topic) {
+    return NextResponse.json({ error: `주제 "${body.topicKey}" 를 찾을 수 없습니다.` }, { status: 400 })
+  }
+
+  let question
+  if (body.questionSlug === FREE_QUESTION_SLUG) {
+    const label = (body.questionLabel ?? "").trim()
+    if (!label) return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
+    // 프롬프트에 그대로 들어가므로 길이를 제한합니다.
+    question = buildFreeQuestion(label.slice(0, 200), body.plan ?? null)
+  } else {
+    question = topic.questions.find((q) => q.slug === body.questionSlug)
+    if (!question) {
+      return NextResponse.json(
+        { error: `질문 "${body.questionSlug}" 를 찾을 수 없습니다.` },
+        { status: 400 }
+      )
+    }
+  }
+
+  const cards = body.cards ?? []
+  if (cards.length !== question.positions.length) {
+    return NextResponse.json(
+      { error: `카드가 ${question.positions.length}장이어야 하는데 ${cards.length}장입니다.` },
+      { status: 400 }
+    )
+  }
+
+  // ── 2. 오늘 우리가 쓸 몫 ─────────────────────────────────────────
+  //
+  // ⚠️ 카드·질문을 다 확인한 뒤에 셉니다. 형식이 틀린 요청으로 몫이
+  //    깎이면, 잘못 만든 요청 하나가 남의 자리를 뺏습니다.
+  const quota = await takeFreeReading()
+  if (!quota.allowed) {
+    const { message, hint } = doorClosedMessage(quota.resetAt)
+    return NextResponse.json(
+      {
+        error: message,
+        hint,
+        kind: "doorClosed",
+        // 화면이 "몇 시에 열리는지"를 스스로 셀 수 있게 함께 보냅니다.
+        reopenAt: new Date(quota.resetAt).toISOString(),
+      },
+      { status: 429 }
+    )
+  }
+
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const accumulated of streamFreeReadingWithGemini({ topicKey, question, cards })) {
+          controller.enqueue(encoder.encode(accumulated))
+        }
+      } catch (error) {
+        // 흘려보내는 중에 막히면 몸통 끝에 오류 조각을 붙입니다
+        // (회원 해석과 같은 방식이라 화면이 같은 코드로 읽습니다).
+        controller.enqueue(encoder.encode(JSON.stringify(streamErrorPayload(error, "free-reading"))))
+      } finally {
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  })
+}
