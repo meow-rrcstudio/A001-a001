@@ -187,13 +187,6 @@ export default function AskPage() {
           onTurnsReplace={(turns) => readingId && replaceTurns(readingId, turns)}
           onDrawRequest={handleDrawRequest}
           onRegenerate={() => void runReading(cards)}
-          onRestart={() => {
-            setQuestion("")
-            setCards([])
-            setExtraCards([])
-            setReadingId(null)
-            setStep("ask")
-          }}
         />
 
         {/* 면담 중 추가로 뽑기 — 해석 화면 위에 덮습니다 (대화를 잃지 않도록) */}
@@ -202,7 +195,16 @@ export default function AskPage() {
             <main
               className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
             >
-              <PageHeader variant="reading" backHref="/tarot/ask" />
+              {/* 뒤로가기는 주소를 옮기지 않고 이 덮개만 걷습니다 — 옮기면
+                  아래 깔린 대화가 통째로 사라집니다. 빈 배열로 돌려주면
+                  "뽑기를 물렀다"는 뜻이라, 대화 쪽이 되묻는 칩을 내밉니다. */}
+              <PageHeader
+                variant="reading"
+                onBack={() => {
+                  followup.done([])
+                  setFollowup(null)
+                }}
+              />
               <CardReadingFlow
                 mode="inline"
                 topicLabel={question}
@@ -219,6 +221,9 @@ export default function AskPage() {
                 // 이 판에서 이미 나온 카드는 부채에서 빼둡니다 —
                 // 사용자가 말한 "남은 카드들 중"입니다.
                 excludeNames={[...cards, ...extraCards].map((c) => c.name)}
+                // 이미 섞어서 펼쳐둔 판입니다. 한 장 더 뽑겠다고 도로 걷어
+                // 다시 섞게 하지 않습니다 — 펼쳐진 그대로 이어서 뽑습니다.
+                skipShuffle
                 onComplete={(picked) => {
                   followup.done(picked)
                   setExtraCards((prev) => [...prev, ...picked])

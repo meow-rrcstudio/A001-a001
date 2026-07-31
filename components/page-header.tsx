@@ -81,9 +81,20 @@ export function PageHeader({
    * └────────────────────────────────────────────────────────────────
    */
   surface = "cream",
+  onBack,
   className = "",
 }: {
   backHref?: string
+  /**
+   * 뒤로가기를 눌렀을 때 주소를 옮기는 대신 할 일.
+   *
+   * 화면 위에 덮어 띄운 것(면담 중 카드 고르기 등)에 씁니다. 그런 화면에서
+   * 주소를 옮겨버리면 아래에 깔린 대화가 통째로 사라집니다 — 뒤로가기는
+   * "이 덮개를 걷는다"여야 합니다.
+   *
+   * 주면 backHref 대신 이쪽이 쓰이고, 링크가 아니라 버튼으로 그려집니다.
+   */
+  onBack?: () => void
   showShare?: boolean
   /** 헤더 가운데에 놓을 제목. 길면 말줄임 (글 상세·타로 리딩) */
   title?: string
@@ -139,6 +150,10 @@ export function PageHeader({
           {/* 왼쪽 — 홈은 워드마크, 나머지는 뒤로가기 */}
           {variant === "home" ? (
             <Wordmark className="h-10" priority />
+          ) : onBack ? (
+            <button type="button" onClick={onBack} className={roundButton} aria-label="뒤로">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
           ) : (
             <Link href={backHref ?? "/"} className={roundButton} aria-label="뒤로">
               <ArrowLeft className="h-5 w-5" />

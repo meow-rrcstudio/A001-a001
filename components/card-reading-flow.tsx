@@ -98,6 +98,7 @@ export function CardReadingFlow({
   introMessage,
   mode = "prompt",
   excludeNames,
+  skipShuffle = false,
   onComplete,
 }: {
   topicLabel: string
@@ -114,6 +115,19 @@ export function CardReadingFlow({
    */
   excludeNames?: string[]
   /**
+   * 섞기를 건너뛰고 펼쳐진 부채부터 시작할지.
+   *
+   * 면담 중에 카드를 더 뽑을 때 씁니다. 이 판은 처음에 이미 섞어서 펼친
+   * 부채입니다 — 한 장 더 뽑겠다고 그걸 도로 걷어 다시 섞게 하면, 앞에
+   * 뽑은 카드와 다른 판에서 온 카드처럼 느껴집니다. 펼쳐둔 그대로
+   * 이어서 뽑는 것이 같은 판입니다.
+   *
+   * ⚠️ 부채의 순서는 일부러 다시 흔들지 않습니다(seed 가 그대로입니다).
+   *    "섞지 않는다"는 말 그대로여야 하니까요. 이미 나온 카드만
+   *    excludeNames 로 빠집니다.
+   */
+  skipShuffle?: boolean
+  /**
    * 카드를 다 뒤집은 뒤에 무엇을 보여줄지.
    * · "prompt" (기본) — 외부 AI 에 붙여넣을 프롬프트를 말풍선에 띄웁니다 (비회원 흐름)
    * · "inline"        — "해석 보기" 버튼을 띄우고 onComplete 로 넘깁니다 (사이트 내 해석)
@@ -125,7 +139,7 @@ export function CardReadingFlow({
   const requiredPicks = question.positions.length
   const resultSlots = spreadLayouts[question.layoutKey]
 
-  const [phase, setPhase] = useState<Phase>("shuffling")
+  const [phase, setPhase] = useState<Phase>(skipShuffle ? "selecting" : "shuffling")
   const [shuffleStep, setShuffleStep] = useState(0)
   const [entered, setEntered] = useState(false)
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null)

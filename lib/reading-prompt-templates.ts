@@ -126,14 +126,47 @@ export function buildReadingMessages({
 
 /** 면담에 들려보내는 지금까지의 사정 */
 export interface ChatContext {
+  /**
+   * 이 사람에 대해 지금까지 알게 된 것.
+   *
+   * ⚠️ 이 판의 것이 아닙니다. 판을 넘어 쌓이는 유일한 값입니다 — 지난달에
+   *    다른 질문으로 왔을 때 들은 것도 여기 들어 있습니다.
+   *
+   * 없으면 그냥 빠집니다. 그때 샨티는 처음 만난 것처럼 대합니다
+   * (lib/character.ts 의 @memory_use 참고).
+   */
+  memories?: { kind: string; fact: string }[]
   /** 처음 던진 질문 */
   question: string
   /** 그때 뽑은 카드 (자리 이름과 함께) */
   cards: { name: string; orientation: "정방향" | "역방향"; position?: string }[]
   /** 앞서 해준 해석 */
   reading?: { title: string; summary: string; keywords: string[]; sections: { heading: string; body: string }[] }
+  /**
+   * 이 판에서 지금까지 오간 이야기를 접어둔 것.
+   *
+   * ⚠️ turns 는 최근 열두 마디까지만 실어보냅니다. 그보다 앞의 말은
+   *    사라지므로, 밀려나기 전에 접어둔 이 한 덩어리가 그 자리를 대신합니다.
+   *    없으면(짧은 대화) 그냥 빠집니다.
+   *
+   * 샨티가 답할 때마다 같은 응답 안에서 새로 써서 보내주고, 서버가 판에
+   * 남겨둡니다 (app/api/reading/chat/route.ts).
+   */
+  digest?: string
   /** 그 뒤로 오간 말. 카드를 더 뽑았으면 그것도 한 마디로 들어옵니다 */
   turns: { role: "user" | "shanti"; text: string }[]
+  /**
+   * 이 판에서 지금까지 누가 몇 번 뽑았는지.
+   *
+   * 샨티가 다음 뽑기를 "이 몸이 뽑을까 / 네가 뽑아라"로 고를 때 봅니다.
+   * 대략 이 몸 2 : 묻는 이 1 이 되게 두었습니다 — 직접 뽑는 일이 잦으면
+   * 대화가 자꾸 끊기고 카드 고르기 화면만 오갑니다. 그렇다고 없으면
+   * 묻는 이의 마음이 실릴 자리가 사라집니다.
+   *
+   * ⚠️ 비율을 말로만 시키면(“2:1 로 해라”) 모델은 지킬 수가 없습니다.
+   *    지금까지 몇 번이었는지를 모르기 때문입니다. 그래서 세어서 들려줍니다.
+   */
+  drawTally?: { shanti: number; user: number }
   /** 이번에 새로 던진 물음 */
   message: string
   /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
@@ -172,12 +205,23 @@ export function buildChatMessages(
   context: ChatContext,
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
-  const { question, cards, reading, turns, message, reserve } = context
+  const { memories, question, cards, reading, digest, turns, message, reserve, drawTally } = context
 
-  const parts = [
+  const parts: string[] = []
+
+  // 이 사람에 대해 아는 것이 가장 앞에 옵니다. 판보다 오래된 것이고,
+  // 이 판의 이야기는 그 위에 얹히는 것이기 때문입니다.
+  if (memories && memories.length > 0) {
+    parts.push(
+      `### 이 사람에 대해 알고 있는 것 (지난 대화에서 들은 것)\n` +
+        memories.map((m) => `· [${m.kind}] ${m.fact}`).join("\n")
+    )
+  }
+
+  parts.push(
     `### 처음 던진 물음\n${question}`,
-    `### 뽑힌 카드\n${describeCards(cards)}`,
-  ]
+    `### 뽑힌 카드\n${describeCards(cards)}`
+  )
 
   if (reading) {
     parts.push(
@@ -187,10 +231,28 @@ export function buildChatMessages(
     )
   }
 
+  // 접어둔 이야기가 먼저, 최근 열두 마디가 그 뒤. 앞뒤 순서가 곧 시간
+  // 순서라, 이걸 뒤집으면 오래된 이야기가 방금 한 말처럼 읽힙니다.
+  if (digest) {
+    parts.push(
+      `### 지금까지 오간 이야기 (앞쪽은 여기 접혀 있다)\n${digest}`
+    )
+  }
+
   if (turns.length > 0) {
     parts.push(
       `### 그 뒤로 오간 말\n` +
       turns.map((t) => `${t.role === "user" ? "묻는이" : "샨티"}: ${t.text}`).join("\n")
+    )
+  }
+
+  // 뽑기 셈은 예비 카드 바로 앞에 둡니다 — 둘 다 "더 뽑을지"를 정할 때
+  // 함께 보는 것이라, 떨어뜨려 놓으면 하나만 보고 고릅니다.
+  if (drawTally) {
+    parts.push(
+      `### 지금까지 뽑기 (이 판)\n` +
+        `이 몸이 뽑은 횟수: ${drawTally.shanti}\n` +
+        `묻는 이가 직접 뽑은 횟수: ${drawTally.user}`
     )
   }
 
