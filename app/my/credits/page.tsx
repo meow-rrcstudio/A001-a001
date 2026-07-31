@@ -5,14 +5,21 @@
 // 얇은 검정 선으로 나눈 목록, 강조할 것 하나만 검정 배너.
 // (components/home-category-card.tsx · home-archive-banner.tsx 와 같은 결)
 //
-// ⚠️ 아직 결제가 붙어 있지 않습니다. 토스페이먼츠 계약이 끝나면 buy() 안에서
-//    결제창을 띄우면 됩니다. 그때까지는 "곧 열려요"라고 솔직히 말합니다 —
-//    눌리지도 않는 버튼은 고장 난 것처럼 보입니다.
+// ┌─ 결제 ────────────────────────────────────────────────────────────
+// │ 누르면 토스 결제창이 뜹니다 (lib/toss-checkout.ts).
+// │ 크레딧은 여기서 들어오지 않습니다 — 돌아온 뒤 승인이 떨어지는
+// │ /my/credits/success 에서 들어옵니다.
+// │
+// │ ⚠️ 키(NEXT_PUBLIC_TOSS_CLIENT_KEY)가 없는 배포에서는 버튼을 내지 않고
+// │    "곧 열려요"로 둡니다. 눌리지도 않는 버튼은 고장 난 것처럼 보입니다.
+// │    키는 빌드에 박히므로, 넣은 뒤 반드시 재배포해야 버튼이 나옵니다.
+// └──────────────────────────────────────────────────────────────────
 //
 // 묶음·가격·부르는 말은 전부 lib/credit-packs.ts 에서 옵니다.
 // 값을 바꾸려면 여기가 아니라 그 파일을 고치세요.
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
@@ -29,15 +36,36 @@ import {
 } from "@/lib/credit-packs"
 import { FOLLOWUPS_PER_CREDIT } from "@/lib/reading-entitlement"
 import { CreditLedger } from "@/components/credit-ledger"
+import { isTossReady, isTossTestKey } from "@/lib/toss-client"
+import { openTossCheckout } from "@/lib/toss-checkout"
 
-/** 묶음 한 줄 — 홈 카테고리 카드와 같은 결(명조 제목 + 보조 설명) */
-function PackRow({ pack, dark = false }: { pack: CreditPack; dark?: boolean }) {
+/**
+ * 묶음 한 줄 — 홈 카테고리 카드와 같은 결(명조 제목 + 보조 설명).
+ *
+ * 줄 전체가 버튼입니다. 오른쪽 작은 글씨만 누를 수 있게 하면 손가락으로는
+ * 잘 안 눌립니다.
+ */
+function PackRow({
+  pack,
+  dark = false,
+  onBuy,
+  busy = false,
+  canBuy,
+}: {
+  pack: CreditPack
+  dark?: boolean
+  onBuy: () => void
+  /** 이 줄의 결제창을 여는 중 */
+  busy?: boolean
+  /** 결제를 열 수 있는 배포인가 (아니면 누를 수 없는 안내로 둡니다) */
+  canBuy: boolean
+}) {
   const title = dark ? "text-white" : "text-black"
   const sub = dark ? "text-white/80" : "text-black/70"
 
-  return (
-    <div className="flex items-center gap-4 p-6">
-      <span className="min-w-0 flex-1">
+  const inner = (
+    <>
+      <span className="min-w-0 flex-1 text-left">
         <span className={`block font-myeongjo text-xl font-bold leading-tight ${title}`}>
           {nameCredits(pack.credits)}
         </span>
@@ -49,15 +77,46 @@ function PackRow({ pack, dark = false }: { pack: CreditPack; dark?: boolean }) {
 
       <span className="shrink-0 text-right">
         <span className={`block text-lg font-semibold ${title}`}>{formatKrw(pack.priceKrw)}</span>
-        {/* 결제가 붙기 전까지는 버튼 대신 상태만 보여줍니다 */}
-        <span className={`mt-0.5 block text-xs ${sub}`}>곧 열려요</span>
+        <span className={`mt-0.5 block text-xs ${sub}`}>
+          {!canBuy ? "곧 열려요" : busy ? "여는 중…" : "사기"}
+        </span>
       </span>
-    </div>
+    </>
+  )
+
+  // 결제가 아직 없는 배포에서는 누를 것을 내지 않습니다
+  if (!canBuy) return <div className="flex items-center gap-4 p-6">{inner}</div>
+
+  return (
+    <button
+      type="button"
+      onClick={onBuy}
+      disabled={busy}
+      className="flex w-full items-center gap-4 p-6 text-left transition-opacity hover:opacity-80 disabled:opacity-60"
+    >
+      {inner}
+    </button>
   )
 }
 
 export default function CreditsPage() {
   const { account, ready } = useAccount()
+  // 지금 결제창을 여는 중인 묶음 (두 번 눌러 두 주문이 생기지 않게)
+  const [buying, setBuying] = useState<string | null>(null)
+  const [buyError, setBuyError] = useState<string | null>(null)
+
+  // 로그인 전에는 살 수 없습니다 — 크레딧이 붙을 자리가 없으니까요.
+  // 버튼을 내주고 401 로 돌려보내는 것보다, 로그인 길을 먼저 내주는 편이 낫습니다.
+  const canBuy = isTossReady && account.isLoggedIn
+
+  async function buy(packKey: string) {
+    if (buying) return
+    setBuying(packKey)
+    setBuyError(null)
+    const result = await openTossCheckout(packKey)
+    if (!result.ok) setBuyError(result.message)
+    setBuying(null)
+  }
 
   if (!ready) return <div className="min-h-screen bg-brand-lime" />
 
@@ -100,10 +159,45 @@ export default function CreditsPage() {
         <div className="mt-7 divide-y divide-black border-y border-black">
           {CREDIT_PACKS.map((pack) => (
             <div key={pack.key} className={pack.featured ? "bg-black" : ""}>
-              <PackRow pack={pack} dark={pack.featured} />
+              <PackRow
+                pack={pack}
+                dark={pack.featured}
+                canBuy={canBuy}
+                busy={buying === pack.key}
+                onBuy={() => void buy(pack.key)}
+              />
             </div>
           ))}
         </div>
+
+        {/* 결제창을 열지 못했을 때 — 누른 자리 바로 아래에서 말합니다 */}
+        {buyError && (
+          <div className="mt-3 px-6">
+            <p className="text-sm leading-relaxed text-black">{buyError}</p>
+          </div>
+        )}
+
+        {/* 로그인 전이면 살 수가 없습니다. 그 사실과 길을 함께 둡니다 */}
+        {isTossReady && !account.isLoggedIn && (
+          <div className="mt-4 px-6">
+            <Link
+              href="/login?next=/my/credits"
+              className="flex h-12 w-full items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              로그인하고 사기
+            </Link>
+          </div>
+        )}
+
+        {/* 테스트 키로 붙어 있는 배포 — 진짜 결제를 기다리는 일이 없도록
+            분명히 말합니다. 계약 전에 흐름을 확인할 때의 상태입니다. */}
+        {isTossReady && isTossTestKey && (
+          <div className="mt-4 px-6">
+            <p className="text-xs leading-relaxed text-black/70">
+              지금은 테스트 결제예요. 실제로 돈이 빠져나가지 않아요.
+            </p>
+          </div>
+        )}
 
         {/* 사기 전에 알아야 하는 것 — 전자상거래법은 청약철회 조건을 "구매
             전에" 알 수 있게 하라고 합니다. 결제 버튼 옆이 아니라 묶음 바로
@@ -127,11 +221,16 @@ export default function CreditsPage() {
           <CreditLedger />
         </div>
 
-        <p className="mt-7 px-6 text-center text-sm leading-relaxed text-black/70">
-          결제는 아직 준비 중이에요.
-          <br />
-          가입할 때 드린 {CREDIT_UNIT.one}으로 먼저 봐주세요.
-        </p>
+        {/* ⚠️ 결제가 붙은 배포에서는 이 말을 지웁니다. 살 수 있는 화면에
+            "아직 준비 중"이 남아 있으면, 방금 산 사람이 자기가 뭘 한 건지
+            헷갈립니다. */}
+        {!isTossReady && (
+          <p className="mt-7 px-6 text-center text-sm leading-relaxed text-black/70">
+            결제는 아직 준비 중이에요.
+            <br />
+            가입할 때 드린 {CREDIT_UNIT.one}으로 먼저 봐주세요.
+          </p>
+        )}
 
         <div className="mt-6 px-6 pb-10 text-center">
           <Link
