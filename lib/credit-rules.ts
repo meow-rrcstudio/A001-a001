@@ -19,7 +19,20 @@
  *    바뀌지 않습니다. 먼저 가입한 사람에게 더 주려면 크레딧 원장
  *    (credit_entries)에 직접 한 줄 넣어야 합니다.
  */
-export const WELCOME_CREDITS = 10
+export const WELCOME_CREDITS = 1
+
+/**
+ * 가입 선물 판에 딸려오는 "이어서 묻기" 횟수.
+ *
+ * 산 판(FOLLOWUPS_PER_CREDIT)보다 적습니다. 선물은 맛보기고, 더 묻고
+ * 싶으면 사는 것이 자연스럽습니다. 세 번이면 "한 번 되물어보고 한 번 더"
+ * 까지는 되어서, 샨티와 말이 오간다는 느낌은 받습니다.
+ *
+ * ⚠️ 판을 만들 때 readings.followups_allowed 에 박히는 값이라, 나중에
+ *    이 숫자를 바꿔도 이미 만들어진 판은 그대로입니다. 그게 맞습니다 —
+ *    받을 때의 조건은 지켜져야 합니다.
+ */
+export const WELCOME_FOLLOWUPS = 3
 
 /**
  * 크레딧 한 장에 딸려오는 "이어서 묻기" 횟수.
@@ -32,7 +45,7 @@ export const WELCOME_CREDITS = 10
  * (FOLLOWUP_WARN_AT) 슬쩍 보여주고, 다 쓰면 막지 말고 "한 장 더 쓰고
  * 이어가기"를 권합니다. 물어보려던 걸 못 묻게 하는 게 제일 나쁩니다.
  */
-export const FOLLOWUPS_PER_CREDIT = 20
+export const FOLLOWUPS_PER_CREDIT = 10
 
 /** 남은 횟수가 이보다 적어질 때부터 화면에 보여줍니다 */
 export const FOLLOWUP_WARN_AT = 5
