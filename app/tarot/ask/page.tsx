@@ -47,6 +47,7 @@ import { canUseInsiteReading } from "@/lib/reading-entitlement"
 import { useAccount } from "@/lib/use-account"
 import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { appendTurn, replaceTurns, saveReading } from "@/lib/reading-archive"
+import { resetReadingDeck } from "@/lib/reading-session"
 
 type Step = "ask" | "draw" | "result"
 
@@ -148,6 +149,18 @@ export default function AskPage() {
     if (!q || planning) return
     setQuestion(q)
     setStartError(null)
+
+    // 새 판이니 덱을 새로 섞습니다.
+    //
+    // ⚠️ 덱 순서는 sessionStorage 에 남습니다(lib/reading-session.ts). 안 지우면
+    //    한 번 열어둔 탭에서 보는 모든 판이 같은 덱을 씁니다 — 부채 순서는
+    //    섞은 횟수로 정해지므로, 같은 횟수만큼 섞고 같은 자리를 고르면 앞
+    //    판과 똑같은 카드가 나옵니다. 예전에는 주제 고르기 화면이 들어올 때마다
+    //    지웠는데, 그 화면을 이 화면으로 합치면서 지우는 자리가 사라졌습니다.
+    //
+    // ⚠️ 면담 중에 카드를 더 뽑는 길(followup)에서는 부르지 않습니다. 그건
+    //    같은 판이라 펼쳐둔 부채를 그대로 이어 써야 합니다.
+    resetReadingDeck()
 
     // ── 맛보기로 보는 사람 ─────────────────────────────────────────
     // 서버를 부르지 않고 바로 뽑기로 갑니다. 낼 별조각도, 만들 판도
@@ -291,8 +304,6 @@ export default function AskPage() {
               되돌립니다 — 옮기면 고른 주제와 친 글이 사라집니다. */}
           <PageHeader variant="reading" centerCharacter onBack={() => setStep("ask")} />
           <CardReadingFlow
-            mode="inline"
-            topicLabel={question}
             topicSlug={asked.topicSlug}
             question={asked.question}
             introMessage={drawIntro(asked, question, plan)}
@@ -363,8 +374,6 @@ export default function AskPage() {
                 }}
               />
               <CardReadingFlow
-                mode="inline"
-                topicLabel={question}
                 topicSlug="self"
                 question={{
                   slug: FREE_QUESTION_SLUG,

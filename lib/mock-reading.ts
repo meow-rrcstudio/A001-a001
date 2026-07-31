@@ -18,9 +18,3 @@ export interface ReadingResult {
   sections: { heading: string; body: string }[]
 }
 
-/** 질문 입력 화면에 보여줄 예시 질문 (시안의 "제안") */
-export const SUGGESTED_QUESTIONS = [
-  "그 사람이 지금 무슨 생각중일까?",
-  "오늘 하루 어떨까?",
-  "그냥 내 금전운이 궁금해",
-] as const

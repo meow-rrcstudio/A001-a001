@@ -4,11 +4,9 @@
 // ⚠️ 이 파일은 절대 클라이언트에서 import 하지 마세요. API 키가 브라우저로
 //    넘어갑니다. 부르는 쪽은 app/api/ 아래의 라우트여야 합니다.
 //
-// lib/ai/openai.ts 와 같은 모양(runReading)을 돌려주므로 부르는 쪽에서는
 // 어느 쪽을 쓰든 코드가 같습니다. SDK 없이 fetch 만 씁니다 —
 // lib/ai-summary.ts 가 이미 같은 방식으로 제미나이를 부르고 있습니다.
 import { buildReadingMessages, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
-import type { ReadingRunResult } from "@/lib/ai/openai"
 import { READING_JSON_SCHEMA } from "@/lib/ai/reading-schema"
 // 막혔을 때 사람에게 할 말은 한 곳에서만 정합니다 (화면도 같은 파일을 봅니다).
 import { describeChatError, type ChatErrorKind } from "@/lib/chat-errors"
@@ -205,82 +203,6 @@ const CHAT_THINKING = { thinkingBudget: CHAT_THINKING_BUDGET }
 // 로그인 전 사람에게는 품질입니다.
 const NO_THINKING = { thinkingBudget: 0 }
 
-export async function runReadingWithGemini({
-  topicKey,
-  question,
-  cards,
-  surface = "inline",
-}: {
-  topicKey: ReadingTopicKey
-  question: ReadingQuestion
-  cards: { name: string; orientation: "정방향" | "역방향" }[]
-  /** 사이트 안에서 읽어주므로 기본은 "inline" — 맺음말 링크가 붙지 않습니다. */
-  surface?: "prompt" | "inline"
-}): Promise<ReadingRunResult> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    // 화면에는 "이 몸이 카드를 들 수 없는 상태"로 나갑니다. 어느 환경변수가
-    // 비었는지는 사람이 할 수 있는 일이 아니고, 우리가 로그에서 봅니다.
-    throw new GeminiError(
-      "server",
-      500,
-      "GEMINI_API_KEY 가 없습니다. Vercel → Settings → Environment Variables 를 확인하세요."
-    )
-  }
-
-  const { system, user } = buildReadingMessages({ topicKey, question, cards, surface })
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_READING_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        // 캐릭터 + 주제. 매번 같아서 캐싱 대상입니다.
-        systemInstruction: { parts: [{ text: system }] },
-        // 이번에 뽑은 카드만.
-        contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { maxOutputTokens: SAFE_MAX_OUTPUT_TOKENS, thinkingConfig: THINKING },
-      }),
-    }
-  )
-
-  if (!response.ok) {
-    throw await failureFrom(response, GEMINI_READING_MODEL)
-  }
-
-  const data = await response.json()
-  const text: string =
-    data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? ""
-
-  if (!text.trim()) {
-    const detail = `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
-    console.error("[gemini] 글자를 하나도 내놓지 않았습니다 —", detail)
-    throw new GeminiError("empty", response.status, detail)
-  }
-
-  const usage = data?.usageMetadata ?? {}
-  return {
-    text,
-    model: GEMINI_READING_MODEL,
-    usage: {
-      inputTokens: usage.promptTokenCount ?? 0,
-      outputTokens: usage.candidatesTokenCount ?? 0,
-      cachedInputTokens: usage.cachedContentTokenCount ?? 0,
-    },
-  }
-}
-
-/**
- * 위와 같지만 결과를 조각내어 흘려보냅니다.
- *
- * 해석 한 편에 20초 가까이 걸리므로, 다 만들어질 때까지 기다리면 화면이
- * 멈춘 것처럼 보입니다. 도착하는 대로 넘겨서 제목 → 요약 → 키워드 →
- * 섹션 순으로 채워지게 합니다.
- *
- * 돌려주는 것은 "지금까지 쌓인 JSON 문자열"입니다. 아직 완성되지 않은
- * 상태라 받는 쪽에서 parsePartialJson 으로 읽어냅니다.
- */
 export function streamReadingWithGemini({
   topicKey,
   question,

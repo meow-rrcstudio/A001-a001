@@ -16,12 +16,8 @@ import { motion, type PanInfo } from "framer-motion"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
-import { buildReadingPrompt, type ReadingQuestion, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import type { ReadingQuestion, ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
-import { FreeReadingNudge } from "@/components/free-reading-nudge"
-import { FreeReadingPreview } from "@/components/free-reading-preview"
-import { saveFreeReading } from "@/lib/save-free-reading"
-import { useAccount } from "@/lib/use-account"
 
 type Phase = "shuffling" | "selecting" | "revealing"
 
@@ -86,23 +82,14 @@ function seededOrder(length: number, seed: number) {
   return indices
 }
 
-function deriveShuffleStyle({ durationMs, interactionCount }: { durationMs: number; interactionCount: number }) {
-  if (durationMs < 2500) return "빠르고 힘 있게, 단숨에 섞음"
-  if (interactionCount >= 14) return "여러 번 끊어가며 신중하게 섞음"
-  return "천천히 차분하게 오래 섞음"
-}
-
 export function CardReadingFlow({
-  topicLabel,
   topicSlug,
   question,
   introMessage,
-  mode = "prompt",
   excludeNames,
   skipShuffle = false,
   onComplete,
 }: {
-  topicLabel: string
   topicSlug: ReadingTopicKey
   question: ReadingQuestion
   introMessage: string
@@ -128,13 +115,7 @@ export function CardReadingFlow({
    *    excludeNames 로 빠집니다.
    */
   skipShuffle?: boolean
-  /**
-   * 카드를 다 뒤집은 뒤에 무엇을 보여줄지.
-   * · "prompt" (기본) — 외부 AI 에 붙여넣을 프롬프트를 말풍선에 띄웁니다 (비회원 흐름)
-   * · "inline"        — "해석 보기" 버튼을 띄우고 onComplete 로 넘깁니다 (사이트 내 해석)
-   */
-  mode?: "prompt" | "inline"
-  /** mode="inline" 에서 해석 보기를 눌렀을 때. 뽑은 카드 이름과 정/역방향을 넘깁니다. */
+  /** 카드를 다 뒤집었을 때. 뽑은 카드 이름과 정/역방향을 넘깁니다. */
   onComplete?: (picked: { name: string; reversed: boolean; imageUrl: string }[]) => void
 }) {
   const requiredPicks = question.positions.length
@@ -144,7 +125,6 @@ export function CardReadingFlow({
   const [shuffleStep, setShuffleStep] = useState(0)
   const [entered, setEntered] = useState(false)
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null)
-  const [shuffleStyle, setShuffleStyle] = useState<string | null>(null)
   // 말풍선이 지금까지 차지한 가장 큰 높이. 글이 짧아져도 자리를 도로
   // 내주지 않아서, 말이 바뀔 때마다 무대가 들썩이는 일이 없습니다.
   const [bubbleReservedHeight, setBubbleReservedHeight] = useState(96)
@@ -159,17 +139,8 @@ export function CardReadingFlow({
   // 무대가 flex 로 받아간 실제 높이 — 보드와 부채를 여기에 맞춰 나눕니다
   const [stageBoxHeight, setStageBoxHeight] = useState(560)
 
-  // ── 무료 흐름의 기록 남기기 ─────────────────────────────────────
-  // 카드를 다 뒤집어 프롬프트가 뜨는 순간 한 번만 남깁니다.
-  // ⚠️ savedRef 가 없으면 리렌더마다 다시 저장돼 기록이 줄줄이 쌓입니다.
-  const { account } = useAccount()
-  const savedRef = useRef(false)
-  const [saved, setSaved] = useState<{ id: string; onServer: boolean } | null>(null)
-
   const traveledRef = useRef(0)
   const lastMouseX = useRef<number | null>(null)
-  const shuffleStartRef = useRef<number | null>(null)
-  const interactionCountRef = useRef(0)
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isTouchDevice = useIsTouchDevice()
@@ -219,7 +190,7 @@ export function CardReadingFlow({
   }, [])
 
   useEffect(() => {
-    if (mode !== "inline" || !onComplete) return
+    if (!onComplete) return
     if (flippedIndices.length < requiredPicks) return
     const timer = setTimeout(() => {
       onComplete(
@@ -232,7 +203,7 @@ export function CardReadingFlow({
     }, 1400)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flippedIndices.length, requiredPicks, mode])
+  }, [flippedIndices.length, requiredPicks])
 
   useEffect(() => {
     return () => {
@@ -261,16 +232,10 @@ export function CardReadingFlow({
   }, [phase])
 
   function finishShuffling() {
-    if (shuffleStartRef.current !== null) {
-      const durationMs = Date.now() - shuffleStartRef.current
-      setShuffleStyle(deriveShuffleStyle({ durationMs, interactionCount: interactionCountRef.current }))
-    }
     setPhase("selecting")
   }
 
   function bumpProgress(delta: number) {
-    if (shuffleStartRef.current === null) shuffleStartRef.current = Date.now()
-    interactionCountRef.current += 1
     traveledRef.current += delta
     const next = Math.min(100, Math.round((traveledRef.current / SHUFFLE_TARGET_DISTANCE) * 100))
     setShuffleStep(Math.min(SHUFFLE_STEPS, Math.ceil((next / 100) * SHUFFLE_STEPS)))
@@ -408,44 +373,6 @@ export function CardReadingFlow({
     return { left: `${left}px`, top: `${top}px` }
   }
 
-  function buildPrompt() {
-    const cards = selected.map((cardIndex) => {
-      const card = shuffledDeck[cardIndex]
-      const orientation = cardOrientations[cardIndex]
-      return { name: card.nameKo, orientation }
-    })
-    const basePrompt = buildReadingPrompt({ topicKey: topicSlug, question, cards })
-    return shuffleStyle ? `${basePrompt}\nshuffle_style=${shuffleStyle}` : basePrompt
-  }
-
-  // 프롬프트가 뜨는 순간 = 무료로 한 판을 본 순간입니다. 그때 기록에 남깁니다.
-  const freeDone =
-    mode === "prompt" && phase === "revealing" && flippedIndices.length >= requiredPicks
-
-  useEffect(() => {
-    if (!freeDone || savedRef.current) return
-    savedRef.current = true
-    void saveFreeReading({
-      question: question.label,
-      topicLabel,
-      cards: selected.map((cardIndex) => {
-        const card = shuffledDeck[cardIndex]
-        return {
-          name: card.nameKo,
-          reversed: cardOrientations[cardIndex] === "역방향",
-          imageUrl: card.imageUrl,
-        }
-      }),
-      layoutKey: question.layoutKey,
-      positions: question.positions.map((p) => p.label),
-      promptText: buildPrompt(),
-    }).then((result) => {
-      if (result) setSaved(result)
-    })
-    // 뽑기가 끝나는 건 판마다 한 번뿐이라, 그 신호만 봅니다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [freeDone])
-
   const isShuffling = phase === "shuffling"
   let leftoverCounter = 0
 
@@ -465,45 +392,12 @@ export function CardReadingFlow({
               : phase === "selecting"
                 ? (question.positions[selected.length]?.guide ?? "끌리는 카드를 골라보라냥")
                 : flippedIndices.length >= requiredPicks
-                  ? mode === "inline"
-                    ? "흠! 카드는 다 뽑혔구먼. 이 몸이 고심해서 들여다보는 중이니 잠깐만 기다려보라냥..."
-                      : // 이제 이 몸이 아래에서 직접 읽어줍니다(FreeReadingPreview).
-                      // 프롬프트 복사는 없애지 않았지만, 첫 마디로 내밀지는
-                      // 않습니다 — 읽어주는 쪽이 먼저입니다.
-                      `${topicLabel}에 대한 카드 ${requiredPicks}장을 골랐어냥. 이 몸이 아래에 읽어줄 테니 내려서 보라냥.`
+                  ? "흠! 카드는 다 뽑혔구먼. 이 몸이 고심해서 들여다보는 중이니 잠깐만 기다려보라냥..."
                   : "카드를 하나씩 뒤집어보는 중이야냥..."
           }
-          promptText={freeDone ? buildPrompt() : undefined}
           onHeightChange={(h) => setBubbleReservedHeight((prev) => (h > prev ? h : prev))}
         />
 
-        {/* 샨티가 이 자리에서 한 판 읽어줍니다 (로그인 전에도).
-            ⚠️ 말풍선의 프롬프트 복사 위에 얹히는 것이지, 대신하는 것이
-               아닙니다 — 밖의 AI 로 가져가려던 사람의 길은 그대로 둡니다. */}
-        {freeDone && (
-          <FreeReadingPreview
-            topicSlug={topicSlug}
-            question={question}
-            cards={selected.map((cardIndex) => {
-              const card = shuffledDeck[cardIndex]
-              return {
-                name: card.nameKo,
-                reversed: cardOrientations[cardIndex] === "역방향",
-                imageUrl: card.imageUrl,
-              }
-            })}
-          />
-        )}
-
-        {/* 해석 뒤에 다음 걸음을 권합니다.
-            로그인 여부에 따라 말이 갈립니다 (components/free-reading-nudge.tsx) */}
-        {freeDone && (
-          <FreeReadingNudge
-            isLoggedIn={account.isLoggedIn}
-            savedId={saved?.id}
-            onServer={saved?.onServer}
-          />
-        )}
       </div>
 
       {isShuffling && (

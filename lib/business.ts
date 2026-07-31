@@ -73,11 +73,6 @@ export const BUSINESS_INFO_READY = REQUIRED_FIELDS.every(
   (key) => BUSINESS[key].trim().length > 0,
 )
 
-/** 아직 안 채운 필수 항목 이름들 (개발 중 확인용) */
-export function missingBusinessFields(): string[] {
-  return REQUIRED_FIELDS.filter((key) => BUSINESS[key].trim().length === 0)
-}
-
 /** 화면에 한 줄로 그릴 항목 — 값이 없는 것은 빠집니다 */
 export interface BusinessLine {
   label: string
