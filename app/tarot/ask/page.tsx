@@ -31,7 +31,7 @@ import { FreeReadingResult } from "@/components/free-reading-result"
 import { readingTopics, type ReadingTopicSlug } from "@/lib/reading-topics"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
-import { HEADER_SPACE } from "@/lib/layout"
+import { HEADER_SPACE, HEADER_SPACE_PX } from "@/lib/layout"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
@@ -126,6 +126,39 @@ export default function AskPage() {
   // ⚠️ 지금은 재서 남기기만 합니다 — 해석에는 싣지 않습니다.
   //    판마다 새로 만듭니다. 하나를 계속 쓰면 앞 판의 시간이 섞입니다.
   const trackerRef = useRef<DrawTracker>(createDrawTracker())
+
+  // ┌─ 겹쳐 놓기 ───────────────────────────────────────────────────────
+  // │ 시안의 진입 화면은 세 층입니다.
+  // │   아래층  질문 칩 — 화면 끝에서 끝까지 흐릅니다
+  // │   위층    헤더 · 말풍선 · 입력창
+  // │ 아래층이 위층 뒤로 지나가고, 겹치는 자리는 흐려집니다. 그래서 위층의
+  // │ 글이 안 상하면서도 "아래로 더 있다"가 눈에 보입니다.
+  // │
+  // │ ⚠️ 예전에는 세 덩이를 세로로 쌓았습니다(flex-col). 그러면 칩 영역이
+  // │    말풍선과 입력창 사이로 좁아져서, 마지막 칩이 늘 반쯤 잘린 채
+  // │    멈췄습니다 — 흐려지지도 않아 고장처럼 보였습니다.
+  // │
+  // │ 위층 높이는 재서 아래층 여백으로 넘깁니다. 말풍선은 글 길이에 따라
+  // │ 두 줄도 세 줄도 되므로 값을 박아둘 수 없습니다.
+  // └──────────────────────────────────────────────────────────────────
+  const [bubbleHeight, setBubbleHeight] = useState(0)
+  const [inputHeight, setInputHeight] = useState(0)
+
+  // ⚠️ useRef 로 잡으면 안 됩니다. 회원 정보를 기다리는 동안 이 화면은
+  //    빈 판을 먼저 내놓는데(accountReady 가 거짓일 때), 그때 effect 가
+  //    먼저 돌아 ref 가 비어 있습니다. 그 뒤로는 다시 돌 일이 없어서
+  //    입력창 높이가 영영 0 으로 남고, 칩이 입력창 뒤로 지나가지 못한 채
+  //    아래 여백만 24px 인 화면이 됩니다 (실제로 그렇게 났습니다).
+  //    콜백 ref 는 실제로 붙는 순간에 불려서 그 틈이 없습니다.
+  const [inputBar, setInputBar] = useState<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!inputBar) return
+    const measure = () => setInputHeight(inputBar.offsetHeight)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(inputBar)
+    return () => observer.disconnect()
+  }, [inputBar])
 
   const handleDrawRequest = useCallback(
     (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
@@ -422,15 +455,49 @@ export default function AskPage() {
   return (
     // 진입 화면도 딱 한 화면입니다. 100vh 는 모바일 사파리 주소창 높이를
     // 빼주지 않아서 아래(제안 칩 + 입력창)가 잘렸습니다.
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <main
-        className={`mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
-      >
-        <PageHeader variant="reading" centerCharacter backHref="/" />
+    <div className="relative h-dvh overflow-hidden bg-background">
+      <PageHeader variant="reading" centerCharacter backHref="/" />
 
-        {/* 말풍선은 상단에 고정합니다 — 아래 칩이 길어 스크롤돼도 샨티의
-            말은 자리를 지킵니다. */}
-        <div className="shrink-0">
+      {/* ── 아래층: 질문 칩 ────────────────────────────────────────────
+          화면 끝에서 끝까지입니다. 위아래 여백으로 헤더·말풍선·입력창
+          자리를 비워두되, 스크롤하면 그 뒤로 지나갑니다. */}
+      <div className="h-full overflow-y-auto overscroll-contain">
+        <div
+          className="mx-auto w-full max-w-site px-6 sm:px-8"
+          style={{
+            // 헤더(76px) + 말풍선 + 말풍선과 "제안" 사이 20px
+            paddingTop: HEADER_SPACE_PX + bubbleHeight + 20,
+            // 입력창 + 마지막 칩이 입력창에 닿지 않게 24px
+            paddingBottom: inputHeight + 24,
+          }}
+        >
+          {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
+              입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
+          {startError && <ChatErrorBox info={startError} className="mb-4" />}
+
+          <QuestionPicker
+            topic={topic}
+            onTopicChange={(next) => {
+              // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
+              if (topic !== null) trackerRef.current.topicChanged()
+              setTopic(next)
+            }}
+            onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
+            disabled={planning}
+          />
+        </div>
+      </div>
+
+      {/* ── 위층: 말풍선 ──────────────────────────────────────────────
+          헤더 스크림(z-40) 아래, 칩(z-0) 위입니다.
+
+          ⚠️ 손이 통과하지 않게 둡니다(pointer-events 를 끄지 않습니다).
+             흐려서 읽을 수 없는 칩이 눌리면 엉뚱한 질문으로 넘어갑니다. */}
+      <div
+        className="absolute inset-x-0 top-0 z-30 backdrop-blur-md"
+        style={{ paddingTop: HEADER_SPACE_PX }}
+      >
+        <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ReadingCharacterBubble
             placement="top"
             message={
@@ -438,58 +505,26 @@ export default function AskPage() {
                 ? topicContent[topic].reactionLine
                 : "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 궁금한 것이 있으면 이 몸에게 물어보게냥."
             }
+            onHeightChange={setBubbleHeight}
           />
         </div>
+      </div>
 
-        {/* ── 제안 ───────────────────────────────────────────────────
-            말풍선 바로 아래에서 시작해 아래로 흘러내립니다. 칩이 많으면
-            (주제 하나에 질문이 여남은 개입니다) 이 영역만 스크롤합니다.
+      {/* ── 위층: 입력창 ──────────────────────────────────────────────
+          키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
+          (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다).
 
-            ⚠️ 아래에 붙이지 않습니다(justify-end 아님). 붙여놨더니 화면이
-               큰 기기에서 말풍선과 칩 사이가 텅 비고, 칩 묶음이 입력창에
-               딸린 부속처럼 보였습니다. 시안은 위에서부터 떨어집니다. */}
-        <div className="relative min-h-0 flex-1">
-          <div className="h-full overflow-y-auto">
-            {/* ⚠️ 아래 여백을 반드시 둡니다. 없으면 마지막 칩이 스크롤 끝에서
-                입력창에 딱 붙어 잘린 것처럼 보입니다 — 실제로 아리님 화면에서
-                그렇게 보였습니다. */}
-            <div className="flex flex-col pt-5 pb-6">
-              {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
-                  입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
-              {startError && <ChatErrorBox info={startError} className="mb-4" />}
-
-              <QuestionPicker
-                topic={topic}
-                onTopicChange={(next) => {
-                  // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
-                  if (topic !== null) trackerRef.current.topicChanged()
-                  setTopic(next)
-                }}
-                onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
-                disabled={planning}
-              />
-            </div>
-          </div>
-
-          {/* 아래로 더 있다는 표시. 잘린 칩이 "고장"이 아니라 "이어짐"으로
-              읽히게 하는 장치입니다. 손이 닿으면 안 되므로 pointer-events 를
-              끕니다 — 안 끄면 이 띠가 맨 아래 칩의 클릭을 먹습니다. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-background to-transparent"
-          />
-        </div>
-
-        {/* 입력창은 화면 맨 아래 붙박이입니다.
-            키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
-            (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다). */}
-        <div
-          className={`shrink-0 transition-[margin] duration-150 ${
-            // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
-            keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
-          }`}
-          style={{ marginBottom: keyboardInset }}
-        >
+          위쪽으로 갈수록 투명해지는 바탕을 깔아, 뒤로 지나가는 칩이
+          입력창에 닿기 전에 서서히 묻히게 합니다. */}
+      <div
+        ref={setInputBar}
+        className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/90 to-transparent backdrop-blur-md transition-[margin] duration-150 ${
+          // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
+          keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
+        }`}
+        style={{ marginBottom: keyboardInset }}
+      >
+        <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ChatInput
             value={question}
             onChange={(next) => {
@@ -505,7 +540,7 @@ export default function AskPage() {
             className="mt-4"
           />
         </div>
-      </main>
+      </div>
     </div>
   )
 }
