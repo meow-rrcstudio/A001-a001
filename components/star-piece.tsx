@@ -5,11 +5,12 @@
 // 기울어 있어서, 자로 잰 별과 달리 손맛이 남아 있습니다.
 //
 // ┌─ 쓰는 법 ─────────────────────────────────────────────────────────
-// │ <StarPiece className="h-12 w-12" />            글자색으로
-// │ <StarPiece className="h-12 w-12 text-accent" /> 초록으로
+// │ <StarPiece className="h-12 w-12" />             라임(#c7fe74) — 기본
+// │ <StarPiece className="h-12 w-12 text-accent" /> 다른 색이 필요할 때
 // │
 // │ · 크기 : className 에 h-*/w-* 로 (그림 자체는 정사각에 맞춰 뒀습니다)
-// │ · 색   : fill="currentColor" 라 text-* 를 따라갑니다
+// │ · 색   : 시그니처 라임이 기본입니다. text-* 를 주면 그쪽이 이깁니다
+// │          (cn = tailwind-merge 라 나중 것이 앞것을 덮습니다)
 // │ · 이름 : title 을 주면 스크린리더가 읽고, 없으면 장식으로 건너뜁니다
 // └──────────────────────────────────────────────────────────────────
 //
@@ -21,6 +22,8 @@
 // 별을 다시 그려 바꿀 때는 아래 d 값만 갈아 끼우면 됩니다. viewBox 는
 // 그림이 실제로 차지하는 범위(x 5.8~52.8 · y 7.1~53.4)에 맞춰 둔 것이라,
 // 새 그림의 범위가 다르면 함께 고쳐야 가운데에 놓입니다.
+
+import { cn } from "@/lib/utils"
 
 export function StarPiece({
   className,
@@ -36,7 +39,7 @@ export function StarPiece({
       role={title ? "img" : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
-      className={className}
+      className={cn("text-brand-lime", className)}
     >
       <path
         fill="currentColor"

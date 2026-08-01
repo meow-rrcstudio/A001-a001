@@ -116,7 +116,7 @@ export function ConfirmView() {
 
           {phase.step === "done" && (
             <>
-              <StarPiece className="h-14 w-14 text-foreground" />
+              <StarPiece className="h-14 w-14" />
               <h1 className={`${title} mt-6`}>
                 {countCredits(phase.credits)}의 {withJosa(CREDIT_UNIT.one, "이가")} 생겼어요.
               </h1>
