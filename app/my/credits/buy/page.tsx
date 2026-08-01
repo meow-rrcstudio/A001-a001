@@ -175,10 +175,14 @@ export default function BuyCreditsPage() {
       )}
 
       {/* 테스트 키로 붙어 있는 배포 — 진짜 결제를 기다리는 일이 없도록
-          분명히 말합니다. 계약 전에 흐름을 확인할 때의 상태입니다. */}
+          분명히 말합니다. 계약 전에 흐름을 확인할 때의 상태입니다.
+          ⚠️ "돈이 안 나간다"만 말하면 눌러도 되는지가 안 걸립니다.
+             눌러봐도 된다는 말까지 함께 둡니다. */}
       {isTossReady && isTossTestKey && (
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          지금은 테스트 결제예요. 실제로 돈이 빠져나가지 않아요.
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+          지금은 결제 테스트 상태라 실제로 결제되지 않아요.
+          <br />
+          안심하고 눌러보세요.
         </p>
       )}
 
