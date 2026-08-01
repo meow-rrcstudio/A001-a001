@@ -35,7 +35,7 @@ export default function WithdrawPage() {
   if (!account.isLoggedIn) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <PageHeader variant="close" backHref="/my/settings" />
+        <PageHeader variant="close" backHref="/my/settings/profile" />
         <main
           className={`mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 text-center ${HEADER_SPACE}`}
         >
@@ -74,7 +74,7 @@ export default function WithdrawPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <PageHeader variant="close" backHref="/my/settings" />
+      <PageHeader variant="close" backHref="/my/settings/profile" />
 
       <main className={`mx-auto w-full max-w-md flex-1 px-6 pb-10 ${HEADER_SPACE}`}>
         <h1 className="pb-2 pt-2 font-myeongjo text-2xl font-bold text-foreground">
@@ -142,7 +142,7 @@ export default function WithdrawPage() {
 
         {/* 나갈 길을 늘 함께 둡니다 — 마음이 바뀔 수 있으니까요 */}
         <Link
-          href="/my/settings"
+          href="/my/settings/profile"
           className="mt-3 block w-full rounded-xl bg-muted py-4 text-center text-base font-semibold text-foreground transition-colors hover:bg-black/5"
         >
           그냥 둘래요

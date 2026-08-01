@@ -10,6 +10,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import type { AuthProvider } from "@/app/api/account/route"
 import { isSupabaseConfigured } from "@/lib/supabase/env"
 import { claimLocalReadings, resetClaim } from "@/lib/claim-readings"
 import {
@@ -21,9 +22,16 @@ import {
 export interface Account extends Entitlement {
   email: string | null
   displayName: string | null
+  /** 가입·로그인에 쓴 수단 (프로필 화면이 보여줍니다) */
+  provider: AuthProvider
 }
 
-const LOGGED_OUT: Account = { ...DEFAULT_ENTITLEMENT, email: null, displayName: null }
+const LOGGED_OUT: Account = {
+  ...DEFAULT_ENTITLEMENT,
+  email: null,
+  displayName: null,
+  provider: "unknown",
+}
 
 export function useAccount() {
   const [account, setAccount] = useState<Account>(LOGGED_OUT)
@@ -34,7 +42,7 @@ export function useAccount() {
   const refresh = useCallback(async () => {
     if (!isSupabaseConfigured) {
       const e = getEntitlement()
-      setAccount({ ...e, email: null, displayName: null })
+      setAccount({ ...e, email: null, displayName: null, provider: "unknown" })
       setReady(true)
       return
     }

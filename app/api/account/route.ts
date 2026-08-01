@@ -29,11 +29,22 @@ function nameOf(user: { user_metadata?: Record<string, unknown> }): string | nul
   return null
 }
 
+/**
+ * 어떤 길로 들어온 계정인가.
+ *
+ * 프로필 화면이 "카카오로 가입하셨어요"를 보여주는 데 씁니다.
+ * 로그인할 때마다 어느 버튼을 눌러야 하는지 잊는 사람이 많습니다 —
+ * 특히 이메일로 가입했는지 카카오로 했는지가 헷갈립니다.
+ */
+export type AuthProvider = "email" | "kakao" | "google" | "unknown"
+
 export interface AccountInfo {
   isLoggedIn: boolean
   credits: number
   email: string | null
   displayName: string | null
+  /** 가입·로그인에 쓴 수단 */
+  provider: AuthProvider
 }
 
 const LOGGED_OUT: AccountInfo = {
@@ -41,6 +52,34 @@ const LOGGED_OUT: AccountInfo = {
   credits: 0,
   email: null,
   displayName: null,
+  provider: "unknown",
+}
+
+/**
+ * 로그인 수단을 알아냅니다.
+ *
+ * ⚠️ app_metadata.provider 하나만 보지 않습니다. 한 계정에 여러 수단이
+ *    묶일 수 있고(같은 이메일로 카카오·구글을 잇는 경우), 그때 이 값은
+ *    "마지막에 쓴 것"이라 실제로 가입한 길과 다를 수 있습니다.
+ *    identities 를 함께 보고, 사람이 만든 길(카카오·구글)을 먼저 칩니다.
+ */
+function providerOf(user: {
+  app_metadata?: { provider?: string; providers?: string[] }
+  identities?: { provider?: string }[] | null
+}): AuthProvider {
+  const found = new Set<string>()
+  if (user.app_metadata?.provider) found.add(user.app_metadata.provider)
+  for (const p of user.app_metadata?.providers ?? []) found.add(p)
+  for (const identity of user.identities ?? []) {
+    if (identity?.provider) found.add(identity.provider)
+  }
+
+  // 이어 붙인 계정이면 소셜 쪽을 먼저 알려줍니다 — 이메일은 어느
+  // 계정에나 있어서 "이메일로 가입"과 구분이 안 됩니다.
+  if (found.has("kakao")) return "kakao"
+  if (found.has("google")) return "google"
+  if (found.has("email")) return "email"
+  return "unknown"
 }
 
 export async function GET() {
@@ -131,5 +170,6 @@ export async function GET() {
     credits: balance?.credits ?? 0,
     email: user.email ?? null,
     displayName: profile?.display_name ?? null,
+    provider: providerOf(user),
   } satisfies AccountInfo)
 }

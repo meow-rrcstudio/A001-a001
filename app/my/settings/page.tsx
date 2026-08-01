@@ -47,7 +47,8 @@ export default function SettingsPage() {
   }
 
   const accountItems: SettingsItem[] = [
-    { label: "프로필", href: "#" },
+    // 계정에 관한 일(로그인 수단 확인·회원탈퇴)이 이 안에 있습니다
+    { label: "프로필", href: "/my/settings/profile" },
     {
       // 건별이라 "플랜"이 없습니다. 남은 개수를 그대로 보여줍니다.
       // 부르는 말은 lib/credit-packs.ts 한 곳에서 옵니다.
@@ -95,21 +96,10 @@ export default function SettingsPage() {
           로그아웃 하기
         </button>
 
-        {/* 회원탈퇴 — 약관 제11조와 개인정보처리방침이 "언제든지 탈퇴할 수
-            있다"고 약속하는 자리입니다. 문서에만 있고 화면에 없으면 그
-            약속이 거짓말이 됩니다 (개인정보보호법 제37조).
-
-            ⚠️ 로그아웃과 같은 크기로 놓지 않습니다. 나가는 길 둘이 나란히
-               같은 무게로 있으면 잘못 누릅니다. 되돌릴 수 있는 것(로그아웃)이
-               버튼이고, 되돌릴 수 없는 것(탈퇴)은 작은 글씨입니다. */}
-        <div className="mt-6 text-center">
-          <Link
-            href="/my/settings/withdraw"
-            className="text-[13px] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            회원탈퇴
-          </Link>
-        </div>
+        {/* ⚠️ 회원탈퇴는 여기 두지 않습니다. 프로필 안에 있습니다
+               (/my/settings/profile). 로그아웃 바로 옆에 두면 나가는 길
+               둘이 나란히 붙어 잘못 누르기 쉽고, "계정에 관한 일"은
+               한자리에 모이는 편이 찾기 좋습니다. */}
       </main>
 
       <Footer variant="lime" />
