@@ -22,7 +22,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Check, Copy } from "lucide-react"
+import { ArrowRight, RotateCw } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ChatErrorBox } from "@/components/chat-error-box"
@@ -57,7 +57,6 @@ export function FreeReadingResult({
   onBack: () => void
 }) {
   const { reading, streaming, error, run } = useReadingStream()
-  const [copied, setCopied] = useState(false)
   // 잠긴 입력창을 눌렀을 때 안내 카드를 잠깐 도드라지게 합니다
   const [nudged, setNudged] = useState(false)
   const nudgeRef = useRef<HTMLDivElement>(null)
@@ -108,16 +107,6 @@ export function FreeReadingResult({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streaming, reading])
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(promptText)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // 클립보드가 막힌 환경 — 아래 글을 직접 골라 복사할 수 있습니다
-    }
-  }
-
   function bumpNudge() {
     setNudged(true)
     nudgeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -139,9 +128,35 @@ export function FreeReadingResult({
         <article className="mt-6">
           <MiniSpread cards={cards} layoutKey={question.layoutKey} />
 
-          {/* ⚠️ 다시 하기를 내주지 않습니다. 한 번 더 부르면 사이트 전체
-              맛보기 총량에서 한 판을 또 꺼내 씁니다. */}
-          {error && <ChatErrorBox info={error} className="mt-4" />}
+          {/* ── 못 받았을 때 ────────────────────────────────────────────
+              ⚠️ 예전에는 다시 하기를 안 내줬습니다 — 한 번 더 부르면 사이트
+                 전체 맛보기 총량에서 한 판을 또 꺼내 쓰기 때문입니다.
+                 하지만 그 셈이 사람보다 앞설 수는 없습니다. 카드를 다 뽑고
+                 아무것도 못 받은 사람에게 나갈 길조차 없으면, 아낀 한 판보다
+                 잃는 것이 큽니다. 실패했을 때만 내줍니다 — 잘 받은 판에는
+                 여전히 안 내주므로 총량이 두 배로 나가지는 않습니다. */}
+          {error && (
+            <>
+              <ChatErrorBox info={error} className="mt-4" />
+              {error.canRetry !== false && (
+                <button
+                  type="button"
+                  onClick={() => void run({
+                    topicKey: topicSlug,
+                    questionSlug: question.slug,
+                    questionLabel: question.label,
+                    cards,
+                    free: true,
+                  })}
+                  disabled={streaming}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <RotateCw className="h-4 w-4" aria-hidden="true" />
+                  {streaming ? "다시 들여다보는 중..." : "다시 청해보기"}
+                </button>
+              )}
+            </>
+          )}
 
           {!reading && streaming && (
             <p className="mt-4 text-reading text-muted-foreground">
@@ -177,7 +192,10 @@ export function FreeReadingResult({
         {/* ── 다음 걸음 ─────────────────────────────────────────────
             해석을 다 읽은 자리입니다. 여기서 권하는 말은 근거가 있습니다 —
             방금 읽은 것과 무엇이 다른지를 말하면 되니까요. */}
-        {!streaming && reading?.title && (
+        {/* ⚠️ 해석을 못 받았을 때도 냅니다. 예전에는 성공했을 때만 냈는데,
+               그러면 실패한 사람 화면에는 안내도 잠긴 입력창도 없어서 아무
+               길이 없는 화면이 됩니다 (아리님 폰에서 실제로 그랬습니다). */}
+        {!streaming && (reading?.title || error) && (
           <div
             ref={nudgeRef}
             className={`mt-8 rounded-2xl bg-card p-4 shadow-raised transition-shadow duration-300 ${
@@ -216,39 +234,22 @@ export function FreeReadingResult({
           </div>
         )}
 
-        {/* 밖의 AI 로 가져가려던 사람의 길 — 없애지 않았습니다.
-            맛보기가 생겼다고 막을 이유가 없어서, 아래에 조용히 둡니다. */}
-        {!streaming && (
-          <details className="mt-8">
-            <summary className="cursor-pointer text-sm text-muted-foreground underline underline-offset-4">
-              다른 AI에게 물어볼 프롬프트
-            </summary>
-            <div className="mt-2 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => void copy()}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "복사했어냥!" : "복사"}
-              </button>
-            </div>
-            {/* 클립보드가 막힌 환경에서는 길게 눌러 직접 고를 수 있어야 합니다 */}
-            <div className="max-h-72 select-all overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed text-muted-foreground">
-              {promptText}
-            </div>
-          </details>
-        )}
+        {/* ⚠️ "다른 AI에게 물어볼 프롬프트"를 내지 않습니다.
+               맛보기 해석을 우리가 직접 내주기 시작한 뒤로, 이 자리는 방금
+               읽은 사람을 밖으로 내보내는 문이 됐습니다. 프롬프트 글 자체는
+               계속 만들어 기록에 함께 남깁니다(saveFreeReading) — 나중에
+               쓸 데가 있고, 만드는 데 드는 것도 없습니다. */}
       </main>
 
       {/* ── 잠긴 입력창 ──────────────────────────────────────────────
           유료 화면의 입력창과 같은 자리에 같은 모양으로 둡니다. 눌러도
           키보드가 올라오지 않고, 위의 안내 카드로 데려갑니다.
 
-          ⚠️ 해석을 못 받았으면 내지 않습니다. 이어갈 이야기가 없는데
-             "대화를 이어가세요"를 내밀면 말이 안 되고, 눌러도 데려갈
-             안내 카드가 없어서 아무 일도 안 일어납니다 — 고장으로 보입니다. */}
-      {reading?.title && (
+          ⚠️ 해석을 못 받았을 때도 냅니다. 예전에는 성공한 판에만 냈는데,
+             그러면 실패한 사람 화면에는 입력창이 통째로 사라져서 "여기서
+             대화가 이어진다"는 것조차 안 보입니다. 눌렀을 때 데려갈 안내
+             카드도 이제 실패한 판에 함께 나오므로, 헛도는 버튼이 아닙니다. */}
+      {!streaming && (
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
         <div className="pointer-events-auto mx-auto w-full max-w-site px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10 sm:px-8">
           <button
