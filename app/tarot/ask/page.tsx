@@ -346,9 +346,10 @@ export default function AskPage() {
   // ── 2) 카드 섞기 · 뽑기 ────────────────────────────────────────
   if (step === "draw" && asked) {
     return (
-      // 카드 고르기 화면은 딱 한 화면입니다. 100vh 는 모바일 사파리에서
-      // 주소창을 뺀 높이보다 커서 스크롤이 생기므로 dvh 를 씁니다.
-      <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      // 카드 고르기 화면도 딱 한 화면입니다.
+      // ⚠️ 질문 고르기 화면과 같은 까닭으로 뷰포트에 못 박습니다 —
+      //    h-dvh 는 높이만 화면에 맞출 뿐, 상자는 문서 안에 남습니다.
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-background">
         <main
           className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
         >
@@ -413,7 +414,7 @@ export default function AskPage() {
 
         {/* 면담 중 추가로 뽑기 — 해석 화면 위에 덮습니다 (대화를 잃지 않도록) */}
         {followup && (
-          <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-background">
+          <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background">
             <main
               className={`relative z-10 mx-auto flex w-full min-h-0 max-w-site flex-1 flex-col px-6 sm:px-8 ${HEADER_SPACE}`}
             >
@@ -461,9 +462,18 @@ export default function AskPage() {
 
   // ── 1) 질문 입력 ──────────────────────────────────────────────
   return (
-    // 진입 화면도 딱 한 화면입니다. 100vh 는 모바일 사파리 주소창 높이를
-    // 빼주지 않아서 아래(제안 칩 + 입력창)가 잘렸습니다.
-    <div className="relative h-dvh overflow-hidden bg-background">
+    // ⚠️ h-dvh 가 아니라 fixed inset-0 입니다.
+    //
+    //    h-dvh 로 두면 상자 높이는 화면과 같아지지만, 상자 자체는 여전히
+    //    문서 안에 있습니다. 아이폰 사파리는 주소창을 접었다 펴며 문서를
+    //    조금씩 밀어 올리는데, 그때 문서가 통째로 움직입니다. 그러면 이
+    //    상자에 기대어 놓은 absolute 들(말풍선·입력창·장막)이 함께
+    //    끌려가고, 뷰포트에 못 박힌 fixed(헤더)만 제자리에 남습니다 —
+    //    "헤더는 가만있는데 말풍선이랑 입력창만 스크롤되는" 모양이 됩니다.
+    //
+    //    상자를 뷰포트에 못 박으면 문서가 어떻게 움직이든 상관없어지고,
+    //    움직이는 것은 안쪽 스크롤 하나뿐입니다.
+    <div className="fixed inset-0 overflow-hidden bg-background">
       <PageHeader variant="reading" centerCharacter backHref="/" />
 
       {/* ── 아래층: 칩 ─────────────────────────────────────────────────
