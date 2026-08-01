@@ -76,7 +76,11 @@ const PAGES = [
   "/reset-password",
   "/archive",
   "/tarot",
-  "/tarot/reading",
+  // 타로보기 진입 — 주제·질문 칩부터 카드 뽑기까지 한 화면입니다.
+  // ⚠️ 예전에 여기 있던 /tarot/reading 은 지웠습니다(이 주소로 넘겨보냅니다).
+  //    지운 주소를 재고 있으면 넘겨보내진 화면을 재게 되어, 정작 새 화면이
+  //    어긋나도 통과합니다.
+  "/tarot/ask",
   "/about",
   "/privacy",
 ]

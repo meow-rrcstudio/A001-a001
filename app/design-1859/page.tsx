@@ -18,6 +18,7 @@ import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { homeCategories } from "@/lib/home-categories"
 import { ChipsDemo } from "./chips-demo"
 import { SITE, copyrightLine } from "@/lib/site"
+import { CREDIT_UNIT } from "@/lib/credit-packs"
 import { Wordmark } from "@/components/brand-mark"
 import { PixelSprite, BlinkingShanti } from "@/components/pixel-sprite"
 import { SHANTI_BASE, SHANTI_BLINK } from "@/lib/pixel-sprites"
@@ -470,7 +471,10 @@ export default function DesignSystemPage() {
                 variant="plain"
                 items={[
                   { label: "내 타로 리딩 기록", desc: "지금까지 해석한 카드 내역 조회", href: "#" },
-                  { label: "회원권 · 행운 조각", desc: "리딩 크레딧 확인과 충전", href: "#" },
+                  // ⚠️ 부르는 말은 lib/credit-packs.ts 에서 가져옵니다. 여기에
+                  //    직접 적었더니 "크레딧 → 별조각" 이름을 바꾼 뒤에도
+                  //    스타일가이드에만 옛 이름이 남았습니다.
+                  { label: `회원권 · ${CREDIT_UNIT.one}`, desc: `리딩 ${CREDIT_UNIT.one} 확인과 충전`, href: "#" },
                 ]}
               />
             </div>
