@@ -186,18 +186,32 @@ export function CardReadingFlow({
     // 리렌더마다 새 배열이라 덱이 매번 다시 섞입니다.
   }, [excludeKey, requiredPicks])
 
+  // 정방향 · 역방향 (다섯 장에 한 장쯤 역방향).
+  //
+  // ⚠️ Math.random() 을 쓰면 안 됩니다. 이 계산은 화면을 그리는 도중에
+  //    돌아가는데, useMemo 는 리액트가 지켜주겠다는 약속이 아니라 힌트일
+  //    뿐이라 언제든 버리고 다시 계산할 수 있습니다. 다시 계산되면 난수가
+  //    새로 뽑혀 카드의 방향이 바뀝니다.
+  //
+  //    타로에서 역방향은 뜻이 뒤집히는 값입니다. 이 배열은 두 곳에서 읽는데
+  //    — 사람이 보는 카드와, 샨티에게 넘기는 값 — 도중에 바뀌면 본 것과
+  //    해석이 어긋납니다. 그래서 덱에서 씨앗을 뽑아 늘 같은 결과가 나오게
+  //    합니다 (부채 순서가 이미 같은 방식입니다 — seededOrder).
   const cardOrientations = useMemo(() => {
-    const total = shuffledDeck.length;
-    const targetReverseCount = Math.round(total * 0.2);
-    const orientations = Array(total).fill("정방향");
-    const indices = Array.from({ length: total }, (_, i) => i);
-    for (let i = 0; i < targetReverseCount; i++) {
-      const randomIndex = Math.floor(Math.random() * indices.length);
-      const targetIdx = indices.splice(randomIndex, 1)[0];
-      orientations[targetIdx] = "역방향";
-    }
-    return orientations as ("정방향" | "역방향")[];
-  }, [shuffledDeck]);
+    const total = shuffledDeck.length
+    const targetReverseCount = Math.round(total * 0.2)
+    // 덱이 다르면 씨앗도 달라야 합니다. 카드 이름의 글자값을 자리와 함께
+    // 섞어 한 숫자로 만듭니다 — 같은 덱이면 언제나 같은 숫자가 나옵니다.
+    const seed = shuffledDeck.reduce(
+      (acc, card, i) =>
+        acc + [...card.nameKo].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) * (i + 1),
+      7
+    )
+    const order = seededOrder(total, seed)
+    const orientations = Array(total).fill("정방향")
+    for (let i = 0; i < targetReverseCount; i++) orientations[order[i]] = "역방향"
+    return orientations as ("정방향" | "역방향")[]
+  }, [shuffledDeck])
 
   // 아치 위 카드 순서 — 섞을 때마다(shuffleStep 변경) 재배열되어 섞이는 느낌을 줍니다.
   const fanOrder = useMemo(

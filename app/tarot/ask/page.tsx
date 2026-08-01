@@ -124,8 +124,29 @@ export default function AskPage() {
 
   // 이 판을 어떻게 뽑았는지 재는 자 (lib/draw-signals.ts).
   // ⚠️ 지금은 재서 남기기만 합니다 — 해석에는 싣지 않습니다.
-  //    판마다 새로 만듭니다. 하나를 계속 쓰면 앞 판의 시간이 섞입니다.
+  //
+  // ⚠️ 판마다 새로 만들어야 합니다. useRef 는 화면이 처음 뜰 때 딱 한 번만
+  //    만들고 그 뒤로는 절대 새로 안 만듭니다. 그런데 "다시 보기"는 페이지를
+  //    새로 여는 게 아니라 단계만 되돌리므로(setStep("ask")), 그냥 두면
+  //    두 번째 판에 첫 판의 시간이 그대로 섞입니다 — 한 번 열어놓고 여러 판
+  //    보는 사람의 기록이 전부 첫 판 쪽으로 오염됩니다. 그래서 질문
+  //    고르기로 돌아갈 때 backToAsk() 로 비웁니다.
   const trackerRef = useRef<DrawTracker>(createDrawTracker())
+
+  // 뽑기가 끝난 순간에 찍어두는 사진.
+  //
+  // ⚠️ 화면을 그리면서 snapshot() 을 부르지 않습니다. 그리는 중에 ref 를
+  //    읽는 셈이고, 다시 그릴 때마다 새 사진이 찍혀 자식에게 매번 다른
+  //    물건이 넘어갑니다. 뽑기가 끝나는 순간(onComplete)은 이벤트라
+  //    ref 를 만져도 되는 자리이고, 뜻으로도 그때가 맞습니다.
+  const [drawSignals, setDrawSignals] = useState<ReturnType<DrawTracker["snapshot"]> | null>(null)
+
+  /** 질문 고르기로 되돌아갑니다 — 다음 판을 위해 재는 자를 새로 답니다 */
+  const backToAsk = useCallback(() => {
+    trackerRef.current = createDrawTracker()
+    setDrawSignals(null)
+    setStep("ask")
+  }, [])
 
   // ┌─ 겹쳐 놓기 ───────────────────────────────────────────────────────
   // │ 두 층입니다.
@@ -354,15 +375,25 @@ export default function AskPage() {
         >
           {/* 뒤로가면 질문 고르기로 돌아옵니다. 주소를 옮기지 않고 단계만
               되돌립니다 — 옮기면 고른 주제와 친 글이 사라집니다. */}
-          <PageHeader variant="reading" centerCharacter onBack={() => setStep("ask")} />
+          <PageHeader variant="reading" centerCharacter onBack={backToAsk} />
           <CardReadingFlow
             question={asked.question}
             introMessage={drawIntro(asked, question, plan)}
             // 이 판을 시작하는 뽑기에만 넘깁니다 — 면담 중 더 뽑기에는
             // 넘기지 않습니다 (같은 판을 이어가는 것이라 섞이면 안 됩니다)
+            //
+            // ⚠️ 여기서 ref 를 읽는 것은 일부러입니다. 자식이 이 통에 값을
+            //    "부어야" 하므로 사진이 아니라 통 자체를 넘겨야 합니다. 통은
+            //    한 판 내내 바뀌지 않고, 화면에 그리지도 않습니다 — 규칙이
+            //    막으려는 "ref 로 화면을 그렸는데 값이 바뀌어도 안 바뀌는"
+            //    상황이 아닙니다.
+            // eslint-disable-next-line react-hooks/refs
             signals={trackerRef.current}
             onComplete={(picked) => {
               setCards(picked)
+              // 뽑기가 끝난 이 순간이 사진 찍을 자리입니다 (이벤트 안이라
+              // ref 를 만져도 되고, 뜻으로도 여기가 맞습니다).
+              setDrawSignals(trackerRef.current.snapshot())
               setStep("result")
               // 별조각을 낸 사람만 여기서 해석을 받습니다. 맛보기는 결과
               // 화면이 스스로 부릅니다 (부르는 주소가 다릅니다).
@@ -383,8 +414,8 @@ export default function AskPage() {
         question={asked.question}
         cards={cards}
         isLoggedIn={account.isLoggedIn}
-        signals={trackerRef.current.snapshot()}
-        onBack={() => setStep("ask")}
+        signals={drawSignals}
+        onBack={backToAsk}
       />
     )
   }
