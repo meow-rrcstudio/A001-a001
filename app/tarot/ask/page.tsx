@@ -32,6 +32,7 @@ import { readingTopics, type ReadingTopicSlug } from "@/lib/reading-topics"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { HEADER_SPACE, HEADER_SPACE_PX } from "@/lib/layout"
+import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { Button } from "@/components/ui/button"
@@ -488,15 +489,18 @@ export default function AskPage() {
         </div>
       </div>
 
+      {/* ── 흐림 장막 ────────────────────────────────────────────────
+          위층 뒤로 지나가는 칩을 덮습니다. 겹겹이 깔려 경계 없이
+          서서히 옅어집니다 (components/blur-veil.tsx). */}
+      <BlurVeil side="top" height={HEADER_SPACE_PX + bubbleHeight + 40} />
+      <BlurVeil side="bottom" height={inputHeight + 40} />
+
       {/* ── 위층: 말풍선 ──────────────────────────────────────────────
-          헤더 스크림(z-40) 아래, 칩(z-0) 위입니다.
+          헤더 스크림(z-40) 아래, 장막(z-20) 위입니다.
 
           ⚠️ 손이 통과하지 않게 둡니다(pointer-events 를 끄지 않습니다).
              흐려서 읽을 수 없는 칩이 눌리면 엉뚱한 질문으로 넘어갑니다. */}
-      <div
-        className="absolute inset-x-0 top-0 z-30 backdrop-blur-md"
-        style={{ paddingTop: HEADER_SPACE_PX }}
-      >
+      <div className="absolute inset-x-0 top-0 z-30" style={{ paddingTop: HEADER_SPACE_PX }}>
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ReadingCharacterBubble
             placement="top"
@@ -514,11 +518,11 @@ export default function AskPage() {
           키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
           (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다).
 
-          위쪽으로 갈수록 투명해지는 바탕을 깔아, 뒤로 지나가는 칩이
-          입력창에 닿기 전에 서서히 묻히게 합니다. */}
+          흐리기는 장막(BlurVeil)이 맡습니다. 여기에는 위로 갈수록 옅어지는
+          바탕만 깔아, 흐려진 칩이 입력창 글자와 겹쳐 읽히지 않게 합니다. */}
       <div
         ref={setInputBar}
-        className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/90 to-transparent backdrop-blur-md transition-[margin] duration-150 ${
+        className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/85 to-transparent transition-[margin] duration-150 ${
           // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
           keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
         }`}
