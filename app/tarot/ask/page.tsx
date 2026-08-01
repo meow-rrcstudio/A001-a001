@@ -448,23 +448,36 @@ export default function AskPage() {
             ⚠️ 아래에 붙이지 않습니다(justify-end 아님). 붙여놨더니 화면이
                큰 기기에서 말풍선과 칩 사이가 텅 비고, 칩 묶음이 입력창에
                딸린 부속처럼 보였습니다. 시안은 위에서부터 떨어집니다. */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="flex flex-col pt-5">
-            {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
-                입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
-            {startError && <ChatErrorBox info={startError} className="mb-4" />}
+        <div className="relative min-h-0 flex-1">
+          <div className="h-full overflow-y-auto">
+            {/* ⚠️ 아래 여백을 반드시 둡니다. 없으면 마지막 칩이 스크롤 끝에서
+                입력창에 딱 붙어 잘린 것처럼 보입니다 — 실제로 아리님 화면에서
+                그렇게 보였습니다. */}
+            <div className="flex flex-col pt-5 pb-6">
+              {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
+                  입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
+              {startError && <ChatErrorBox info={startError} className="mb-4" />}
 
-            <QuestionPicker
-              topic={topic}
-              onTopicChange={(next) => {
-                // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
-                if (topic !== null) trackerRef.current.topicChanged()
-                setTopic(next)
-              }}
-              onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
-              disabled={planning}
-            />
+              <QuestionPicker
+                topic={topic}
+                onTopicChange={(next) => {
+                  // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
+                  if (topic !== null) trackerRef.current.topicChanged()
+                  setTopic(next)
+                }}
+                onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
+                disabled={planning}
+              />
+            </div>
           </div>
+
+          {/* 아래로 더 있다는 표시. 잘린 칩이 "고장"이 아니라 "이어짐"으로
+              읽히게 하는 장치입니다. 손이 닿으면 안 되므로 pointer-events 를
+              끕니다 — 안 끄면 이 띠가 맨 아래 칩의 클릭을 먹습니다. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-background to-transparent"
+          />
         </div>
 
         {/* 입력창은 화면 맨 아래 붙박이입니다.

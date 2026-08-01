@@ -60,6 +60,9 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  /* 제안 칩 (bg-chip, border-chip-line) */
+  --color-chip: var(--chip);
+  --color-chip-line: var(--chip-line);
   /* 그림자·유리면을 Tailwind 클래스로 (shadow-raised, shadow-overlay, bg-glass) */
   --shadow-raised: var(--elevation-raised);
   --shadow-overlay: var(--elevation-overlay);
@@ -129,6 +132,22 @@
      시안(MY 기록·설정)에서 잰 구분선은 배경 대비 약 11% 잉크입니다.
      예전 #ededed 는 그 절반이라 화면에서 선이 거의 사라져 보였습니다. */
   --border: #e2e1dd;            /* 구분선·카드 테두리 (시안 실측 ≒ 11% 잉크) */
+
+  /* ── 제안 칩 ───────────────────────────────────────────────────
+     타로보기 진입 화면의 질문·주제 알약입니다.
+
+     ⚠️ --card(순백)와 shadow-raised 로 그리지 않습니다. 시안의 칩은
+        떠 있지 않습니다 — 바탕보다 겨우 한 톤 밝고, 가는 선으로만
+        구분됩니다. 흰 카드 + 그림자로 그렸더니 알약이 화면에서 붕 떠서
+        말풍선과 같은 층으로 보였습니다.
+
+     시안 PDF 를 150dpi 로 펴서 픽셀을 직접 읽은 값입니다.
+       바탕 (250,249,245) = --background 와 정확히 일치
+       칩   (251,250,248) ← 바탕보다 한 톤만 밝음
+       테두리 (227,232,219) ← 라임이 아주 옅게 도는 회색. 중립 회색인
+              --border(226,225,221)와 달리 초록이 살짝 섞여 있습니다. */
+  --chip: #fbfaf8;
+  --chip-line: #e3e8db;
   --border-strong: #d4d3cf;     /* 구획을 나누는 굵은 선 — 설정 목록의 행 사이 */
   --input: #d8d7d3;             /* 입력창 테두리 (구분선보다 살짝 진하게) */
   --ring: #3acc00;              /* 키보드 포커스 테두리 (접근성) */
@@ -210,6 +229,9 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.7 0.1 280);
+  /* 밝은 쪽과 같은 뜻으로 — 바탕보다 한 톤 밝고, 가는 선으로 구분 */
+  --chip: oklch(0.19 0.02 265);
+  --chip-line: oklch(1 0 0 / 14%);
 }
 
 @layer base {
