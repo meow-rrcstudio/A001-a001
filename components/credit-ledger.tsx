@@ -108,7 +108,9 @@ export function CreditLedger() {
             className={`flex items-center gap-3 px-5 py-4 transition-colors hover:bg-black/5 ${line}`}
           >
             <EntryBody entry={entry} />
-            <ChevronRight className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
+            {/* 값(+3 · -1)과 같은 초록입니다 — 설정 목록의 검정 화살표와
+                달리, 이건 왼쪽 이름이 아니라 오른쪽 값에 딸려 있습니다 */}
+            <ChevronRight className="h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
           </Link>
         ) : (
           <div key={`${entry.at}-${i}`} className={`flex items-center gap-3 px-5 py-4 ${line}`}>

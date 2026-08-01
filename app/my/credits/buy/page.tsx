@@ -89,9 +89,12 @@ function PackRow({
       </span>
 
       {/* 아직 결제가 열리지 않은 배포에서는 들어갈 곳이 없으니 화살표도 없습니다.
-          자리는 남겨둡니다 — 열린 배포와 줄 폭이 달라지지 않게. */}
+          자리는 남겨둡니다 — 열린 배포와 줄 폭이 달라지지 않게.
+          ⚠️ 색은 검정이 아니라 옆에 선 값과 같은 초록(--accent)입니다.
+             설정 목록의 검정 화살표는 "설정 안으로 들어간다"는 뜻이고,
+             여기 초록은 왼쪽 이름이 아니라 오른쪽 값에 딸린 것입니다. */}
       {canBuy ? (
-        <ChevronRight className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
+        <ChevronRight className="h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
       ) : (
         <span className="h-5 w-5 shrink-0" aria-hidden="true" />
       )}
