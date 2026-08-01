@@ -8,6 +8,13 @@
 // │                   (질문 고르기 → 섞기 → 카드 뽑기 → 해석 → 대화)
 // │ variant="home"    워드마크 + 햄버거 — 홈 전용
 // │ variant="minimal" 뒤로만 — 로그인처럼 나갈 길만 필요한 화면
+// │ variant="close"   닫기(×)만 — 볼일 하나만 보고 나가는 화면
+// │                   (별조각 구매·사용내역·결제 확인)
+// │
+// │ ⚠️ "뒤로(←)"와 "닫기(×)"는 다른 말입니다. ← 는 "왔던 길을 되짚는다",
+// │    × 는 "이 볼일을 접는다"입니다. 별조각 화면들은 설정에서 잠깐
+// │    들렀다 나가는 자리라 ×가 맞습니다 — 결제를 마치고 ← 를 누르면
+// │    방금 지나온 결제창으로 되돌아가는 것처럼 읽힙니다.
 // │
 // │ ⚠️ 공유 버튼은 글 상세(노션 글)에만 답니다. 목록 화면에서 "이 페이지를
 // │    공유"는 뜻이 흐릿하고, 헤더가 버튼으로 붐빕니다.
@@ -32,7 +39,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Menu, MoreHorizontal, Share } from "lucide-react"
+import { ArrowLeft, Menu, MoreHorizontal, Share, X } from "lucide-react"
 import { SiteMenu } from "@/components/site-menu"
 import { Wordmark } from "@/components/brand-mark"
 import { BlinkingShanti } from "@/components/pixel-sprite"
@@ -106,7 +113,7 @@ export function PageHeader({
   centerMark?: boolean
   /** 가운데에 캐릭터(샨티)를 놓을지. 타로를 보는 화면에서 씁니다 */
   centerCharacter?: boolean
-  variant?: "sub" | "reading" | "home" | "minimal"
+  variant?: "sub" | "reading" | "home" | "minimal" | "close"
   fixed?: boolean
   surface?: "cream" | "lime"
   className?: string
@@ -154,8 +161,10 @@ export function PageHeader({
         } mx-auto w-full max-w-site px-6 ${className}`}
       >
         <div className="relative flex items-center justify-between gap-3">
-          {/* 왼쪽 — 홈은 워드마크, 나머지는 뒤로가기 */}
-          {variant === "home" ? (
+          {/* 왼쪽 — 홈은 워드마크, 닫기형은 비움, 나머지는 뒤로가기 */}
+          {variant === "close" ? (
+            <span className="h-11 w-11" aria-hidden="true" />
+          ) : variant === "home" ? (
             <Wordmark className="h-10" priority />
           ) : onBack ? (
             <button type="button" onClick={onBack} className={roundButton} aria-label="뒤로">
@@ -200,9 +209,22 @@ export function PageHeader({
             </p>
           )}
 
-          {/* 오른쪽 — 홈은 햄버거, 하위 화면은 (공유 +) 더보기, 최소형은 없음 */}
+          {/* 오른쪽 — 홈은 햄버거, 하위 화면은 (공유 +) 더보기,
+              닫기형은 ×, 최소형은 없음.
+              ⚠️ 닫기형에 더보기(⋯)를 함께 달지 않습니다. 나가는 길이 둘이면
+                 어느 쪽이 "그만두기"인지 그 자리에서 판단해야 합니다. */}
           {variant === "minimal" ? (
             <span className="h-11 w-11" aria-hidden="true" />
+          ) : variant === "close" ? (
+            onBack ? (
+              <button type="button" onClick={onBack} className={roundButton} aria-label="닫기">
+                <X className="h-5 w-5" />
+              </button>
+            ) : (
+              <Link href={backHref ?? "/"} className={roundButton} aria-label="닫기">
+                <X className="h-5 w-5" />
+              </Link>
+            )
           ) : (
             <div className="flex items-center gap-2">
               {showShare && (

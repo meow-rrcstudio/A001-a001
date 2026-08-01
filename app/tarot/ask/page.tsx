@@ -278,7 +278,7 @@ export default function AskPage() {
       //    사이트 안 해석을 기대하고 고른 질문이니까요.
       if (response.status === 402) {
         setPlanning(false)
-        router.push("/my/credits")
+        router.push("/my/credits/buy")
         return
       }
 

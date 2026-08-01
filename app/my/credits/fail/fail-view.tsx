@@ -58,23 +58,23 @@ export function FailView() {
   const { title, body } = describe(code)
 
   return (
-    <div className="flex min-h-screen flex-col bg-brand-lime">
+    <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col ${HEADER_SPACE}`}>
-        <PageHeader variant="sub" backHref="/my/credits" surface="lime" />
+        <PageHeader variant="close" backHref="/my/credits" />
 
-        <div className="flex flex-1 flex-col justify-center px-6 pb-16">
-          <h1 className="font-myeongjo text-2xl font-bold leading-snug text-black">{title}</h1>
-          <p className="mt-2 text-sm leading-relaxed text-black/80">{body}</p>
+        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16 text-center">
+          <h1 className="font-myeongjo text-2xl font-bold leading-snug text-foreground">{title}</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{body}</p>
 
           <Link
-            href="/my/credits"
-            className="mt-7 flex h-12 w-full items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
+            href="/my/credits/buy"
+            className="mt-7 flex h-12 w-full items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-brand-lime transition-opacity hover:opacity-90"
           >
-            {CREDIT_UNIT.one} 화면으로
+            {CREDIT_UNIT.one} 다시 사기
           </Link>
           <Link
             href="/tarot/ask"
-            className="mt-3 block text-center text-sm text-black underline underline-offset-4 hover:opacity-70"
+            className="mt-4 block text-sm text-foreground underline underline-offset-4 hover:opacity-70"
           >
             맛보기로 먼저 보기
           </Link>

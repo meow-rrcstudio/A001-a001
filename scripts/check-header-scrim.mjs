@@ -72,6 +72,7 @@ const PAGES = [
   "/my",
   "/my/settings",
   "/my/credits",
+  "/my/credits/buy",
   "/login",
   "/reset-password",
   "/archive",

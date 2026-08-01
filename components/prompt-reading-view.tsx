@@ -122,7 +122,7 @@ export function PromptReadingView({
           </p>
           {isLoggedIn ? (
             <Link
-              href="/my/credits"
+              href="/my/credits/buy"
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
               {CREDIT_UNIT.one}으로 샨티에게 직접 듣기

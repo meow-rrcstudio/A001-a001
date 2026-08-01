@@ -209,7 +209,7 @@ export function FreeReadingResult({
                   궁금한 걸 이어서 물을 수도 있다냥.
                 </p>
                 <Link
-                  href="/my/credits"
+                  href="/my/credits/buy"
                   className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   {CREDIT_UNIT.one} 받으러 가기

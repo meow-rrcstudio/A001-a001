@@ -175,9 +175,14 @@ export default function DesignSystemPage() {
 
             {/* 상단바 스크림 견본 — 실제로 페이지 위에 깔리는 그라데이션 */}
             <p className="mt-5 text-xs font-medium text-muted-foreground">
-              상단바 스크림 — 라임에서 아래로 투명해집니다 (높이 96px)
+              상단바 스크림 — 위쪽 3분의 1은 라임 그대로, 아래로 옅어집니다
             </p>
-            <div className="mt-2 h-24 rounded-xl border border-border bg-gradient-to-b from-brand-lime via-brand-lime-soft/70 to-transparent" />
+            {/* 견본을 손으로 그리지 않고 진짜 값(--scrim)을 그대로 씁니다.
+                따로 그리면 디자인시스템을 고쳐도 견본만 옛 모양으로 남습니다 */}
+            <div
+              className="mt-2 h-24 rounded-xl border border-border"
+              style={{ backgroundImage: "var(--scrim)" }}
+            />
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
               사이트 문구 — lib/site.ts 한 곳에서 관리합니다 (푸터·홈·메타데이터 공용)

@@ -67,7 +67,7 @@ export function FollowupBanner({
           </button>
         ) : (
           <Link
-            href="/my/credits"
+            href="/my/credits/buy"
             className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary transition-opacity hover:opacity-70"
           >
             더 받기

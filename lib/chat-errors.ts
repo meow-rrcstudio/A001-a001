@@ -185,7 +185,7 @@ export function describeChatError(input: {
         message: "흐음, 이 한 판으로는 여기까지구먼.",
         hint: "한 장 더 쓰면 이 대화를 그대로 이어갈 수 있다네.",
         canRetry: false,
-        action: { label: "이어서 묻기", href: "/my/credits" },
+        action: { label: "이어서 묻기", href: "/my/credits/buy" },
       }
 
     case "tooFast":
