@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { Footer } from "@/components/footer"
 import { BlinkingShanti } from "@/components/pixel-sprite"
+import { StarPiece } from "@/components/star-piece"
 import { CREDIT_UNIT, countCredits, withJosa } from "@/lib/credit-packs"
 
 type Phase =
@@ -32,31 +33,6 @@ type Phase =
   /** 다시 열면 될 수도 있는 실패 (연결 끊김·별조각 적립 실패) */
   | { step: "pending"; message: string }
   | { step: "failed"; message: string }
-
-/**
- * 별조각 한 개 — 라임으로 채우고 검은 선을 두른 네 갈래 별.
- *
- * 푸터의 ✦ 와 같은 표식이지만 이건 "방금 생긴 것"을 가리키는 자리라
- * 글자가 아니라 그림으로 둡니다 (글꼴에 따라 모양이 달라지지 않게).
- */
-function StarPiece() {
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      className="h-12 w-12"
-      fill="none"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path
-        d="M24 2c1.6 11.2 8.2 18.4 22 22-13.8 3.6-20.4 10.8-22 22-1.6-11.2-8.2-18.4-22-22C15.8 20.4 22.4 13.2 24 2Z"
-        fill="var(--brand-lime)"
-        stroke="var(--brand-ink)"
-        strokeWidth="2.5"
-      />
-    </svg>
-  )
-}
 
 export function ConfirmView() {
   const params = useSearchParams()
@@ -140,7 +116,7 @@ export function ConfirmView() {
 
           {phase.step === "done" && (
             <>
-              <StarPiece />
+              <StarPiece className="h-14 w-14 text-foreground" />
               <h1 className={`${title} mt-6`}>
                 {countCredits(phase.credits)}의 {withJosa(CREDIT_UNIT.one, "이가")} 생겼어요.
               </h1>
