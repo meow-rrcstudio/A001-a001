@@ -94,6 +94,22 @@ export default function SettingsPage() {
         >
           로그아웃 하기
         </button>
+
+        {/* 회원탈퇴 — 약관 제11조와 개인정보처리방침이 "언제든지 탈퇴할 수
+            있다"고 약속하는 자리입니다. 문서에만 있고 화면에 없으면 그
+            약속이 거짓말이 됩니다 (개인정보보호법 제37조).
+
+            ⚠️ 로그아웃과 같은 크기로 놓지 않습니다. 나가는 길 둘이 나란히
+               같은 무게로 있으면 잘못 누릅니다. 되돌릴 수 있는 것(로그아웃)이
+               버튼이고, 되돌릴 수 없는 것(탈퇴)은 작은 글씨입니다. */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/my/settings/withdraw"
+            className="text-[13px] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            회원탈퇴
+          </Link>
+        </div>
       </main>
 
       <Footer variant="lime" />
