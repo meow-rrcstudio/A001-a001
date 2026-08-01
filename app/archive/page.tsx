@@ -10,6 +10,7 @@
 // 덱·대분류 섹션과 필터 칩은 등록된 글에서 자동으로 생성됩니다.
 // (파싱 규칙은 lib/card-archive.ts, 화면은 components/card-archive-board.tsx)
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import Link from "next/link"
 import { LayoutGrid } from "lucide-react"
 import { Footer } from "@/components/footer"
@@ -21,7 +22,7 @@ import { buildCardArchive } from "@/lib/card-archive"
 
 export const metadata: Metadata = {
   title: "Archive",
-  description: "타로 카드 한 장 한 장의 의미와 기록을 모은 아카이브입니다.",
+  description: "타로 카드 한 장 한 장의 의미와 기록을 모은 아카이브입니다.",  alternates: { canonical: canonicalPath("/archive") },
 }
 
 // 노션에 올린 글이 최대 1분 안에 반영되도록 캐시를 짧게 유지

@@ -9,6 +9,7 @@ import { MarkdownContent } from "@/components/markdown-content"
 import { AdBand } from "@/components/ad-band"
 import { CardDetailView, type AdjacentCard } from "@/components/card-detail-view"
 import { allTarotCards } from "@/lib/tarot-cards"
+import { BASE_URL, breadcrumbJsonLd, canonicalPath, jsonLdScriptProps } from "@/lib/seo"
 
 export const revalidate = 60
 
@@ -38,9 +39,13 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.summary,
+    // 같은 글이 /blog/x 와 /blog/x?from=archive 두 주소로 열립니다.
+    // 진짜 주소는 꼬리표 없는 쪽 하나뿐이라고 알려 순위가 나뉘지 않게 합니다.
+    alternates: { canonical: canonicalPath(`/blog/${slug}`) },
     openGraph: {
       title: post.title,
       description: post.summary,
+      url: canonicalPath(`/blog/${slug}`),
       type: "article",
       publishedTime: post.publishedDate ?? undefined,
       // 커버 이미지가 없는 글은 사이트 공통 미리보기 이미지를 사용
@@ -93,25 +98,35 @@ export default async function BlogPostPage({
       : null
 
   // 구조화 데이터(JSON-LD) — 구글이 글의 제목·날짜·이미지를 정확히 이해하도록 돕는 표식.
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://soulseoul.xyz"
+  const pageUrl = canonicalPath(`/blog/${slug}`)
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.summary || undefined,
     datePublished: post.publishedDate || undefined,
-    image: resolveCardImage(slug, post.coverImage) || `${baseUrl}/og-image.png`,
-    author: { "@type": "Person", name: "Shānti", url: `${baseUrl}/about` },
-    publisher: { "@type": "Organization", name: "SoulSeoul", url: baseUrl },
-    mainEntityOfPage: `${baseUrl}/blog/${slug}`,
+    // 수정일이 따로 없으면 발행일을 씁니다. 구글은 두 날짜가 다 있을 때
+    // "언제 쓰고 언제 손봤는지"를 검색결과에 반영합니다.
+    dateModified: post.publishedDate || undefined,
+    image: resolveCardImage(slug, post.coverImage) || `${BASE_URL}/og-image.png`,
+    inLanguage: "ko-KR",
+    articleSection: post.category || post.arcana || undefined,
+    author: { "@type": "Person", name: "Shānti", url: canonicalPath("/about") },
+    publisher: { "@type": "Organization", "@id": `${BASE_URL}/#organization`, name: "SoulSeoul", url: BASE_URL },
+    mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
   }
+
+  // 이동 경로 — 검색결과 주소 자리에 "SoulSeoul › Archive › 글제목"으로 보입니다
+  const breadcrumb = breadcrumbJsonLd([
+    { name: "SoulSeoul", path: "/" },
+    { name: "Archive", path: "/archive" },
+    { name: post.title, path: `/blog/${slug}` },
+  ])
 
   return (
     <div>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script {...jsonLdScriptProps(jsonLd)} />
+      <script {...jsonLdScriptProps(breadcrumb)} />
       <CardDetailView
         title={post.title}
         publishedDate={post.publishedDate}

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { allTarotCards } from "@/lib/tarot-cards"
 import { TarotCardImage } from "@/components/tarot-card-image"
@@ -11,8 +12,24 @@ import { AdBand } from "@/components/ad-band"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ACTIVE_CHARACTER } from "@/lib/character"
+import { canonicalPath } from "@/lib/seo"
 
 export const revalidate = 3600
+
+// 이 페이지는 78장 전체가 한자리에 있어서 "타로 카드 의미" 로 들어오는 길목입니다.
+// 제목·설명이 없으면 공용 제목("SoulSeoul — 소울서울, 타로와 명상 아카이브")이
+// 그대로 나가서, 홈과 구분되지 않습니다.
+export const metadata: Metadata = {
+  title: "타로 카드 78장 의미 — Tarot",
+  description:
+    "메이저 아르카나 22장과 마이너 아르카나 56장, 타로 카드 한 장 한 장의 의미와 해석을 정리한 아카이브입니다.",
+  alternates: { canonical: canonicalPath("/tarot") },
+  openGraph: {
+    title: "타로 카드 78장 의미 — Tarot",
+    description: "타로 카드 한 장 한 장의 의미와 해석을 정리한 아카이브입니다.",
+    url: canonicalPath("/tarot"),
+  },
+}
 
 export default async function TarotListPage() {
   const publishedSlugs = await getAllSlugs()

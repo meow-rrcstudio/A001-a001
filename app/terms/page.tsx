@@ -12,6 +12,7 @@
 // │    공지해야 합니다 (제3조).
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
 import { CREDIT_UNIT, countCreditsWith } from "@/lib/credit-packs"
@@ -20,7 +21,7 @@ import { BUSINESS } from "@/lib/business"
 
 export const metadata: Metadata = {
   title: "이용약관",
-  description: "SoulSeoul 서비스 이용약관입니다.",
+  description: "SoulSeoul 서비스 이용약관입니다.",  alternates: { canonical: canonicalPath("/terms") },
 }
 
 const EFFECTIVE = "2026년 8월 6일"

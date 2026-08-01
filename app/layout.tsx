@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Nanum_Myeongjo, Shadows_Into_Light } from 'next/font/google'
+import { BASE_URL } from '@/lib/seo'
 import './globals.css'
 
 const geistMono = Geist_Mono({
@@ -26,8 +27,6 @@ const shadows = Shadows_Into_Light({
   display: 'swap',
 })
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://soulseoul.xyz'
-
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
@@ -36,6 +35,29 @@ export const metadata: Metadata = {
   },
   description: '타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브',
   generator: 'v0.app',
+  // 사람이 실제로 검색창에 치는 말들. 순위를 직접 올려주지는 않지만
+  // 네이버·다음 등 일부 검색엔진이 아직 참고합니다.
+  keywords: ['타로', '타로카드', '무료 타로', '타로 해석', '소울서울', 'SoulSeoul', '명상', '점성술'],
+  applicationName: 'SoulSeoul',
+  // ⚠️ 여기(공용 layout)에 alternates.canonical 을 넣지 않습니다.
+  //    넣으면 모든 하위 페이지가 "내 진짜 주소는 홈"이라고 말하게 되어
+  //    글이 통째로 색인에서 빠집니다. canonical 은 페이지마다 따로 답니다.
+  alternates: {
+    types: { 'application/rss+xml': `${BASE_URL}/rss.xml` },
+  },
+  // 검색결과 미리보기를 넉넉히 허용합니다. 기본값은 엔진 재량이라
+  // 글의 첫 문단이나 카드 그림이 잘려 나갈 수 있습니다.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
+  },
   // 검색엔진 소유 확인 코드 (구글 서치콘솔 / 네이버 서치어드바이저)
   verification: {
     google: 'r3J5oHD2mNXTpaYCIVVqMflSE5pY5KLQ92FoKYcMvkU',
