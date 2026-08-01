@@ -129,20 +129,27 @@ export default function AskPage() {
   const trackerRef = useRef<DrawTracker>(createDrawTracker())
 
   // ┌─ 겹쳐 놓기 ───────────────────────────────────────────────────────
-  // │ 내용(말풍선 + 칩)은 화면 맨 위에서 맨 아래까지 한 덩이로 흐릅니다.
-  // │ 그 위에 붙박이 둘 — 헤더와 입력창 — 이 떠 있고, 뒤로 지나가는
-  // │ 내용은 흐림 장막이 덮습니다.
+  // │ 두 층입니다.
+  // │   아래층  칩 — 영역이 화면 맨 위에서 맨 아래까지입니다
+  // │   위층    헤더 · 말풍선 · 입력창 (붙박이)
+  // │ 칩이 위층 뒤 뎁스로 지나가고, 겹치는 자리는 흐림 장막이 덮습니다.
   // │
-  // │ ⚠️ 말풍선을 위에 붙박지 않습니다. 붙박고 그 아래부터 칩을 깔면
-  // │    내용 영역이 "말풍선 밑 ~ 입력창 위"로 줄어듭니다. 그건 화면
-  // │    끝과 끝이 아닙니다.
+  // │ ⚠️ 말풍선은 내용이 아닙니다. "지금 무엇을 하는 자리인지" 일러주는
+  // │    페이지 안내라 위층에 붙박여야 합니다. 칩과 한 덩이로 흘려보냈더니
+  // │    스크롤할 때 안내가 통째로 사라졌습니다.
+  // │
+  // │ ⚠️ 그렇다고 칩 영역을 "말풍선 아래 ~ 입력창 위"로 잡으면 안 됩니다.
+  // │    위층은 화면 밖 테두리지 칩 영역의 경계가 아닙니다. 여백은 첫 칩이
+  // │    처음 놓이는 자리만 정하고, 영역 자체는 끝까지 갑니다.
   // │
   // │ ⚠️ 세 덩이를 세로로 쌓는 것(flex-col)도 같은 잘못입니다. 그렇게
   // │    두었더니 마지막 칩이 늘 반쯤 잘린 채 멈췄고, 흐려지지도 않아
   // │    고장처럼 보였습니다.
   // │
-  // │ 입력창 높이만 잽니다 — 그만큼이 아래 장막의 높이가 됩니다.
+  // │ 위층 높이는 재서 씁니다 — 말풍선은 글에 따라 두 줄도 세 줄도 되고
+  // │ 입력창도 기기마다 달라서 값을 박아둘 수 없습니다.
   // └──────────────────────────────────────────────────────────────────
+  const [bubbleHeight, setBubbleHeight] = useState(0)
   const [inputHeight, setInputHeight] = useState(0)
 
   // ⚠️ useRef 로 잡으면 안 됩니다. 회원 정보를 기다리는 동안 이 화면은
@@ -459,24 +466,53 @@ export default function AskPage() {
     <div className="relative h-dvh overflow-hidden bg-background">
       <PageHeader variant="reading" centerCharacter backHref="/" />
 
-      {/* ── 내용 ───────────────────────────────────────────────────────
-          화면 맨 위에서 맨 아래까지입니다.
+      {/* ── 아래층: 칩 ─────────────────────────────────────────────────
+          영역은 화면 맨 위(y=0)에서 맨 아래까지입니다. 헤더·말풍선·입력창
+          자리도 이 영역에 들어갑니다 — 칩은 그 뒤 뎁스로 지나갑니다.
 
-          ⚠️ 말풍선도 내용입니다. 위에 붙박아 두고 그 아래부터 칩을 깔면
-             내용 영역이 "말풍선 밑 ~ 입력창 위"로 줄어듭니다. 그건 화면
-             끝과 끝이 아닙니다. 말풍선은 칩과 함께 흐르고, 스크롤하면
-             헤더 뒤로 올라가 흐려집니다.
+          여백은 "영역의 끝"이 아니라 "처음 놓이는 자리"를 정할 뿐입니다.
+            위  헤더 + 말풍선만큼 밀어, 첫 칩이 말풍선 바로 아래에서 시작
+            아래 비우지 않음 — 마지막 칩은 입력창 뒤로 잠기며 끝납니다
 
-          ⚠️ 아래를 비워두지 않습니다(paddingBottom 없음). 마지막 칩은
-             입력창 뒤로 들어가 흐려진 채 끝납니다 — 시안이 그렇습니다.
-             붙박이는 것은 헤더와 입력창뿐이고, 그 둘은 화면 밖 테두리지
-             내용의 경계가 아닙니다. */}
+          ⚠️ 아래를 입력창 높이만큼 비워두면 안 됩니다. 그러면 영역이
+             "입력창 위"에서 끊겨, 칩이 입력창 뒤로 갈 일이 영영 없습니다. */}
       <div className="h-full overflow-y-auto overscroll-contain">
         <div
           className="mx-auto w-full max-w-site px-6 sm:px-8"
-          // 헤더만큼만 비웁니다 — 헤더는 어느 화면에나 떠 있는 붙박이입니다
-          style={{ paddingTop: HEADER_SPACE_PX }}
+          style={{ paddingTop: HEADER_SPACE_PX + bubbleHeight + 20 }}
         >
+          {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
+              입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
+          {startError && <ChatErrorBox info={startError} className="mb-4" />}
+
+          <QuestionPicker
+            topic={topic}
+            onTopicChange={(next) => {
+              // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
+              if (topic !== null) trackerRef.current.topicChanged()
+              setTopic(next)
+            }}
+            onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
+            disabled={planning}
+          />
+        </div>
+      </div>
+
+      {/* ── 흐림 장막 ────────────────────────────────────────────────
+          위층 뒤로 지나가는 칩을 덮습니다. 겹겹이 깔려 경계 없이
+          서서히 옅어집니다 (components/blur-veil.tsx). */}
+      <BlurVeil side="top" height={HEADER_SPACE_PX + bubbleHeight + 40} />
+      <BlurVeil side="bottom" height={inputHeight + 40} />
+
+      {/* ── 위층: 말풍선 ──────────────────────────────────────────────
+          ⚠️ 말풍선은 내용이 아닙니다. "지금 무엇을 하는 자리인지" 일러주는
+             페이지 안내라, 칩보다 위층에 붙박여 있습니다. 칩과 함께
+             흘려보냈더니 스크롤할 때 안내가 사라졌습니다.
+
+          ⚠️ 손이 통과하지 않게 둡니다(pointer-events 를 끄지 않습니다).
+             흐려서 읽을 수 없는 칩이 눌리면 엉뚱한 질문으로 넘어갑니다. */}
+      <div className="absolute inset-x-0 top-0 z-30" style={{ paddingTop: HEADER_SPACE_PX }}>
+        <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ReadingCharacterBubble
             placement="top"
             message={
@@ -484,32 +520,10 @@ export default function AskPage() {
                 ? topicContent[topic].reactionLine
                 : "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 궁금한 것이 있으면 이 몸에게 물어보게냥."
             }
+            onHeightChange={setBubbleHeight}
           />
-
-          <div className="pt-5">
-            {/* 판을 시작하지 못했을 때 — 무엇 때문인지와 다음 걸음을 함께.
-                입력창 바로 위라 다시 물으려던 손이 반드시 지나갑니다. */}
-            {startError && <ChatErrorBox info={startError} className="mb-4" />}
-
-            <QuestionPicker
-              topic={topic}
-              onTopicChange={(next) => {
-                // 주제를 고쳐 고른 것만 셉니다 (처음 고르는 건 바꾼 게 아닙니다)
-                if (topic !== null) trackerRef.current.topicChanged()
-                setTopic(next)
-              }}
-              onPick={(label, prepared, slug) => void submit(label, prepared, slug)}
-              disabled={planning}
-            />
-          </div>
         </div>
       </div>
-
-      {/* ── 흐림 장막 ────────────────────────────────────────────────
-          붙박이(헤더·입력창) 뒤로 지나가는 내용을 덮습니다. 겹겹이 깔려
-          경계 없이 서서히 옅어집니다 (components/blur-veil.tsx). */}
-      <BlurVeil side="top" height={HEADER_SPACE_PX + 24} />
-      <BlurVeil side="bottom" height={inputHeight + 40} />
 
       {/* ── 위층: 입력창 ──────────────────────────────────────────────
           키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
