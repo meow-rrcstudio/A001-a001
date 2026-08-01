@@ -17,6 +17,7 @@ import { HomeCategoryGrid } from "@/components/home-category-card"
 import { HomeArchiveBanner } from "@/components/home-archive-banner"
 import { homeCategories } from "@/lib/home-categories"
 import { ChipsDemo } from "./chips-demo"
+import { ASK_CHIP, CHIP_GAP, TOPIC_CHIP } from "@/lib/chip-styles"
 import { SITE, copyrightLine } from "@/lib/site"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
 import { Wordmark } from "@/components/brand-mark"
@@ -46,6 +47,8 @@ const colorTokens = [
   { varName: "--muted", label: "연한 배경", description: "인용문·코드 블록 등의 옅은 바탕." },
   { varName: "--muted-foreground", label: "보조 글자색", description: "설명·날짜 등 흐린 글자. 웜 그레이 브라운." },
   { varName: "--border", label: "선 색", description: "구분선·테두리." },
+  { varName: "--chip", label: "제안 칩 바탕", description: "타로보기 진입의 알약. 배경보다 한 톤만 밝습니다." },
+  { varName: "--chip-line", label: "제안 칩 선", description: "알약 테두리. 라임이 아주 옅게 도는 회색." },
   { varName: "--destructive", label: "경고색", description: "삭제·오류 등 위험 동작." },
 ]
 
@@ -76,7 +79,7 @@ const tocGroups: TocGroup[] = [
       { id: "menu", label: "7. 목록 행" },
       { id: "settings", label: "8. 설정 행" },
       { id: "home-cards", label: "9. 홈 카테고리" },
-      { id: "chips", label: "10. 필터 칩" },
+      { id: "chips", label: "10. 칩" },
       { id: "prose", label: "11. 블로그 본문" },
       { id: "chrome", label: "12. 헤더 · 푸터" },
       { id: "board", label: "13. 카드 아카이브" },
@@ -531,15 +534,51 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 필터 칩 ─────────────────────────── */}
           <section id="chips" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>10. 필터 칩</h2>
+            <h2 className={h2Class}>10. 칩</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              목록을 좁혀 보는 알약 버튼 줄. 아카이브의 덱 필터가 이걸 씁니다
-              (components/ui/filter-chips.tsx). 선택된 칩은 검정 채움,
+              알약 버튼은 쓰임이 둘이라 모양도 둘입니다. 새로 만들기 전에
+              어느 쪽인지 먼저 정하세요.
+            </p>
+
+            <p className="mt-6 text-xs font-medium text-muted-foreground">
+              필터 칩 — 목록을 좁혀 봅니다 (components/ui/filter-chips.tsx).
+              아카이브의 덱 필터가 이걸 씁니다. 선택된 칩은 검정 채움,
               나머지는 연한 라임입니다.
             </p>
-            <div className="mt-5 rounded-xl border border-border bg-card p-6">
+            <div className="mt-2 rounded-xl border border-border bg-card p-6">
               <ChipsDemo />
             </div>
+
+            {/* ⚠️ 클래스를 여기 옮겨 적지 마세요. lib/chip-styles.ts 에서
+                가져옵니다 — 실제 화면(components/question-picker.tsx)과 이
+                견본이 같은 글자를 써야 합니다. 두 벌로 두면 한쪽만 고쳐진 채
+                남고, 다음 사람이 이 견본을 보고 옛 모양으로 만듭니다. */}
+            <p className="mt-8 text-xs font-medium text-muted-foreground">
+              제안 칩 — 무엇을 물을지 고릅니다 (lib/chip-styles.ts ·
+              components/question-picker.tsx). 타로보기 진입 화면에서
+              주제(검정)와 질문(흰)으로 씁니다.
+            </p>
+            <div className="mt-2 rounded-xl border border-border bg-background p-6">
+              <div className={`flex flex-wrap ${CHIP_GAP}`}>
+                <span className={TOPIC_CHIP}>나 자신</span>
+                <span className={TOPIC_CHIP}>사랑</span>
+                <span className={TOPIC_CHIP}>돈</span>
+              </div>
+              <div className={`mt-2.5 flex flex-col items-start ${CHIP_GAP}`}>
+                <span className={ASK_CHIP}>지금 내 마음은 어떤 상태일까?</span>
+                <span className={ASK_CHIP}>그 사람은 지금 나를 어떻게 생각할까?</span>
+              </div>
+            </div>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ 순백(<code className="font-mono">--card</code>)에{" "}
+              <code className="font-mono">shadow-raised</code> 로 그리지 마세요. 시안의
+              제안 칩은 <strong className="font-semibold text-foreground">떠 있지 않습니다</strong> —
+              바탕보다 한 톤 밝은 면(<code className="font-mono">--chip</code>)에 가는
+              선(<code className="font-mono">--chip-line</code>) 하나로만 구분됩니다. 그림자로
+              그렸더니 알약이 붕 떠 말풍선과 같은 층으로 보였고, 높이도 46px 이라 한 화면에
+              아홉 개 들어갈 것이 여섯 개 반만 들어가 마지막 칩이 늘 반쯤 잘렸습니다.
+              시안 실측은 높이 37px · 글자 15px · 좌우 20px · 칩 사이 10.6px 입니다.
+            </p>
           </section>
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}

@@ -20,6 +20,7 @@
 import { X } from "lucide-react"
 import { readingTopics, topicChipLabel, type ReadingTopicSlug } from "@/lib/reading-topics"
 import { topicContent } from "@/lib/reading-content"
+import { ASK_CHIP, CHIP_GAP, TOPIC_CHIP } from "@/lib/chip-styles"
 import type { ReadingQuestion } from "@/lib/reading-content"
 
 export function QuestionPicker({
@@ -67,33 +68,10 @@ export function QuestionPicker({
     ? topicContent[topic].questions.map((q) => ({ topic, question: q }))
     : openers
 
-  // ┌─ 시안 실측 (PDF 를 150dpi 로 펴서 픽셀을 직접 읽은 값) ──────────
-  // │ 알약 높이  78px ÷ 2.083 = 37.4 CSS px   ← 검정칩도 같은 높이입니다
-  // │ 세로 피치  100px → 48 CSS px, 따라서 칩 사이 10.6 CSS px (gap-2.5)
-  // │ 테두리     2px → 1 CSS px, 흰 칩과 검정 칩 모두에 둘러져 있습니다
-  // │ 글자       잉크 높이 12.5 CSS px → 15px 글자
-  // │ 좌우 여백  오른쪽 끝에서 20 CSS px (px-5)
-  // └──────────────────────────────────────────────────────────────────
-  //
-  // ⚠️ 높이를 py-3(≒46px)으로 두었더니 시안보다 한 줄에 9px씩 커져서,
-  //    같은 화면에 아홉 개 들어갈 것이 여섯 개 반만 들어갔습니다. 그래서
-  //    마지막 칩이 늘 반쯤 잘린 채로 보였습니다.
-  //
-  // ⚠️ leading 을 반드시 적습니다. text-[15px] 는 글자 크기만 정하고
-  //    줄높이는 물려받아서, 물려받는 값이 바뀌면 알약 높이가 같이 흔들립니다.
-  //    6 + 23 + 6 + 테두리 2 = 37px.
-  const chipBase = "rounded-full border px-5 py-1.5 text-[15px] leading-[23px] disabled:opacity-50"
-
-  // ⚠️ 눌리는 자리는 44px 로 넓힙니다.
-  //    시안의 알약은 37px 이라 손가락 최소 크기(44px)에 못 미칩니다. 알약을
-  //    키우면 시안이 틀어지므로, 보이는 크기는 그대로 두고 안 보이는 판만
-  //    위아래로 3.5px씩 넓혔습니다. 칩 사이가 10.6px 이라 옆 칩의 판과
-  //    겹치지도 않습니다.
-  const touch =
-    "relative after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-['']"
-
-  const topicChip = `${chipBase} ${touch} border-chip-line bg-brand-ink font-medium text-white transition-opacity hover:opacity-90`
-  const askChip = `${chipBase} ${touch} border-chip-line bg-chip text-left text-foreground transition-colors hover:bg-muted`
+  // 칩 모양은 lib/chip-styles.ts 한 곳에서 옵니다 — 스타일가이드
+  // (app/design-1859)도 같은 값을 가져다 씁니다. 여기에 다시 적지 마세요.
+  const topicChip = TOPIC_CHIP
+  const askChip = ASK_CHIP
 
   return (
     <div>
@@ -101,7 +79,7 @@ export function QuestionPicker({
 
       {/* ── 주제 ──────────────────────────────────────────────────── */}
       {chosen ? (
-        <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
+        <div className={`mb-2.5 flex flex-wrap items-center ${CHIP_GAP}`}>
           <button
             type="button"
             onClick={() => onTopicChange(null)}
@@ -114,7 +92,7 @@ export function QuestionPicker({
           </button>
         </div>
       ) : (
-        <div className="mb-2.5 flex flex-wrap gap-2.5">
+        <div className={`mb-2.5 flex flex-wrap ${CHIP_GAP}`}>
           {readingTopics.map((t) => (
             <button
               key={t.slug}
@@ -133,7 +111,7 @@ export function QuestionPicker({
           주제가 바뀌면 통째로 갈리므로 key 를 주제로 둡니다. 리액트가
           같은 자리를 고쳐 쓰지 않고 새로 그려서, 살짝 떠오르는 것으로
           "목록이 바뀌었다"가 읽힙니다. */}
-      <div key={topic ?? "all"} className="flex animate-in flex-col items-start gap-2.5 fade-in duration-200">
+      <div key={topic ?? "all"} className={`flex animate-in flex-col items-start ${CHIP_GAP} fade-in duration-200`}>
         {shown.map(({ topic: slug, question }) => (
           <button
             key={`${slug}-${question.slug}`}

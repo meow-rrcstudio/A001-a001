@@ -1,0 +1,52 @@
+// lib/chip-styles.ts
+// [단일 진실 소스] 타로보기 진입 화면의 제안 칩 — 주제(검정)와 질문(흰).
+//
+// ⚠️ 왜 컴포넌트 안이 아니라 여기인가
+//    실제 화면(components/question-picker.tsx)과 스타일가이드
+//    (app/design-1859)가 같은 글자를 써야 합니다. 두 벌로 두면 한쪽만
+//    고쳐진 채 남고, 다음 사람은 스타일가이드를 보고 옛 모양으로 만듭니다
+//    — 실제로 결제창 이름(orderName)에서 그 일이 났습니다.
+//
+// ⚠️ "use client" 를 붙이지 마세요. 스타일가이드는 서버 컴포넌트라,
+//    클라이언트 모듈에서 가져오면 문자열이 아니라 참조 스텁이 넘어와
+//    className 에 그대로 박힙니다 (조용히 깨집니다 — lib/layout.ts 참고).
+//
+// ┌─ 시안 실측 (PDF 를 150dpi 로 펴서 픽셀을 직접 읽은 값) ──────────
+// │ 알약 높이  78px ÷ 2.083 = 37.4 CSS px   ← 검정칩도 같은 높이입니다
+// │ 세로 피치  100px → 48 CSS px, 따라서 칩 사이 10.6 CSS px (gap-2.5)
+// │ 테두리     2px → 1 CSS px, 흰 칩과 검정 칩 모두에 둘러져 있습니다
+// │ 글자       잉크 높이 12.5 CSS px → 15px 글자
+// │ 좌우 여백  오른쪽 끝에서 20 CSS px (px-5)
+// │ 칩 바탕    (251,250,248) — 배경(250,249,245)보다 한 톤만 밝습니다
+// │ 테두리색   (227,232,219) — 라임이 아주 옅게 도는 회색
+// └──────────────────────────────────────────────────────────────────
+//
+// ⚠️ 순백(--card) + shadow-raised 로 그리지 마세요. 시안의 칩은 떠 있지
+//    않습니다. 그렇게 그렸더니 알약이 화면에서 붕 떠 말풍선과 같은 층으로
+//    보였고, 높이도 py-3(≒46px)이라 한 화면에 아홉 개 들어갈 것이 여섯 개
+//    반만 들어가 마지막 칩이 늘 반쯤 잘렸습니다.
+//
+// ⚠️ leading 을 반드시 적습니다. text-[15px] 는 글자 크기만 정하고 줄높이는
+//    물려받아서, 물려받는 값이 바뀌면 알약 높이가 같이 흔들립니다.
+//    6 + 23 + 6 + 테두리 2 = 37px.
+const CHIP_BASE = "rounded-full border px-5 py-1.5 text-[15px] leading-[23px] disabled:opacity-50"
+
+/**
+ * 눌리는 자리를 44px 로 넓히는 덧판.
+ *
+ * 시안의 알약은 37px 이라 손가락 최소 크기(44px)에 못 미칩니다. 알약을
+ * 키우면 시안이 틀어지므로, 보이는 크기는 그대로 두고 안 보이는 판만
+ * 위아래로 3.5px 씩 넓혔습니다. 칩 사이가 10.6px 이라 옆 칩의 판과
+ * 겹치지도 않습니다.
+ */
+const CHIP_TOUCH =
+  "relative after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-['']"
+
+/** 주제 칩 — 검정 알약 */
+export const TOPIC_CHIP = `${CHIP_BASE} ${CHIP_TOUCH} border-chip-line bg-brand-ink font-medium text-white transition-opacity hover:opacity-90`
+
+/** 질문 칩 — 흰 알약 */
+export const ASK_CHIP = `${CHIP_BASE} ${CHIP_TOUCH} border-chip-line bg-chip text-left text-foreground transition-colors hover:bg-muted`
+
+/** 칩 사이 간격 (시안 실측 10.6px) */
+export const CHIP_GAP = "gap-2.5"
