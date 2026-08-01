@@ -101,6 +101,22 @@ export function clearAll() {
   }
 }
 
+/**
+ * 몇 건만 골라 지웁니다.
+ *
+ * 로그인할 때 브라우저 기록을 서버로 옮기고(lib/claim-readings.ts) 나면,
+ * 옮겨진 것만 여기서 지웁니다.
+ *
+ * ⚠️ clearAll 로 통째로 비우지 않습니다. 서버가 일부만 받아들였을 때
+ *    (한도에 걸렸거나 한 건이 깨졌거나) 나머지까지 함께 사라집니다.
+ *    옮겨졌다고 확인된 것만 지우면, 남은 것은 다음 기회에 다시 시도합니다.
+ */
+export function removeReadings(ids: string[]) {
+  if (ids.length === 0) return
+  const gone = new Set(ids)
+  writeAll(readAll().filter((r) => !gone.has(r.id)))
+}
+
 /** 최신순 전체 목록 */
 export function listAll(): SavedReading[] {
   return readAll().sort((a, b) => b.at.localeCompare(a.at))

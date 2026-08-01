@@ -7,6 +7,8 @@
 
 import { use, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { resolveClaimedId } from "@/lib/claim-readings"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
@@ -25,6 +27,9 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
   const { id } = use(params)
   const [reading, setReading] = useState<SavedReading | null>(null)
   const [ready, setReady] = useState(false)
+  // 옛 주소로 들어와 새 주소로 넘어가는 중 (아래 resolveClaimedId 참고)
+  const [redirecting, setRedirecting] = useState(false)
+  const router = useRouter()
   const { account } = useAccount()
   // 예전 판을 다시 열어 이어 물을 때도 카드를 더 뽑을 수 있어야 합니다.
   // ⚠️ 이게 없으면 샨티가 "카드를 더 뽑아보자"고 말해도 뽑을 화면이 없어서
@@ -57,7 +62,23 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
         }
         const data = (await response.json()) as { reading: SavedReading | null }
         if (!alive) return
-        setReading(data.reading ?? getReading(id))
+
+        const found = data.reading ?? getReading(id)
+        if (found) {
+          setReading(found)
+        } else {
+          // 여기까지 왔는데 없다면, 로그인하면서 서버로 옮겨진 판일 수 있습니다.
+          // 옛 주소로 들어온 것이므로 새 주소로 넘겨보냅니다 — 맛보기를 보고
+          // 로그인한 사람이 정확히 이 길로 돌아옵니다.
+          const moved = resolveClaimedId(id)
+          if (moved) {
+            // ⚠️ ready 를 켜지 않고 넘어갑니다. 켜면 넘어가는 찰나에
+            //    "찾을 수 없어요"가 한 번 번쩍이고 사라집니다.
+            setRedirecting(true)
+            router.replace(`/my/${moved}`)
+            return
+          }
+        }
       } catch {
         if (alive) setReading(getReading(id))
       } finally {
@@ -67,9 +88,9 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
     return () => {
       alive = false
     }
-  }, [id])
+  }, [id, router])
 
-  if (!ready) return <div className="min-h-screen bg-background" />
+  if (!ready || redirecting) return <div className="min-h-screen bg-background" />
 
   // 지운 기록이거나 다른 기기에서 본 타로점
   if (!reading) {
