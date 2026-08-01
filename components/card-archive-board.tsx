@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ChevronRight, Search } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FilterChips } from "@/components/ui/filter-chips"
 import type { ArchiveDeck } from "@/lib/card-archive"

@@ -16,7 +16,7 @@ import { motion, type PanInfo } from "framer-motion"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
-import type { ReadingQuestion, ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import type { ReadingQuestion } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
 import type { DrawTracker } from "@/lib/draw-signals"
 
@@ -84,7 +84,6 @@ function seededOrder(length: number, seed: number) {
 }
 
 export function CardReadingFlow({
-  topicSlug,
   question,
   introMessage,
   excludeNames,
@@ -92,7 +91,6 @@ export function CardReadingFlow({
   signals,
   onComplete,
 }: {
-  topicSlug: ReadingTopicKey
   question: ReadingQuestion
   introMessage: string
   /**
@@ -186,7 +184,6 @@ export function CardReadingFlow({
     return left.length >= requiredPicks ? left : deck
     // excludeKey 는 배열을 문자열로 굳힌 값입니다 — 배열을 그대로 두면
     // 리렌더마다 새 배열이라 덱이 매번 다시 섞입니다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [excludeKey, requiredPicks])
 
   const cardOrientations = useMemo(() => {

@@ -35,7 +35,6 @@ import { HEADER_SPACE, HEADER_SPACE_PX } from "@/lib/layout"
 import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
-import { Button } from "@/components/ui/button"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { useReadingStream } from "@/lib/use-reading-stream"
@@ -357,7 +356,6 @@ export default function AskPage() {
               되돌립니다 — 옮기면 고른 주제와 친 글이 사라집니다. */}
           <PageHeader variant="reading" centerCharacter onBack={() => setStep("ask")} />
           <CardReadingFlow
-            topicSlug={asked.topicSlug}
             question={asked.question}
             introMessage={drawIntro(asked, question, plan)}
             // 이 판을 시작하는 뽑기에만 넘깁니다 — 면담 중 더 뽑기에는
@@ -431,7 +429,6 @@ export default function AskPage() {
                 }}
               />
               <CardReadingFlow
-                topicSlug="self"
                 question={{
                   slug: FREE_QUESTION_SLUG,
                   label: question,

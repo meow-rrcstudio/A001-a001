@@ -20,6 +20,7 @@
 //    않는 카드로 바꿔 답니다 (components/reading-result-view.tsx).
 "use client"
 
+import Link from "next/link"
 import { X } from "lucide-react"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 
@@ -65,12 +66,12 @@ export function FollowupBanner({
             </span>
           </button>
         ) : (
-          <a
+          <Link
             href="/my/credits"
             className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary transition-opacity hover:opacity-70"
           >
             더 받기
-          </a>
+          </Link>
         ))}
 
       <span aria-hidden="true" className="h-4 w-px shrink-0 bg-border" />

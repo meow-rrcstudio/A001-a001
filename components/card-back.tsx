@@ -29,7 +29,6 @@ export function CardBack({
   faceAlt?: string
 }) {
   const [faceFailed, setFaceFailed] = useState(false)
-  const showOrientationBadge = selected && flipped
 
   return (
     <div className="relative h-full w-full" style={{ perspective: 800 }}>

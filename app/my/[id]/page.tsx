@@ -185,7 +185,6 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
               }}
             />
             <CardReadingFlow
-              topicSlug="self"
               question={{
                 slug: FREE_QUESTION_SLUG,
                 label: reading.question,
