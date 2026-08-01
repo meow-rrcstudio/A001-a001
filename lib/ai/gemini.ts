@@ -301,12 +301,31 @@ export async function* streamGeminiJson({
   const primary = purpose === "free" ? GEMINI_FREE_MODEL : GEMINI_READING_MODEL
   let response = await ask(primary)
 
-  // 한도에 닿았으면 다른 모델로 한 번 더 — 통이 모델마다 따로입니다
-  // (위 GEMINI_FALLBACK_MODEL 주석 참고).
-  if (response.status === 429 && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== primary) {
-    console.warn(`[gemini] ${primary} 한도에 닿아 ${GEMINI_FALLBACK_MODEL} 로 다시 시도합니다`)
-    await response.text() // 몸통을 비워 연결을 놓아줍니다
-    response = await ask(GEMINI_FALLBACK_MODEL)
+  // ┌─ 다른 모델로 한 번 더 ────────────────────────────────────────────
+  // │ 429  한도에 닿음 — 통이 모델마다 따로라 다른 모델은 아직 남아 있습니다
+  // │ 404  그런 모델이 없음 — 이름이 바뀌었거나 이 열쇠로는 못 씁니다
+  // └──────────────────────────────────────────────────────────────────
+  //
+  // ⚠️ 404 를 여기 넣은 까닭. 구글이 모델을 갈아치우면서 옛 이름을 닫으면
+  //    우리 잘못이 없어도 하루아침에 404 가 옵니다. 실제로 맛보기가
+  //    gemini-2.5-flash-lite 404 로 통째로 죽었습니다 — 회원 해석은 다른
+  //    모델이라 멀쩡했는데, 맛보기만 아무 말도 못 하는 화면이 됐습니다.
+  //
+  // ⚠️ 대체 모델이 자기 자신이면 소용이 없습니다. 맛보기의 기본 대체
+  //    모델이 마침 맛보기 모델과 같아서(둘 다 flash-lite) 빠져나갈 길이
+  //    없었습니다. 그래서 마지막에는 회원 해석 모델까지 내려갑니다 —
+  //    비싸지만, 아무 말도 못 하는 것보다는 낫습니다.
+  const retryable = response.status === 429 || response.status === 404
+  if (retryable) {
+    const next = [GEMINI_FALLBACK_MODEL, GEMINI_READING_MODEL].find(
+      (m) => m && m !== primary
+    )
+    if (next) {
+      const why = response.status === 429 ? "한도에 닿아" : "그런 모델이 없다고 해서"
+      console.warn(`[gemini] ${primary} 가 ${why} ${next} 로 다시 시도합니다`)
+      await response.text() // 몸통을 비워 연결을 놓아줍니다
+      response = await ask(next)
+    }
   }
 
   if (!response.ok || !response.body) {
