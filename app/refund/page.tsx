@@ -18,6 +18,7 @@
 // │   그때 제4조 문장과 코드가 같은 말을 하는지 확인하세요.
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
 import {
@@ -33,7 +34,7 @@ import { BUSINESS } from "@/lib/business"
 
 export const metadata: Metadata = {
   title: "환불정책",
-  description: `SoulSeoul ${CREDIT_UNIT.one} 구매의 청약철회·환불 기준입니다.`,
+  description: `SoulSeoul ${CREDIT_UNIT.one} 구매의 청약철회·환불 기준입니다.`,  alternates: { canonical: canonicalPath("/refund") },
 }
 
 const EFFECTIVE = "2026년 8월 6일"

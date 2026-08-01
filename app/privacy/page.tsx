@@ -16,6 +16,7 @@
 // │ · 방침을 바꾸면 시행일(EFFECTIVE)을 올리고 7일 전에 공지합니다.
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
@@ -24,7 +25,7 @@ import { CREDIT_UNIT } from "@/lib/credit-packs"
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
-  description: "SoulSeoul이 어떤 정보를 수집하고 어떻게 다루는지 안내합니다.",
+  description: "SoulSeoul이 어떤 정보를 수집하고 어떻게 다루는지 안내합니다.",  alternates: { canonical: canonicalPath("/privacy") },
 }
 
 const EFFECTIVE = "2026년 8월 6일"

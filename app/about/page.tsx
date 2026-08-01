@@ -3,6 +3,7 @@
 // 애드센스 심사와 방문자 신뢰에 도움이 됩니다.
 // 아래 본문 문구는 자유롭게 직접 수정하세요.
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
@@ -10,7 +11,7 @@ import { HEADER_SPACE } from "@/lib/layout"
 export const metadata: Metadata = {
   title: "about",
   description:
-    "SoulSeoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",
+    "SoulSeoul은 타로를 중심으로 명상, 요가, 신화, 점성술을 기록하고 연결하는 개인 아카이브입니다.",  alternates: { canonical: canonicalPath("/about") },
 }
 
 const pClass = "text-[15px] leading-relaxed text-muted-foreground"
