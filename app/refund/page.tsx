@@ -34,6 +34,7 @@ import {
 } from "@/lib/credit-packs"
 import { PAID_CREDIT_VALID_MONTHS, WELCOME_CREDITS, validityLabel } from "@/lib/credit-rules"
 import { BUSINESS } from "@/lib/business"
+import { REFUND_MAILTO } from "@/lib/contact"
 
 export const metadata: Metadata = {
   title: "환불정책",
@@ -183,7 +184,11 @@ export default function RefundPage() {
       <H>제5조 (신청과 처리)</H>
       <List>
         <li>
-          환불은 {BUSINESS.email} 로 신청합니다. 가입한 이메일 주소와 결제일을 함께 적어 주세요 —
+          환불은{" "}
+          <a href={REFUND_MAILTO} className={linkClass}>
+            {BUSINESS.email}
+          </a>{" "}
+          로 신청합니다. 가입한 이메일 주소와 결제일을 함께 적어 주세요 —
           결제일은{" "}
           <Link href="/my/credits/purchases" className={linkClass}>
             결제내역 화면

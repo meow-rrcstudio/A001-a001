@@ -18,6 +18,7 @@ import { CREDIT_UNIT, countCredits, formatKrw } from "@/lib/credit-packs"
 import { useAccount } from "@/lib/use-account"
 import { useLoginHref } from "@/lib/login-href"
 import { BUSINESS } from "@/lib/business"
+import { REFUND_MAILTO } from "@/lib/contact"
 import type { PurchaseRow } from "@/app/api/account/purchases/route"
 
 /** "2026년 8월 2일" — 환불 신청에 적어 넣을 값이라 해까지 씁니다 */
@@ -121,7 +122,11 @@ export default function PurchasesPage() {
       )}
 
       <p className="mt-6 text-[13px] leading-relaxed text-muted-foreground">
-        환불은 {BUSINESS.email} 로 신청합니다. 기준은{" "}
+        환불은{" "}
+        <a href={REFUND_MAILTO} className="text-primary underline underline-offset-4">
+          {BUSINESS.email}
+        </a>{" "}
+        로 신청합니다. 기준은{" "}
         <Link href="/refund" className="text-primary underline underline-offset-4">
           환불정책
         </Link>

@@ -23,6 +23,7 @@ import {
   validityLabel,
 } from "@/lib/credit-rules"
 import { BUSINESS } from "@/lib/business"
+import { CONTACT_MAILTO } from "@/lib/contact"
 
 export const metadata: Metadata = {
   title: "이용약관",
@@ -70,7 +71,11 @@ export default function TermsPage() {
       <H>제2조 (사업자 정보)</H>
       <P>
         상호·대표자·주소·사업자등록번호·연락처는 모든 화면 아래 푸터의 &ldquo;사업자정보&rdquo;에
-        있습니다. 문의는 {BUSINESS.email} 로 받습니다.
+        있습니다. 문의는{" "}
+        <a href={CONTACT_MAILTO} className={linkClass}>
+          {BUSINESS.email}
+        </a>{" "}
+        로 받습니다.
       </P>
 
       <H>제3조 (약관의 변경)</H>
@@ -192,7 +197,11 @@ export default function TermsPage() {
           되돌려 드립니다.
         </li>
         <li>
-          불만이 있으면 먼저 {BUSINESS.email} 로 알려 주세요. 3영업일 안에 처리 경과를 알려
+          불만이 있으면 먼저{" "}
+          <a href={CONTACT_MAILTO} className={linkClass}>
+            {BUSINESS.email}
+          </a>{" "}
+          로 알려 주세요. 3영업일 안에 처리 경과를 알려
           드립니다. 협의가 되지 않으면 한국소비자원 또는 전자거래분쟁조정위원회에 조정을 신청할 수
           있습니다. 이 약관은 대한민국 법을 따릅니다.
         </li>
