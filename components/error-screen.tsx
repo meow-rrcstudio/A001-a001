@@ -12,15 +12,20 @@
 // │ 그래서 그림·간격·버튼은 여기 한 곳에서만 정합니다.
 // └──────────────────────────────────────────────────────────────────
 //
-// ┌─ 돌 가이드 (디자인시스템 "돌" 절과 같은 규칙) ─────────────────────
-// │ · 돌은 이 화면의 주인공입니다 — 높이 80px (로그인의 51px 보다 큽니다.
-// │   로그인은 버튼이 주인공이고, 여기는 돌이 유일한 그림입니다)
-// │ · 높이만 주고 가로는 w-auto — 그림 비율(75:51)대로 따라옵니다
+// ┌─ 캐릭터 가이드 (디자인시스템 "캐릭터" 절과 같은 규칙) ─────────────
+// │ · 캐릭터는 이 화면의 주인공입니다 — 높이 80px (로그인의 51px 보다
+// │   큽니다. 로그인은 버튼이 주인공이고, 여기는 그림이 하나뿐입니다)
+// │ · 높이만 주고 가로는 w-auto — 그림 비율대로 따라옵니다
 // │ · 색은 text-foreground — 검정 부분이 글자색을 따라갑니다
-// │ · 눈은 깜빡입니다(BlinkingStone). 멈춰 있는 돌은 "화면도 멈췄다"로
-// │   읽힙니다. 움직임 최소화를 켠 기기에서는 저절로 뜬 채로 있습니다
-// │ · 돌 위에 표정·말풍선·이모지를 얹지 않습니다. 미안한 얼굴을 그리면
-// │   사람 잘못처럼 보입니다 — 그냥 같이 서 있게 둡니다
+// │ · 눈은 깜빡입니다. 멈춰 있는 캐릭터는 "화면도 멈췄다"로 읽힙니다.
+// │   움직임 최소화를 켠 기기에서는 저절로 뜬 채로 있습니다
+// │ · 위에 표정·말풍선·이모지를 얹지 않습니다. 미안한 얼굴을 그리면
+// │   사람 잘못처럼 보입니다 — 그냥 같이 있게 둡니다
+// │
+// │ 어느 캐릭터를 쓰는지는 화면 성격으로 가릅니다.
+// │   해달 — 길을 잃은 화면(404). 물 위에 누워 떠 있는 모습이라
+// │          "떠내려왔다"가 그림 하나로 읽힙니다
+// │   돌   — 뭔가 어긋난 화면(오류). 가만히 있는 편이 맞습니다
 // └──────────────────────────────────────────────────────────────────
 //
 // ⚠️ 여기에 날오류(서버가 준 영어 문장)를 찍지 않습니다.
@@ -32,10 +37,14 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BlinkingStone } from "@/components/blinking-stone"
+import { BlinkingOtter } from "@/components/blinking-otter"
 import { HEADER_SPACE } from "@/lib/layout"
 
-/** 돌 높이 — 디자인시스템 "돌" 절의 "막다른 화면" 크기와 같은 값입니다 */
-const STONE_HEIGHT = "h-20"
+/** 캐릭터 높이 — 디자인시스템 "캐릭터" 절의 "막다른 화면" 크기와 같은 값입니다 */
+const CHARACTER_HEIGHT = "h-20"
+
+/** 이 화면에 세울 캐릭터 */
+export type ErrorCharacter = "stone" | "otter"
 
 export interface ErrorScreenAction {
   label: string
@@ -58,6 +67,8 @@ export function ErrorScreen({
   digest,
   /** 화면 맨 위(헤더 자리)에 넣을 것. 넘겨주지 않으면 비웁니다 */
   header,
+  /** 세울 캐릭터. 기본은 돌입니다 (위 가이드 참고) */
+  character = "stone",
 }: {
   title: string
   description: ReactNode
@@ -65,6 +76,7 @@ export function ErrorScreen({
   secondary?: ErrorScreenAction
   digest?: string
   header?: ReactNode
+  character?: ErrorCharacter
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -83,6 +95,7 @@ export function ErrorScreen({
           primary={primary}
           secondary={secondary}
           digest={digest}
+          character={character}
           headingLevel="h1"
         />
       </main>
@@ -91,7 +104,7 @@ export function ErrorScreen({
 }
 
 /**
- * 화면 속 알맹이 — 돌 · 문장 · 버튼.
+ * 화면 속 알맹이 — 캐릭터 · 문장 · 버튼.
  *
  * ⚠️ 껍데기(ErrorScreen)와 나눠 둔 이유는 디자인시스템 때문입니다.
  *    ErrorScreen 은 min-h-screen 이라 스타일가이드의 상자 안에 넣을 수
@@ -105,6 +118,7 @@ export function ErrorScreenBody({
   primary,
   secondary,
   digest,
+  character = "stone",
   /** 스타일가이드 안에서는 h1 이 이미 있으므로 p 로 낮춰 그립니다 */
   headingLevel = "h1",
 }: {
@@ -113,13 +127,19 @@ export function ErrorScreenBody({
   primary: ErrorScreenAction
   secondary?: ErrorScreenAction
   digest?: string
+  character?: ErrorCharacter
   headingLevel?: "h1" | "p"
 }) {
   const Heading = headingLevel
+  const characterClass = `${CHARACTER_HEIGHT} w-auto shrink-0 text-foreground`
 
   return (
     <div className="flex flex-col items-center text-center">
-      <BlinkingStone className={`${STONE_HEIGHT} w-auto shrink-0 text-foreground`} title="돌" />
+      {character === "otter" ? (
+        <BlinkingOtter className={characterClass} title="해달" />
+      ) : (
+        <BlinkingStone className={characterClass} title="돌" />
+      )}
 
       <Heading className="mt-8 font-myeongjo text-2xl font-bold text-foreground">{title}</Heading>
       <div className="mt-3 max-w-xs text-pretty leading-relaxed text-muted-foreground">

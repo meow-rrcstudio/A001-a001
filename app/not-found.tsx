@@ -28,6 +28,9 @@ export default function NotFound() {
       // 뒤로가기만 있는 헤더 — 여기까지 온 사람에게 필요한 건 나갈 길뿐입니다.
       // ⋯(더보기)를 달면 없는 페이지 위에서 메뉴 서랍이 열립니다.
       header={<PageHeader variant="minimal" backHref="/" />}
+      // 해달 — 물 위에 누워 떠 있는 모습이라 "떠내려왔다"가 그림 하나로
+      // 읽힙니다. 오류 화면(app/error.tsx)은 돌입니다.
+      character="otter"
       title="찾는 페이지가 없어요"
       description={
         <>

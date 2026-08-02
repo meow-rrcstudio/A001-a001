@@ -25,6 +25,7 @@ import { BlinkingShanti } from "@/components/pixel-sprite"
 import { ICON_SET, IconChat, IconHome, IconLayers } from "@/components/icons"
 import { Stone } from "@/components/stone"
 import { BlinkingStone } from "@/components/blinking-stone"
+import { BlinkingOtter } from "@/components/blinking-otter"
 import { ErrorScreenBody } from "@/components/error-screen"
 import { PageHeader } from "@/components/page-header"
 import { SiteMenuPreview } from "@/components/site-menu"
@@ -74,7 +75,7 @@ const tocGroups: TocGroup[] = [
       { id: "radius", label: "4. 모서리 둥글기" },
       { id: "elevation", label: "5. 그림자 · 선 · 유리면" },
       { id: "icons", label: "6. 아이콘" },
-      { id: "stone", label: "7. 돌 (마스코트)" },
+      { id: "characters", label: "7. 캐릭터" },
     ],
   },
   {
@@ -495,13 +496,43 @@ export default function DesignSystemPage() {
             </p>
           </section>
 
-          {/* ── 7. 돌 (마스코트) ───────────────────── */}
-          <section id="stone" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>7. 돌 (마스코트)</h2>
+          {/* ── 7. 캐릭터 ──────────────────────────── */}
+          <section id="characters" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>7. 캐릭터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              사이트의 마스코트입니다 (components/stone.tsx). 아리님이 올린 캐릭터 시트
-              (636×205 에 캐릭터 일곱)에서 돌만 떼어낸 벡터라 배경이 없고, 어느 바탕에든 그대로
-              얹힙니다.
+              아리님이 올린 캐릭터 시트(636×205 에 캐릭터 일곱)에서 떼어낸 벡터입니다. 배경이
+              없어서 어느 바탕에든 그대로 얹힙니다. 지금 쓰는 것은 둘 — <strong className="font-semibold text-foreground">돌</strong>
+              (components/stone.tsx)과 <strong className="font-semibold text-foreground">해달</strong>
+              (components/otter.tsx)입니다.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
+                <BlinkingStone className="h-20 w-auto text-foreground" title="돌" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;Stone /&gt; · 75×51
+                </span>
+                <span className="text-xs text-muted-foreground">로그인 · 오류 화면</span>
+              </div>
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6">
+                <BlinkingOtter className="h-20 w-auto text-foreground" title="해달" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;Otter /&gt; · 103.79×52.2
+                </span>
+                <span className="text-xs text-muted-foreground">404 화면</span>
+              </div>
+            </div>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ 해달은 돌보다 훨씬 납작합니다 — 약 2:1 이라 <strong className="font-semibold text-foreground">같은
+              높이로 넣으면 가로가 1.4배</strong> 넓어집니다. 돌을 두던 자리에 그대로 갈아끼우지 말고
+              화면에서 한 번 보세요. 그리고 해달의 눈은 시그니처
+              라임(<code className="font-mono">--brand-lime</code>)입니다 — 검정 몸통 위라 라임만
+              도드라집니다. 라임을 끄려고 그 변수를 크림으로 바꾸면 이 눈도 묻히니, 그때는 눈 색을
+              따로 지정하세요.
+            </p>
+            <p className="mt-4 text-xs font-medium text-muted-foreground">
+              원본 시트는 저장소에 없습니다 — 컴포넌트가 진실의 원천이라 지웠습니다. 다른 캐릭터를
+              더 떼어내야 하면 git 히스토리(커밋 <code className="font-mono">35f4147</code> 의
+              부모)에서 꺼내세요. 아래 ①~③ 은 돌을 기준으로 설명하지만 해달도 같은 규칙입니다.
             </p>
 
             <p className="mt-5 text-xs font-medium text-muted-foreground">
@@ -513,7 +544,7 @@ export default function DesignSystemPage() {
               {(
                 [
                   { cls: "h-[51px]", label: "h-[51px] · 로그인 (시안 실측)" },
-                  { cls: "h-20", label: "h-20 · 막다른 화면 (404 · 오류)" },
+                  { cls: "h-20", label: "h-20 · 막다른 화면 (오류)" },
                   { cls: "h-32", label: "h-32" },
                 ] as const
               ).map((size) => (
@@ -598,34 +629,58 @@ export default function DesignSystemPage() {
             </p>
 
             <p className="mt-8 text-xs font-medium text-muted-foreground">
-              ④ 막다른 화면 — 404 · 오류 화면은 돌 하나로 그립니다
-              (components/error-screen.tsx). 아래는 실제 <code className="font-mono">/404</code>{" "}
-              화면의 알맹이를 그대로 가져온 것입니다
+              ④ 막다른 화면 — 404 · 오류 화면은 캐릭터 하나로 그립니다
+              (components/error-screen.tsx). 아래 둘은 실제 화면의 알맹이를 그대로 가져온
+              것입니다 — 왼쪽이 <code className="font-mono">/404</code>, 오른쪽이 오류 화면입니다
             </p>
             {/* ⚠️ 견본을 손으로 그리지 않습니다. 진짜 화면(app/not-found.tsx)이
                 쓰는 것과 같은 ErrorScreenBody 입니다 — 문장이나 버튼을 고치면
                 여기도 함께 바뀝니다. */}
-            <div className="mt-2 rounded-xl border border-border bg-background px-6 py-12">
-              <ErrorScreenBody
-                headingLevel="p"
-                title="찾는 페이지가 없어요"
-                description={
-                  <>
-                    주소가 바뀌었거나, 지워진 글일 수 있어요.
-                    <br />
-                    아래 길로 돌아가 주세요.
-                  </>
-                }
-                primary={{ label: "홈으로 가기", href: "#" }}
-                secondary={{ label: "아카이빙 둘러보기", href: "#" }}
-              />
+            <div className="mt-2 grid gap-3 lg:grid-cols-2">
+              <div className="rounded-xl border border-border bg-background px-6 py-12">
+                <ErrorScreenBody
+                  headingLevel="p"
+                  character="otter"
+                  title="찾는 페이지가 없어요"
+                  description={
+                    <>
+                      주소가 바뀌었거나, 지워진 글일 수 있어요.
+                      <br />
+                      아래 길로 돌아가 주세요.
+                    </>
+                  }
+                  primary={{ label: "홈으로 가기", href: "#" }}
+                  secondary={{ label: "아카이빙 둘러보기", href: "#" }}
+                />
+              </div>
+              <div className="rounded-xl border border-border bg-background px-6 py-12">
+                <ErrorScreenBody
+                  headingLevel="p"
+                  character="stone"
+                  title="잠깐 길이 막혔어요"
+                  description={
+                    <>
+                      화면을 그리다 문제가 생겼어요.
+                      <br />
+                      한 번 더 해보면 지나갈 때가 많아요.
+                    </>
+                  }
+                  primary={{ label: "다시 시도", href: "#" }}
+                  secondary={{ label: "홈으로 가기", href: "#" }}
+                  digest="1a2b3c4d"
+                />
+              </div>
             </div>
             <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
               막다른 화면의 규칙입니다.
-              <br />· 돌은 <strong className="font-semibold">h-20 (80px)</strong> — 로그인의 51px
-              보다 큽니다. 로그인은 버튼이 주인공이고, 여기는 돌이 유일한 그림입니다
-              <br />· 돌 위에 <strong className="font-semibold">표정·말풍선·이모지를 얹지
-              않습니다.</strong> 미안한 얼굴을 그리면 사람 잘못처럼 보입니다 — 그냥 같이 서 있게
+              <br />· <strong className="font-semibold">어느 캐릭터인지는 화면 성격으로
+              가릅니다.</strong> 길을 잃은 화면(404)은 해달 — 물 위에 누워 떠 있는 모습이라
+              &ldquo;떠내려왔다&rdquo;가 그림 하나로 읽힙니다. 뭔가 어긋난 화면(오류)은 돌 —
+              가만히 있는 편이 맞습니다
+              <br />· 캐릭터는 <strong className="font-semibold">h-20 (80px)</strong> — 로그인의
+              51px 보다 큽니다. 로그인은 버튼이 주인공이고, 여기는 그림이 하나뿐입니다
+              <br />· 캐릭터 위에 <strong className="font-semibold">표정·말풍선·이모지를 얹지
+              않습니다.</strong> 미안한 얼굴을 그리면 사람 잘못처럼 보입니다 — 그냥 같이 있게
               둡니다
               <br />· <strong className="font-semibold">나갈 길을 반드시 둡니다.</strong>{" "}
               &ldquo;없어요&rdquo;만 적어두면 뒤로가기 말고는 갈 데가 없습니다
