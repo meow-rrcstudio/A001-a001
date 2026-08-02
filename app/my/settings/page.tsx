@@ -69,6 +69,9 @@ export default function SettingsPage() {
           ? { label: `${CREDIT_UNIT.one} 더 사기`, href: "/my/credits/buy" }
           : { label: `${CREDIT_UNIT.one} 사러 가기`, href: "/my/credits/buy" },
     },
+    // 결제내역 — 환불정책 제5조가 "결제일을 함께 적어 주세요"라고
+    // 요구하는데, 그 값을 볼 자리가 여기입니다.
+    { label: "결제내역", href: "/my/credits/purchases" },
     // ⚠️ "알림"과 "연동"을 뺐습니다. 둘 다 href="#" 이라 눌러도 아무 일이
     //    없었습니다. 눌리지 않는 행은 "곧 될 것 같은데 안 되는" 자리라,
     //    없는 것보다 나쁩니다.
