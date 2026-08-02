@@ -17,6 +17,7 @@ import { ArrowRight, Check, Copy } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
+import { useLoginHref } from "@/lib/login-href"
 import { formatDate } from "@/lib/format-date"
 import type { PickedCard } from "@/components/reading-result-view"
 
@@ -44,6 +45,9 @@ export function PromptReadingView({
   backHref?: string
 }) {
   const hasReading = Boolean(result?.title && result.sections?.length)
+  // 로그인을 마치면 보던 이 판으로 돌아옵니다 — 예전에는 기록 목록으로
+  // 떨어져서 방금 읽던 것이 어디 갔는지 알 수 없었습니다.
+  const loginHref = useLoginHref()
   const [copied, setCopied] = useState(false)
 
   async function copy() {
@@ -130,7 +134,7 @@ export function PromptReadingView({
             </Link>
           ) : (
             <Link
-              href="/login?next=/my"
+              href={loginHref}
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
               가입하고 이어서 물어보기

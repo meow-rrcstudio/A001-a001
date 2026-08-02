@@ -183,7 +183,12 @@ export default function RefundPage() {
       <H>제5조 (신청과 처리)</H>
       <List>
         <li>
-          환불은 {BUSINESS.email} 로 신청합니다. 가입한 이메일 주소와 결제일을 함께 적어 주세요.
+          환불은 {BUSINESS.email} 로 신청합니다. 가입한 이메일 주소와 결제일을 함께 적어 주세요 —
+          결제일은{" "}
+          <Link href="/my/credits/purchases" className={linkClass}>
+            결제내역 화면
+          </Link>
+          에서 확인할 수 있습니다.
         </li>
         <li>
           신청을 받은 날부터 3영업일 안에 처리하고 결과를 알려 드립니다. 환불은 결제한 수단으로

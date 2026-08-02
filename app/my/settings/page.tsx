@@ -15,17 +15,23 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { SettingsGroup, type SettingsItem } from "@/components/ui/settings-list"
 import { useAccount } from "@/lib/use-account"
+import { useLoginHref } from "@/lib/login-href"
 import {
   signOut,
 } from "@/lib/reading-entitlement"
 
-// 앱 섹션의 "권한 · 햅틱 피드백"은 웹에서 제어할 수 없어 넣지 않았습니다.
-// (권한은 브라우저가, 햅틱은 기기가 관리합니다) 앱을 출시할 때 추가하세요.
-const APP_ITEMS: SettingsItem[] = [{ label: "연동", href: "#" }]
+// ⚠️ "앱" 묶음을 통째로 뺐습니다. 안에 "연동" 한 줄뿐이었고 그마저
+//    href="#" 이라 눌러도 아무 일이 없었습니다. 무엇과 연동한다는
+//    말인지도 화면 어디에도 없었습니다.
+//
+//    앱을 실제로 내거나(권한·햅틱), 캘린더·노션 같은 붙일 곳이
+//    생기면 그때 되살리세요.
 
 export default function SettingsPage() {
   const router = useRouter()
   const { account: entitlement, ready } = useAccount()
+  // 로그인을 마치면 이 화면으로 돌아옵니다 (lib/login-href.ts)
+  const loginHref = useLoginHref()
 
   if (!ready) return <div className="min-h-screen bg-background" />
 
@@ -36,7 +42,7 @@ export default function SettingsPage() {
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-20 text-center">
           <h1 className="font-myeongjo text-2xl font-bold text-foreground">설정</h1>
           <p className="mt-4 text-sm text-muted-foreground">로그인 후에 볼 수 있어요.</p>
-          <Button variant="solid" size="pill" className="mt-8" render={<Link href="/login" />}>
+          <Button variant="solid" size="pill" className="mt-8" render={<Link href={loginHref} />}>
             <LogIn className="h-4 w-4" aria-hidden="true" />
             로그인하기
           </Button>
@@ -63,8 +69,19 @@ export default function SettingsPage() {
           ? { label: `${CREDIT_UNIT.one} 더 사기`, href: "/my/credits/buy" }
           : { label: `${CREDIT_UNIT.one} 사러 가기`, href: "/my/credits/buy" },
     },
-    { label: "알림", href: "#" },
-    { label: "개인정보", href: "/privacy" },
+    // 결제내역 — 환불정책 제5조가 "결제일을 함께 적어 주세요"라고
+    // 요구하는데, 그 값을 볼 자리가 여기입니다.
+    { label: "결제내역", href: "/my/credits/purchases" },
+    // ⚠️ "알림"과 "연동"을 뺐습니다. 둘 다 href="#" 이라 눌러도 아무 일이
+    //    없었습니다. 눌리지 않는 행은 "곧 될 것 같은데 안 되는" 자리라,
+    //    없는 것보다 나쁩니다.
+    //
+    //    알림은 보낼 수단(메일·알림톡)이 생기면 그때 되살리세요. 그때는
+    //    약관에도 "미리 알린다"를 함께 넣습니다 — 지금은 뺐습니다
+    //    (lib/credit-rules.ts 주석 참고).
+    //
+    //    "개인정보"도 뺐습니다. 개인정보처리방침은 모든 화면 아래 푸터에
+    //    이미 있어서, 여기 두면 같은 곳으로 가는 길이 둘이 됩니다.
   ]
 
   return (
@@ -78,7 +95,6 @@ export default function SettingsPage() {
         </p>
 
         <SettingsGroup label="계정" items={accountItems} />
-        <SettingsGroup label="앱" items={APP_ITEMS} />
 
         {/* 로그아웃 — 설정 행과 같은 폭·같은 바탕의 버튼입니다.
             예전에는 밑줄 친 작은 글씨였는데, 목록 아래에 글씨만 떠 있어서
