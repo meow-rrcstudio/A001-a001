@@ -111,6 +111,42 @@ export function pricePerCredit(pack: CreditPack): number {
   return Math.round(pack.priceKrw / pack.credits)
 }
 
+/**
+ * 환불할 때 "이미 쓴 것"을 쳐서 빼는 단가 — 낱개로 살 때의 값입니다.
+ *
+ * ┌─ 왜 묶음 단가가 아니라 낱개 값인가 ───────────────────────────────
+ * │ 묶음 할인은 "열 개를 한꺼번에 사는" 값입니다. 네 개만 쓰고 무르면
+ * │ 그 사람이 실제로 산 것은 묶음이 아니라 낱개 넷입니다. 그래서 쓴
+ * │ 만큼은 낱개 값으로 치고 나머지를 돌려줍니다 — 할인만 챙기고 무르는
+ * │ 일을 막는, 묶음 상품에서 흔한 방식입니다.
+ * │
+ * │ ⚠️ 이 방식은 반드시 환불정책에 미리 적혀 있어야 합니다. 안 적고
+ * │    깎으면 부당한 공제가 됩니다 (app/refund/page.tsx 제4조).
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 숫자를 직접 쓰지 않고 낱개 묶음에서 가져옵니다. 값을 바꿀 때
+ *    환불정책만 옛 숫자로 남는 일을 막습니다 — 실제로 한 번 그랬습니다.
+ */
+export function refundUnitPrice(): number {
+  const single = CREDIT_PACKS.find((p) => p.credits === 1)
+  // 낱개 묶음이 사라지면 가장 비싼 단가로 칩니다 (없는 값을 지어내지 않도록)
+  return single ? single.priceKrw : Math.max(...CREDIT_PACKS.map(pricePerCredit))
+}
+
+/**
+ * 환불 금액을 셉니다. 제4조가 하는 말을 그대로 옮긴 것입니다.
+ *
+ * @param paidKrw    그 결제로 실제로 낸 금액
+ * @param paidUsed   그 결제분에서 쓴 개수 (무상분을 먼저 뺀 뒤의 수)
+ *
+ * ⚠️ 0 아래로는 내려가지 않습니다. 낱개 값으로 치면 쓴 값의 합이 낸 돈을
+ *    넘어설 수 있는데(10개 묶음에서 8개를 쓰면 그렇습니다), 그때 돈을
+ *    더 받아낼 수는 없습니다.
+ */
+export function refundAmount(paidKrw: number, paidUsed: number): number {
+  return Math.max(0, paidKrw - paidUsed * refundUnitPrice())
+}
+
 /** "8,000원" */
 export function formatKrw(amount: number): string {
   return `${amount.toLocaleString("ko-KR")}원`
