@@ -61,6 +61,15 @@ export function FreeReadingResult({
   const [nudged, setNudged] = useState(false)
   const nudgeRef = useRef<HTMLDivElement>(null)
 
+  /**
+   * 이 판이 기록에 남은 주소(id).
+   *
+   * 로그인 넛지가 이 값을 씁니다 — 로그인을 마치고 "방금 읽던 그 판"으로
+   * 돌아가려면 어디로 갈지 알아야 합니다. 저장이 끝나기 전에는 null 이고,
+   * 그동안 넛지는 기록 목록으로 보냅니다.
+   */
+  const [savedId, setSavedId] = useState<string | null>(null)
+
   // 카드를 다 뽑는 것은 판마다 한 번뿐이라 그 신호만 봅니다.
   // ⚠️ 개발 모드에서 effect 가 두 번 도는데, 그대로 두면 맛보기 몫을
   //    한 판에 두 번 꺼내 씁니다 (사이트 전체 총량에서 나갑니다).
@@ -103,6 +112,9 @@ export function FreeReadingResult({
       promptText,
       result: reading,
       signals,
+    }).then((saved) => {
+      // 남은 주소를 붙잡아 둡니다. 로그인 넛지가 이걸로 돌아올 길을 만듭니다.
+      if (saved) setSavedId(saved.id)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streaming, reading])
@@ -222,8 +234,14 @@ export function FreeReadingResult({
                   로그인하면 이 몸과 직접 대화를 이어갈 수 있다냥. 뽑은 카드도 기록으로 남아서,
                   다른 기기에서도 다시 볼 수 있다네.
                 </p>
+                {/* ⚠️ 돌아올 곳을 기록 목록(/my)으로 두지 않습니다.
+                       방금 읽던 판을 두고 남의 목록 같은 화면으로 떨어지면
+                       "이어서 대화하자"던 말이 끊깁니다 — 실제로 그랬습니다.
+                       저장된 주소가 있으면 그 판으로 되돌립니다. 로그인하는
+                       사이 브라우저 기록은 서버로 옮겨지므로(lib/claim-readings.ts)
+                       돌아온 자리에는 방금 읽은 글이 그대로 있습니다. */}
                 <Link
-                  href="/login?next=/my"
+                  href={`/login?next=${encodeURIComponent(savedId ? `/my/${savedId}` : "/my")}`}
                   className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   로그인하기
