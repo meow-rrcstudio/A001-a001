@@ -837,6 +837,18 @@ export default function DesignSystemPage() {
               {homeCategories[0].quotes.length}가지뿐이라 미리 다 확인할 수 있습니다. 문구를 더
               넣으면 회전 주기가 그만큼 길어집니다.
             </p>
+            <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
+              카드에 반응하는 방법이 기기마다 다릅니다. <strong className="font-semibold">마우스는
+              올려놓으면</strong>(hover) 검정이 차오르고 벗어나면 되돌아갑니다.{" "}
+              <strong className="font-semibold">손가락은 누르고 있는 동안</strong> 차오르고 떼면
+              되돌아갑니다. 아래 견본도 같으니 마우스를 올려 보세요.
+              <br />
+              가르는 기준은 <strong className="font-semibold">화면 폭이 아니라 포인터</strong>입니다
+              (<code className="font-mono">lib/use-fine-pointer.ts</code>). 넓은 태블릿은
+              손가락이고 좁은 창의 노트북은 마우스라, 폭으로 가르면 자주 틀립니다. 알고 싶은 것은
+              &ldquo;올려놓을 수 있는 손이 있는가&rdquo;라 그것을 그대로 묻습니다 —{" "}
+              <code className="font-mono">(hover: hover) and (pointer: fine)</code>.
+            </p>
             <div className="mt-5 overflow-hidden rounded-xl border border-border">
               <div className="bg-brand-lime">
                 <HomeCategoryGrid />

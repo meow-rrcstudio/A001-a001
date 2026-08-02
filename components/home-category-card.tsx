@@ -19,12 +19,26 @@
 // │ ⚠️ 이 반응 자체가 효과라, 마우스 올렸을 때의 기본 배경 효과는
 // │    넣지 않습니다 (두 개가 겹치면 지저분합니다).
 // └──────────────────────────────────────────────────────────────────
+//
+// ┌─ 무엇이 "누름"인가 — 마우스와 손가락이 다릅니다 ──────────────────
+// │ 마우스  올려놓으면(enter) 차오르고, 벗어나면(leave) 되돌아갑니다.
+// │ 손가락  누르고 있는 동안(down) 차오르고, 떼면(up) 되돌아갑니다.
+// │
+// │ 마우스에서 down/up 을 쓰면 눌러야만 보입니다 — 3초짜리 효과를
+// │ 마우스를 누른 채 3초를 기다려야 끝까지 봅니다. 반대로 손가락에서
+// │ enter/leave 를 쓰면 손을 대는 순간 enter 가 나고 떼도 leave 가 안
+// │ 나서, 검정이 차오른 채 그대로 남습니다.
+// │
+// │ 어느 쪽인지는 화면 폭이 아니라 포인터로 가릅니다
+// │ (lib/use-fine-pointer.ts — 왜 폭이 아닌지 거기에 적어뒀습니다).
+// └──────────────────────────────────────────────────────────────────
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
 import { homeCategories, quoteOfMonth } from "@/lib/home-categories"
 import { ListItemCard } from "@/components/ui/list-item-card"
+import { useFinePointer } from "@/lib/use-fine-pointer"
 
 export function HomeCategoryCard({
   category,
@@ -38,18 +52,31 @@ export function HomeCategoryCard({
 
   const [pressed, setPressed] = useState(false)
   const release = () => setPressed(false)
+  const hold = () => setPressed(true)
+
+  // 마우스는 "올려놓기", 손가락은 "누르고 있기".
+  // 두 벌을 함께 걸지 않습니다 — 마우스에서는 enter 뒤에 down 이 또
+  // 나고, 손가락에서는 down 앞에 enter 가 나서 서로를 덮어씁니다.
+  const finePointer = useFinePointer()
+  const holdHandlers = finePointer
+    ? { onPointerEnter: hold, onPointerLeave: release }
+    : {
+        onPointerDown: hold,
+        onPointerUp: release,
+        // 누른 채 줄 밖으로 끌고 나가거나, 스크롤이 시작돼 눌림이
+        // 취소되면 되돌립니다 (안 그러면 검정이 남습니다)
+        onPointerLeave: release,
+        onPointerCancel: release,
+      }
 
   return (
     <Link
       // 타로보기 화면으로 가되, 이 주제가 이미 골라진 채로 시작합니다.
       // 한 번 고른 것을 또 고르게 하지 않으려는 것입니다.
       href={`/tarot/ask?topic=${category.slug}`}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={release}
-      onPointerLeave={release}
-      onPointerCancel={release}
+      {...holdHandlers}
       // 키보드로 넘어온 사람도 같은 것을 봅니다
-      onFocus={() => setPressed(true)}
+      onFocus={hold}
       onBlur={release}
       // 이 줄은 스스로 누름 효과를 가지고 있습니다. 전역 기본 효과
       // (opacity 0.65 · scale 축소)를 끄지 않으면 검정이 올리브로 뜨고
