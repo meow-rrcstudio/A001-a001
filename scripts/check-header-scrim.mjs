@@ -84,6 +84,9 @@ const PAGES = [
   "/tarot/ask",
   "/about",
   "/privacy",
+  // 없는 주소 — app/not-found.tsx 가 뜨는 자리입니다. 사람이 가장 당황한
+  // 순간에 보는 화면이라, 여기서 버튼이 안 읽히면 나갈 길이 없어집니다.
+  "/이-주소는-없습니다",
 ]
 
 async function main() {
