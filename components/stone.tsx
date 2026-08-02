@@ -44,9 +44,15 @@ export function Stone({
       viewBox={VIEW_BOX}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      // 높이만 주면 가로가 비율대로 따라오도록 (h-16 등)
-      height="1em"
-      width="1.47em"
+      // ⚠️ width/height 를 속성으로 박지 않습니다.
+      //    예전에는 height="1em" width="1.47em" 였는데, 그러면 가로가 글자
+      //    크기를 따라갑니다. 부르는 쪽에서 h-[51px] 로 높이만 키워도 가로는
+      //    글자 크기(≈16px)에 묶인 23px 그대로라, 그림이 그 좁은 칸에 맞춰
+      //    쪼그라들었습니다.
+      //
+      //    viewBox 만 두고 크기는 CSS 에 맡깁니다. 높이를 주고 w-auto 를
+      //    함께 주면 브라우저가 viewBox 비율(75:51)대로 가로를 냅니다.
+      preserveAspectRatio="xMidYMid meet"
       role={title ? "img" : undefined}
       aria-hidden={title ? undefined : "true"}
       focusable="false"

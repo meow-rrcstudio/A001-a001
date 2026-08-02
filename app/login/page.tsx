@@ -88,7 +88,7 @@ export default async function LoginPage({
                키보드가 올라올 때 줄어드는 자리라(min-h-0 flex-1), 크게
                두면 입력할 때 버튼이 화면 밖으로 밀립니다. */}
         <div className="flex min-h-0 flex-1 items-end justify-center pb-10 pt-4">
-          <BlinkingStone className="h-[51px] shrink-0 text-brand-ink" />
+          <BlinkingStone className="h-[51px] w-auto shrink-0 text-brand-ink" />
         </div>
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.
