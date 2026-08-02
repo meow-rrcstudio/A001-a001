@@ -18,8 +18,8 @@
 // │    대신합니다 (components/login-form.tsx 의 Consent).
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
-import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
+import { BlinkingStone } from "@/components/blinking-stone"
 import { HEADER_SPACE } from "@/lib/layout"
 import { LoginForm } from "@/components/login-form"
 import { translateAuthError } from "@/lib/auth-messages"
@@ -69,24 +69,26 @@ export default async function LoginPage({
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 ${HEADER_SPACE}`}>
         <h1 className="sr-only">SoulSeoul 로그인</h1>
 
-        {/* UFO·고양이 일러스트 (전달받은 원본 PNG 기반).
-            배경이 투명해서 라임 위에 그대로 얹힙니다.
+        {/* 마스코트 돌 (components/stone.tsx).
+            배경이 없는 벡터라 라임 위에 그대로 얹힙니다.
 
-            남는 세로를 이 칸이 다 가져가고 그림은 그 안에서 가운데에 섭니다.
-            그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 그림만
+            남는 세로를 이 칸이 다 가져가고 돌은 그 안에서 가운데에 섭니다.
+            그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 이 칸만
             줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
-            min-h-0 이 없으면 flex 칸이 그림 원본 높이 아래로 줄지 않아
-            키보드가 올라왔을 때 버튼이 화면 밖으로 밀립니다. */}
-        <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-          <Image
-            src="/login-cat.webp"
-            alt=""
-            aria-hidden="true"
-            width={560}
-            height={793}
-            priority
-            className="h-full max-h-[340px] w-auto max-w-[70%] object-contain"
-          />
+
+            ⚠️ 치수는 시안 실측입니다 — 돌 높이 51px, 아래 버튼까지 40px.
+               가로는 그림 비율(75:51)대로 따라옵니다. 시안의 80 은 돌을
+               감싼 상자 폭이라 그림 자체는 그보다 조금 좁습니다.
+
+            ⚠️ 가운데(items-center)가 아니라 아래(items-end)에 붙입니다.
+               시안에서 돌은 화면 한가운데가 아니라 버튼 바로 위에 서
+               있습니다. 남는 자리는 전부 돌 위쪽으로 갑니다.
+
+            ⚠️ 빈자리가 넓어 보인다고 크기를 키우지 마세요. 이 칸은
+               키보드가 올라올 때 줄어드는 자리라(min-h-0 flex-1), 크게
+               두면 입력할 때 버튼이 화면 밖으로 밀립니다. */}
+        <div className="flex min-h-0 flex-1 items-end justify-center pb-10 pt-4">
+          <BlinkingStone className="h-[51px] w-auto shrink-0 text-brand-ink" />
         </div>
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.

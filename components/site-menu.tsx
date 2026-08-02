@@ -20,7 +20,7 @@ import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Archive, FolderClosed, Layers, SlidersHorizontal, TerminalSquare } from "lucide-react"
+import { IconActivity, IconChat, IconFolder, IconHome, IconLayers } from "@/components/icons"
 import { Wordmark } from "@/components/brand-mark"
 import { listRecent } from "@/lib/reading-archive"
 
@@ -28,13 +28,13 @@ import { listRecent } from "@/lib/reading-archive"
 const DRAWER_WIDTH = "78%"
 
 const menuItems = [
-  { label: "홈", href: "/", icon: TerminalSquare },
+  { label: "홈", href: "/", icon: IconHome },
   // 타로보기의 진입점은 한 곳입니다 (app/tarot/ask/page.tsx). 주제 고르기와
   // 질문 고르기가 그 화면 안에 칩으로 들어와 있습니다.
-  { label: "타로보기", href: "/tarot/ask", icon: Archive },
-  { label: "기록 보기", href: "/my", icon: FolderClosed },
-  { label: "아카이빙", href: "/archive", icon: Layers },
-  { label: "설정", href: "/my/settings", icon: SlidersHorizontal },
+  { label: "타로보기", href: "/tarot/ask", icon: IconChat },
+  { label: "기록보기", href: "/my", icon: IconFolder },
+  { label: "아카이빙", href: "/archive", icon: IconLayers },
+  { label: "설정", href: "/my/settings", icon: IconActivity },
 ]
 
 /**
@@ -47,7 +47,7 @@ export function SiteMenuPreview() {
     <div className="flex justify-end bg-background">
       {/* 왼쪽 = 밀려난 페이지, 오른쪽 = 드러난 서랍 */}
       <div className="flex-1 rounded-r-3xl bg-card shadow-overlay" />
-      <nav aria-label="사이트 메뉴 견본" className="w-[78%] max-w-[300px] bg-muted px-6 pb-10 pt-6">
+      <nav aria-label="사이트 메뉴 견본" className="w-[78%] max-w-[300px] bg-muted pb-10 pl-6 pr-4 pt-6">
         {/* self-start 가 없으면 flex 가 폭을 늘려 로고가 옆으로 퍼집니다 */}
         <Wordmark className="h-9 self-start" />
         <ul className="mt-8 space-y-1">
@@ -189,7 +189,7 @@ export function SiteMenu({ open, onClose }: { open: boolean; onClose: () => void
       {/* 서랍 — 오른쪽에서 밀려 나옵니다 */}
       <nav
         aria-label="사이트 메뉴"
-        className="absolute inset-y-0 right-0 flex w-[78%] flex-col overflow-y-auto bg-muted px-6 pb-10 pt-6"
+        className="absolute inset-y-0 right-0 flex w-[78%] flex-col overflow-y-auto bg-muted pb-10 pl-6 pr-4 pt-6"
       >
         {/* self-start 가 없으면 flex 가 폭을 늘려 로고가 옆으로 퍼집니다 */}
         <Wordmark className="h-9 self-start" />
