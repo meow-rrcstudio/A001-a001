@@ -76,12 +76,19 @@ export default async function LoginPage({
             그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 이 칸만
             줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
 
-            ⚠️ 예전 UFO·고양이 그림은 세로로 길어서
-               남는 자리를 가득 채웠습니다. 돌은 가로로 넓고 작아, 시안대로
-               가운데에 작게 떠 있는 것이 맞습니다. 빈자리를 메우려고 크기를
-               키우지 마세요 — 키보드가 올라올 때 도로 밀립니다. */}
-        <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-          <Stone className="h-12 shrink-0 text-brand-ink" />
+            ⚠️ 치수는 시안 실측입니다 — 돌 높이 51px, 아래 버튼까지 40px.
+               가로는 그림 비율(75:51)대로 따라옵니다. 시안의 80 은 돌을
+               감싼 상자 폭이라 그림 자체는 그보다 조금 좁습니다.
+
+            ⚠️ 가운데(items-center)가 아니라 아래(items-end)에 붙입니다.
+               시안에서 돌은 화면 한가운데가 아니라 버튼 바로 위에 서
+               있습니다. 남는 자리는 전부 돌 위쪽으로 갑니다.
+
+            ⚠️ 빈자리가 넓어 보인다고 크기를 키우지 마세요. 이 칸은
+               키보드가 올라올 때 줄어드는 자리라(min-h-0 flex-1), 크게
+               두면 입력할 때 버튼이 화면 밖으로 밀립니다. */}
+        <div className="flex min-h-0 flex-1 items-end justify-center pb-10 pt-4">
+          <Stone className="h-[51px] shrink-0 text-brand-ink" />
         </div>
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.
