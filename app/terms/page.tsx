@@ -108,8 +108,7 @@ export default function TermsPage() {
         </li>
         <li>
           유효기간은 결제일로부터 {validityLabel(PAID_CREDIT_VALID_MONTHS)}(무상{unit}은 지급일로부터{" "}
-          {validityLabel(FREE_CREDIT_VALID_MONTHS)})이며, 결제 건마다 따로 셉니다. 소멸 예정은 미리
-          알립니다.
+          {validityLabel(FREE_CREDIT_VALID_MONTHS)})이며, 결제 건마다 따로 셉니다.
         </li>
         <li>{unit}은 현금으로 바꾸거나 남에게 넘길 수 없습니다.</li>
         <li>
