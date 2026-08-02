@@ -8,7 +8,9 @@
 // └──────────────────────────────────────────────────────────────────
 //
 // ┌─ 정책을 바꾸고 싶을 때 ───────────────────────────────────────────
-// │ · 지금은 미사용분을 기간과 무관하게 전액 돌려줍니다. 결제대행
+// │ · 이미 쓴 몫은 낱개 값(refundUnitPrice)으로 쳐서 뺍니다 — 묶음 할인은
+// │   여러 개를 한꺼번에 사는 조건이라 일부만 쓰고 무를 때는 회수합니다.
+// │   셈은 lib/credit-packs.ts 의 refundAmount 한 곳에 있습니다. 결제대행
 // │   수수료를 빼고 싶다면 제3조의 문장을 고치세요. 다만 결제 후 7일
 // │   안의 청약철회는 법이 비용 청구를 막고 있어 언제나 전액입니다.
 // │ · "무상부터 차감"(제4조)은 지금 코드가 아니라 사람이 지키는
@@ -27,7 +29,8 @@ import {
   countCredits,
   countCreditsWith,
   formatKrw,
-  pricePerCredit,
+  refundAmount,
+  refundUnitPrice,
 } from "@/lib/credit-packs"
 import { WELCOME_CREDITS } from "@/lib/credit-rules"
 import { BUSINESS } from "@/lib/business"
@@ -49,21 +52,34 @@ const linkClass = "text-primary underline underline-offset-4"
  */
 function RefundExample() {
   const pack = CREDIT_PACKS[CREDIT_PACKS.length - 1]
-  const unitPrice = pricePerCredit(pack)
+  const unitPrice = refundUnitPrice()
 
   // 무상분을 다 쓰고 유상분까지 조금 쓴 상황이라야 제4조가 하는 말이 보입니다.
   const used = WELCOME_CREDITS + 3
   const paidUsed = used - WELCOME_CREDITS
-  const paidLeft = pack.credits - paidUsed
+
+  // 묶음의 대부분을 쓴 경우 — 돌려드릴 것이 남지 않는다는 것을 보여줍니다.
+  // 이 경우를 감추면 "0원"을 받은 사람이 속았다고 느낍니다.
+  const heavyUsed = WELCOME_CREDITS + pack.credits - 2
+  const heavyPaidUsed = heavyUsed - WELCOME_CREDITS
 
   return (
-    <P>
-      예를 들어 무상 {countCredits(WELCOME_CREDITS)}를 받은 회원이 {countCredits(pack.credits)}{" "}
-      묶음을 {formatKrw(pack.priceKrw)}에 사고 {countCreditsWith(used, "을를")} 썼다면, 그중{" "}
-      {countCredits(WELCOME_CREDITS)}는 무상분에서 빠지므로 유상분은{" "}
-      {countCredits(paidUsed)}만 쓴 것이 됩니다. 남은 유상 {countCredits(paidLeft)} ×{" "}
-      {formatKrw(unitPrice)} = {formatKrw(paidLeft * unitPrice)}을 돌려드립니다.
-    </P>
+    <>
+      <P>
+        예를 들어 무상 {countCredits(WELCOME_CREDITS)}를 받은 회원이 {countCredits(pack.credits)}{" "}
+        묶음을 {formatKrw(pack.priceKrw)}에 사고 {countCreditsWith(used, "을를")} 썼다면, 그중{" "}
+        {countCredits(WELCOME_CREDITS)}는 무상분에서 빠지므로 유상분은{" "}
+        {countCredits(paidUsed)}만 쓴 것이 됩니다. {formatKrw(pack.priceKrw)} − (
+        {countCredits(paidUsed)} × {formatKrw(unitPrice)}) ={" "}
+        {formatKrw(refundAmount(pack.priceKrw, paidUsed))}을 돌려드립니다.
+      </P>
+      <P>
+        같은 회원이 {countCreditsWith(heavyUsed, "을를")} 썼다면 유상분은{" "}
+        {countCredits(heavyPaidUsed)}입니다. {countCredits(heavyPaidUsed)} ×{" "}
+        {formatKrw(unitPrice)} = {formatKrw(heavyPaidUsed * unitPrice)}이 되어 낸 금액을 넘어서므로,
+        돌려드릴 금액은 {formatKrw(refundAmount(pack.priceKrw, heavyPaidUsed))}입니다.
+      </P>
+    </>
   )
 }
 
@@ -87,11 +103,12 @@ export default function RefundPage() {
       <List>
         <li>
           <strong className="text-foreground">쓰지 않은 {unit}은 돌려드립니다.</strong> 기간과
-          상관없이, 낸 금액 그대로입니다.
+          상관없이 신청할 수 있습니다. 하나도 쓰지 않았다면 낸 금액 그대로 돌려드립니다.
         </li>
         <li>
           <strong className="text-foreground">이미 쓴 {unit}은 돌려드리지 않습니다.</strong> 해석이
-          이미 나갔기 때문입니다.
+          이미 나갔기 때문입니다. 쓴 만큼은 낱개 값({formatKrw(refundUnitPrice())})으로 쳐서 낸
+          금액에서 뺍니다 (제4조).
         </li>
         <li>
           <strong className="text-foreground">
@@ -113,7 +130,8 @@ export default function RefundPage() {
           제한됩니다.
         </li>
         <li>
-          묶음으로 산 뒤 일부만 썼다면, 쓰지 않고 남은 만큼은 그대로 철회할 수 있습니다.
+          묶음으로 산 뒤 일부만 썼다면, 쓰지 않고 남은 만큼은 철회할 수 있습니다. 이때 이미 쓴
+          만큼은 묶음 할인이 아니라 낱개 값으로 쳐서 뺍니다 — 셈하는 법은 제4조에 있습니다.
         </li>
       </List>
 
@@ -134,10 +152,24 @@ export default function RefundPage() {
         <li>쓴 개수를 먼저 무상 {unit}에서 뺍니다.</li>
         <li>무상분을 다 쓰고도 남은 사용분만 유상 {unit}에서 뺍니다.</li>
         <li>
-          남은 유상 {unit} × 실제로 낸 단가 = 환불 금액입니다. 단가는 묶음 할인을 적용한 뒤의
-          금액입니다.
+          <strong className="text-foreground">
+            낸 금액 − (쓴 유상 {unit} × {formatKrw(refundUnitPrice())}) = 환불 금액
+          </strong>
+          입니다.
         </li>
       </List>
+      <P>
+        이미 쓴 {unit}은 묶음 할인을 적용한 값이 아니라{" "}
+        <strong className="text-foreground">낱개로 살 때의 값({formatKrw(refundUnitPrice())})</strong>
+        으로 칩니다. 묶음 할인은 여러 개를 한꺼번에 사는 조건으로 드리는 것이라, 일부만 쓰고 무르는
+        경우에는 실제로 낱개를 산 것과 같기 때문입니다.
+      </P>
+      <P>
+        이 셈으로 뺀 금액이 낸 금액을 넘어서면{" "}
+        <strong className="text-foreground">환불 금액은 0원이 되며, 회사가 회원에게 더 청구하지는
+        않습니다.</strong>{" "}
+        묶음의 대부분을 쓴 뒤에는 돌려드릴 금액이 남지 않을 수 있습니다.
+      </P>
       {/* ⚠️ 예시의 숫자를 손으로 적지 않습니다. 가격표(lib/credit-packs.ts)와
           가입 선물(lib/credit-rules.ts)에서 그때그때 셉니다.
 
