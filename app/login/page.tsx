@@ -18,8 +18,8 @@
 // │    대신합니다 (components/login-form.tsx 의 Consent).
 // └──────────────────────────────────────────────────────────────────
 import type { Metadata } from "next"
-import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
+import { Stone } from "@/components/stone"
 import { HEADER_SPACE } from "@/lib/layout"
 import { LoginForm } from "@/components/login-form"
 import { translateAuthError } from "@/lib/auth-messages"
@@ -69,24 +69,19 @@ export default async function LoginPage({
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 ${HEADER_SPACE}`}>
         <h1 className="sr-only">SoulSeoul 로그인</h1>
 
-        {/* UFO·고양이 일러스트 (전달받은 원본 PNG 기반).
-            배경이 투명해서 라임 위에 그대로 얹힙니다.
+        {/* 마스코트 돌 (components/stone.tsx).
+            배경이 없는 벡터라 라임 위에 그대로 얹힙니다.
 
-            남는 세로를 이 칸이 다 가져가고 그림은 그 안에서 가운데에 섭니다.
-            그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 그림만
+            남는 세로를 이 칸이 다 가져가고 돌은 그 안에서 가운데에 섭니다.
+            그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 이 칸만
             줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
-            min-h-0 이 없으면 flex 칸이 그림 원본 높이 아래로 줄지 않아
-            키보드가 올라왔을 때 버튼이 화면 밖으로 밀립니다. */}
+
+            ⚠️ 예전 UFO·고양이 그림은 세로로 길어서
+               남는 자리를 가득 채웠습니다. 돌은 가로로 넓고 작아, 시안대로
+               가운데에 작게 떠 있는 것이 맞습니다. 빈자리를 메우려고 크기를
+               키우지 마세요 — 키보드가 올라올 때 도로 밀립니다. */}
         <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-          <Image
-            src="/login-cat.webp"
-            alt=""
-            aria-hidden="true"
-            width={560}
-            height={793}
-            priority
-            className="h-full max-h-[340px] w-auto max-w-[70%] object-contain"
-          />
+          <Stone className="h-12 shrink-0 text-brand-ink" />
         </div>
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.
