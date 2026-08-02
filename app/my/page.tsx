@@ -17,9 +17,12 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { ReadingHistory } from "@/components/reading-history"
 import { useAccount } from "@/lib/use-account"
+import { useLoginHref } from "@/lib/login-href"
 
 export default function MyPage() {
   const { account: entitlement, ready } = useAccount()
+  // 로그인을 마치면 이 화면으로 돌아옵니다 (lib/login-href.ts)
+  const loginHref = useLoginHref()
 
   // 이름이 없으면 이메일 앞부분으로, 그것도 없으면 그냥 "반가워요"
   const displayName =
@@ -39,7 +42,7 @@ export default function MyPage() {
             내 리딩 기록은 로그인 후에 볼 수 있어요.
           </p>
 
-          <Button variant="solid" size="pill" className="mt-8" render={<Link href="/login" />}>
+          <Button variant="solid" size="pill" className="mt-8" render={<Link href={loginHref} />}>
             <LogIn className="h-4 w-4" aria-hidden="true" />
             로그인하기
           </Button>

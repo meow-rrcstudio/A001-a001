@@ -52,7 +52,10 @@ export default async function LoginPage({
 
   // 실패해서 되돌아온 사람이 다시 로그인하면 가려던 자리로 갑니다.
   // 바깥으로 나가는 주소는 받지 않습니다 (app/auth/callback 의 safeNext 와 같은 이유).
-  const backTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/my"
+  //
+  // 가려던 곳을 모르면 홈입니다. 예전 기본값은 MY(기록 목록)였는데,
+  // 홈에서 그냥 로그인한 사람까지 기록 목록에 내려놓았습니다.
+  const backTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/"
 
   return (
     <div className="flex min-h-screen flex-col bg-brand-lime text-brand-ink">

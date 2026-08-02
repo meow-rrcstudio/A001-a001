@@ -18,10 +18,13 @@ import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { Footer } from "@/components/footer"
 import { useAccount } from "@/lib/use-account"
+import { useLoginHref } from "@/lib/login-href"
 import { PROVIDER_LABEL } from "@/lib/auth-provider"
 
 export default function ProfilePage() {
   const { account, ready } = useAccount()
+  // 로그인을 마치면 이 화면으로 돌아옵니다 (lib/login-href.ts)
+  const loginHref = useLoginHref()
 
   if (!ready) return <div className="min-h-screen bg-background" />
 
@@ -34,7 +37,7 @@ export default function ProfilePage() {
         >
           <p className="text-base text-muted-foreground">로그인한 뒤에 볼 수 있어요.</p>
           <Link
-            href="/login"
+            href={loginHref}
             className="mt-6 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
           >
             로그인하기
