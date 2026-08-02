@@ -18,7 +18,9 @@
 // │ 3) <clipPath> 는 지웁니다 — 받은 원본에 들어 있지만 실제로 자르는
 // │    것이 없고, 같은 아이콘이 한 화면에 두 번 나오면 id 가 겹칩니다
 // │ 4) 아래 IconProps 를 받아 <Svg> 로 감쌉니다
-// │ 5) 디자인시스템(app/design-1859)의 아이콘 절에도 한 줄 더합니다
+// │ 5) 파일 맨 아래 ICON_SET 에 한 줄 더합니다 — 디자인시스템
+// │    (app/design-1859)의 아이콘 절이 그 목록을 그대로 그리므로,
+// │    거기까지 손댈 필요가 없습니다
 // └──────────────────────────────────────────────────────────────────
 import type { SVGProps } from "react"
 
@@ -127,3 +129,19 @@ export function IconActivity(props: IconProps) {
     </Svg>
   )
 }
+
+/**
+ * 여기 있는 아이콘 전부. 디자인시스템(app/design-1859)의 아이콘 절이
+ * 이 목록을 그대로 그립니다.
+ *
+ * ⚠️ 스타일가이드에 아이콘을 손으로 한 벌 더 적지 마세요. 두 벌이 되면
+ *    아이콘을 더해도 스타일가이드에만 빠진 채로 남고, 다음 사람은
+ *    "그 아이콘은 없는 것"으로 알고 lucide 에서 비슷한 것을 가져옵니다.
+ */
+export const ICON_SET = [
+  { name: "IconHome", label: "홈", icon: IconHome },
+  { name: "IconChat", label: "타로보기", icon: IconChat },
+  { name: "IconFolder", label: "기록보기", icon: IconFolder },
+  { name: "IconLayers", label: "아카이빙", icon: IconLayers },
+  { name: "IconActivity", label: "설정", icon: IconActivity },
+] as const

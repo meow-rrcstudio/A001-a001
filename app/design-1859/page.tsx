@@ -4,7 +4,7 @@
 // 여기 보이는 모든 색·글꼴·모양은 app/globals.css 의 변수를 그대로 쓰므로,
 // globals.css 를 수정하면 실제 사이트와 이 페이지가 함께 바뀝니다.
 //
-// 구성: 파운데이션(1~4) → 컴포넌트(5~12). 오른쪽 목차(toc.tsx)로 점프할 수 있습니다.
+// 구성: 파운데이션(1~7) → 컴포넌트(8~18). 오른쪽 목차(toc.tsx)로 점프할 수 있습니다.
 // 섹션을 추가할 때: <section id="..."> 를 만들고 아래 tocGroups 에도 같은 id를 추가하세요.
 import type { Metadata } from "next"
 import { Sparkle, Copy } from "lucide-react"
@@ -22,6 +22,10 @@ import { SITE, copyrightLine } from "@/lib/site"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
 import { Wordmark } from "@/components/brand-mark"
 import { BlinkingShanti } from "@/components/pixel-sprite"
+import { ICON_SET, IconChat, IconHome, IconLayers } from "@/components/icons"
+import { Stone } from "@/components/stone"
+import { BlinkingStone } from "@/components/blinking-stone"
+import { ErrorScreenBody } from "@/components/error-screen"
 import { PageHeader } from "@/components/page-header"
 import { SiteMenuPreview } from "@/components/site-menu"
 import { ComposerPreview } from "@/components/composer-preview"
@@ -69,22 +73,24 @@ const tocGroups: TocGroup[] = [
       { id: "typography", label: "3. 타이포그래피" },
       { id: "radius", label: "4. 모서리 둥글기" },
       { id: "elevation", label: "5. 그림자 · 선 · 유리면" },
+      { id: "icons", label: "6. 아이콘" },
+      { id: "stone", label: "7. 돌 (마스코트)" },
     ],
   },
   {
     label: "컴포넌트",
     items: [
-      { id: "buttons", label: "6. 버튼 · 링크" },
-      { id: "menu", label: "7. 목록 행" },
-      { id: "settings", label: "8. 설정 행" },
-      { id: "home-cards", label: "9. 홈 카테고리" },
-      { id: "chips", label: "10. 칩" },
-      { id: "prose", label: "11. 블로그 본문" },
-      { id: "chrome", label: "12. 헤더 · 푸터" },
-      { id: "board", label: "13. 카드 아카이브" },
-      { id: "cards", label: "14. 타로 카드" },
-      { id: "spreads", label: "15. 카드 스프레드" },
-      { id: "backgrounds", label: "16. 배경" },
+      { id: "buttons", label: "8. 버튼 · 링크" },
+      { id: "menu", label: "9. 목록 행" },
+      { id: "settings", label: "10. 설정 행" },
+      { id: "home-cards", label: "11. 홈 카테고리" },
+      { id: "chips", label: "12. 칩" },
+      { id: "prose", label: "13. 블로그 본문" },
+      { id: "chrome", label: "14. 헤더 · 푸터" },
+      { id: "board", label: "15. 카드 아카이브" },
+      { id: "cards", label: "16. 타로 카드" },
+      { id: "spreads", label: "17. 카드 스프레드" },
+      { id: "backgrounds", label: "18. 배경" },
     ],
   },
 ]
@@ -398,11 +404,259 @@ export default function DesignSystemPage() {
             />
           </section>
 
+          {/* ── 6. 아이콘 ──────────────────────────── */}
+          <section id="icons" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>6. 아이콘</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              메뉴 아이콘은 SVG 파일이 아니라 컴포넌트입니다
+              (components/icons.tsx). 받은 원본에는 색이 박혀 있어서
+              (#33363F · black) 파일 그대로 <code className="font-mono">&lt;img&gt;</code> 로 쓰면
+              바깥에서 색을 바꿀 수 없습니다 — 그래서 안으로 들여오면서 색을{" "}
+              <code className="font-mono">currentColor</code> 로 바꿨습니다.
+            </p>
+
+            {/* ⚠️ 아이콘을 여기 손으로 적지 마세요. components/icons.tsx 의
+                ICON_SET 을 그대로 그립니다 — 아이콘을 더하면 여기 저절로
+                나옵니다. 두 벌로 두면 스타일가이드에만 빠진 채로 남고,
+                다음 사람은 "없는 것"으로 알고 lucide 에서 가져옵니다. */}
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {ICON_SET.map(({ name, label, icon: Icon }) => (
+                <div
+                  key={name}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5"
+                >
+                  <Icon className="h-6 w-6 text-foreground" />
+                  <span className="text-sm text-foreground">{label}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    &lt;{name} /&gt;
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ① 크기 — <code className="font-mono">width</code>/
+              <code className="font-mono">height</code> 를 박지 않고 글자 크기(1em)를 따릅니다.
+              옆에 놓인 글과 자연스럽게 맞고, 필요하면{" "}
+              <code className="font-mono">h-5 w-5</code> 로 덮어쓸 수 있습니다
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-6 rounded-xl border border-border bg-card p-6">
+              {(
+                [
+                  { cls: "", label: "1em (기본)" },
+                  { cls: "h-5 w-5", label: "h-5 w-5" },
+                  { cls: "h-6 w-6", label: "h-6 w-6" },
+                  { cls: "h-8 w-8", label: "h-8 w-8" },
+                ] as const
+              ).map((size) => (
+                <div key={size.label} className="flex flex-col items-center gap-2">
+                  <IconLayers className={`text-foreground ${size.cls}`} />
+                  <span className="font-mono text-[11px] text-muted-foreground">{size.label}</span>
+                </div>
+              ))}
+              <p className="text-sm leading-relaxed text-foreground">
+                글 안에 섞이면 <IconChat className="inline align-[-0.15em]" /> 이 정도 크기로
+                따라옵니다.
+              </p>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ② 색 — 글자색을 따라갑니다. 어느 바탕에 놓든 감싸는 쪽의{" "}
+              <code className="font-mono">text-*</code> 하나로 정합니다
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-6 text-foreground">
+                <IconHome className="h-6 w-6" />
+                <span className="font-mono text-[11px] text-muted-foreground">text-foreground</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-brand-lime p-6 text-brand-ink">
+                <IconHome className="h-6 w-6" />
+                <span className="font-mono text-[11px] text-brand-ink/60">text-brand-ink</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-brand-ink p-6 text-white">
+                <IconHome className="h-6 w-6" />
+                <span className="font-mono text-[11px] text-white/60">text-white</span>
+              </div>
+            </div>
+
+            <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              아이콘을 더할 때: 피그마에서 <strong className="font-semibold text-foreground">20×20</strong>{" "}
+              으로 내보내고(선 굵기 1.667 로 맞춰야 나머지와 같은 무게로 보입니다), 색값을 전부{" "}
+              <code className="font-mono">currentColor</code> 로 바꾸고,{" "}
+              <code className="font-mono">&lt;clipPath&gt;</code> 는 지웁니다 — 실제로 자르는 것이
+              없고, 같은 아이콘이 한 화면에 두 번 나오면 id 가 겹칩니다. 마지막으로{" "}
+              <code className="font-mono">ICON_SET</code> 에 한 줄 더하면 이 절에 저절로 나옵니다.
+            </p>
+            <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
+              ⚠️ 여기 있는 다섯 개는 <strong className="font-semibold">메뉴 아이콘</strong>입니다.
+              그 밖의 자리(버튼 안의 새로고침·닫기·화살표 등)는{" "}
+              <code className="font-mono">lucide-react</code> 를 씁니다. 둘을 섞어 쓰되, 메뉴에
+              lucide 를 끌어오지는 마세요 — 선 굵기와 여백이 달라 한 줄에 놓으면 티가 납니다.
+            </p>
+          </section>
+
+          {/* ── 7. 돌 (마스코트) ───────────────────── */}
+          <section id="stone" className="mt-14 scroll-mt-24">
+            <h2 className={h2Class}>7. 돌 (마스코트)</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              사이트의 마스코트입니다 (components/stone.tsx). 아리님이 올린 캐릭터 시트
+              (636×205 에 캐릭터 일곱)에서 돌만 떼어낸 벡터라 배경이 없고, 어느 바탕에든 그대로
+              얹힙니다.
+            </p>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ① 크기 — <strong className="font-semibold text-foreground">높이만</strong> 주고{" "}
+              <code className="font-mono">w-auto</code> 를 함께 씁니다. 가로는 그림 비율(75:51)대로
+              따라옵니다
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-8 rounded-xl border border-border bg-card p-6">
+              {(
+                [
+                  { cls: "h-[51px]", label: "h-[51px] · 로그인 (시안 실측)" },
+                  { cls: "h-20", label: "h-20 · 막다른 화면 (404 · 오류)" },
+                  { cls: "h-32", label: "h-32" },
+                ] as const
+              ).map((size) => (
+                <div key={size.cls} className="flex flex-col items-center gap-2">
+                  <Stone className={`${size.cls} w-auto text-foreground`} />
+                  <span className="font-mono text-[11px] text-muted-foreground">{size.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ <code className="font-mono">width</code>/<code className="font-mono">height</code>{" "}
+              를 속성으로 박지 않습니다. 예전에는 <code className="font-mono">height=&quot;1em&quot;</code>{" "}
+              <code className="font-mono">width=&quot;1.47em&quot;</code> 였는데, 그러면 가로가 글자 크기를
+              따라갑니다 — 부르는 쪽에서 높이를 51px 로 키워도 가로는 글자 크기(≈16px)에 묶인
+              23px 그대로라, 그림이 그 좁은 칸에 맞춰 쪼그라들었습니다.
+            </p>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ② 색 — 몸통이 글자색을 따라갑니다. 밝은 바탕 위 어두운 글자색이 이 그림의
+              전제입니다
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-6">
+                <Stone className="h-16 w-auto text-foreground" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  text-foreground · 404 · 오류
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-brand-lime p-6">
+                <Stone className="h-16 w-auto text-brand-ink" />
+                <span className="font-mono text-[11px] text-brand-ink/60">
+                  text-brand-ink · 로그인
+                </span>
+              </div>
+              {/* 하지 말라는 것을 글로만 적어두면 다음 사람이 한 번은 해봅니다.
+                  눈이 사라지는 모습을 옆에 놓아두면 설명이 필요 없습니다. */}
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-destructive/40 bg-brand-ink p-6">
+                <Stone className="h-16 w-auto text-white" />
+                <span className="font-mono text-[11px] text-white/60">
+                  text-white — 눈이 사라집니다
+                </span>
+              </div>
+            </div>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ <strong className="font-semibold text-foreground">어두운 바탕에 얹지 마세요.</strong>{" "}
+              흰자는 흰색으로 박혀 있지만 눈동자는 몸통과 같은{" "}
+              <code className="font-mono">currentColor</code> 입니다. 글자색을 흰색으로 주면 몸통도
+              눈동자도 흰자도 모두 흰색이 되어, 위 오른쪽처럼 얼굴 없는 덩어리가 됩니다. 돌을 어두운
+              화면에 올려야 한다면 그림을 고쳐야 합니다 — 색만 바꿔서는 안 됩니다.
+            </p>
+
+            <p className="mt-5 text-xs font-medium text-muted-foreground">
+              ③ 눈 — 감은 모습은 눈동자를 지우는 게 아니라 짧은 가로 막대로 그립니다.
+              지우기만 하면 눈이 통째로 사라져 &ldquo;없는 얼굴&rdquo;이 됩니다
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-8 rounded-xl border border-border bg-card p-6">
+              <div className="flex flex-col items-center gap-2">
+                <Stone className="h-16 w-auto text-foreground" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;Stone /&gt; — 뜬 눈
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <Stone className="h-16 w-auto text-foreground" blink />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;Stone blink /&gt; — 감은 눈
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <BlinkingStone className="h-16 w-auto text-foreground" title="돌" />
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  &lt;BlinkingStone /&gt; — 저절로 깜빡임
+                </span>
+              </div>
+            </div>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <code className="font-mono">Stone</code> 은 그림만 그립니다 — 서버에서도 그릴 수
+              있고, 깜빡이지 않아도 되는 자리에서는 타이머를 지고 갈 이유가 없습니다.
+              &ldquo;언제 감을지&rdquo;는 <code className="font-mono">BlinkingStone</code>
+              (components/blinking-stone.tsx)이 맡습니다 — 간격을 매번 ±40% 흔들어 시계처럼 보이지
+              않게 하고, 움직임 최소화를 켠 기기에서는 눈을 뜬 채로 둡니다.
+            </p>
+
+            <p className="mt-8 text-xs font-medium text-muted-foreground">
+              ④ 막다른 화면 — 404 · 오류 화면은 돌 하나로 그립니다
+              (components/error-screen.tsx). 아래는 실제 <code className="font-mono">/404</code>{" "}
+              화면의 알맹이를 그대로 가져온 것입니다
+            </p>
+            {/* ⚠️ 견본을 손으로 그리지 않습니다. 진짜 화면(app/not-found.tsx)이
+                쓰는 것과 같은 ErrorScreenBody 입니다 — 문장이나 버튼을 고치면
+                여기도 함께 바뀝니다. */}
+            <div className="mt-2 rounded-xl border border-border bg-background px-6 py-12">
+              <ErrorScreenBody
+                headingLevel="p"
+                title="찾는 페이지가 없어요"
+                description={
+                  <>
+                    주소가 바뀌었거나, 지워진 글일 수 있어요.
+                    <br />
+                    아래 길로 돌아가 주세요.
+                  </>
+                }
+                primary={{ label: "홈으로 가기", href: "#" }}
+                secondary={{ label: "아카이빙 둘러보기", href: "#" }}
+              />
+            </div>
+            <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed text-brand-ink">
+              막다른 화면의 규칙입니다.
+              <br />· 돌은 <strong className="font-semibold">h-20 (80px)</strong> — 로그인의 51px
+              보다 큽니다. 로그인은 버튼이 주인공이고, 여기는 돌이 유일한 그림입니다
+              <br />· 돌 위에 <strong className="font-semibold">표정·말풍선·이모지를 얹지
+              않습니다.</strong> 미안한 얼굴을 그리면 사람 잘못처럼 보입니다 — 그냥 같이 서 있게
+              둡니다
+              <br />· <strong className="font-semibold">나갈 길을 반드시 둡니다.</strong>{" "}
+              &ldquo;없어요&rdquo;만 적어두면 뒤로가기 말고는 갈 데가 없습니다
+              <br />· <strong className="font-semibold">날오류를 찍지 않습니다.</strong> 서버가 준
+              영어 문장은 읽는 사람에게 알 수 없는 글자이고, 우리 쪽 사정이 그대로 드러납니다.
+              화면에는 <code className="font-mono">digest</code> 만 가장 흐린 단계로 답니다 —
+              문의를 받으면 그 표식으로 서버 로그를 찾습니다
+            </p>
+            <p className="mt-2 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              세 화면이 이 하나를 함께 씁니다 —{" "}
+              <code className="font-mono">app/not-found.tsx</code> (없는 주소),{" "}
+              <code className="font-mono">app/error.tsx</code> (화면 하나가 넘어졌을 때),{" "}
+              <code className="font-mono">app/global-error.tsx</code> (공용 레이아웃까지 넘어졌을
+              때). 마지막 것은 레이아웃이 통째로 갈아끼워지는 자리라 헤더를 달지 않습니다 — 메뉴
+              서랍·최근 기록까지 끌어오면 그 코드가 또 넘어져서 마지막 그물마저 빈 화면이 됩니다.
+            </p>
+
+            <p className="mt-5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+              ⚠️ 예전 마스코트(샨티)는 도트 그림이라 가로로 길었습니다
+              (lib/pixel-sprites.ts · 위 &ldquo;2. 브랜드 크롬&rdquo;). 돌은 75×51 로 훨씬
+              네모납니다. 헤더·해석·결제 확인은 아직 샨티를 쓰고 있어서 한 번에 갈아끼우지
+              않았습니다 — 세로로 자리를 잡아둔 곳에서 바꿀 때는 화면마다 눈으로 한 번씩
+              확인하세요.
+            </p>
+          </section>
+
           <p className={groupLabelClass}>컴포넌트</p>
 
           {/* ── 6. 버튼 & 링크 ────────────────────── */}
           <section id="buttons" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>6. 버튼 · 링크</h2>
+            <h2 className={h2Class}>8. 버튼 · 링크</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               모든 버튼은 components/ui/button.tsx 한 곳에서 정의됩니다. 페이지에서 직접
               className 으로 버튼을 만들지 말고 여기 variant 를 쓰세요.
@@ -444,7 +698,7 @@ export default function DesignSystemPage() {
 
           {/* ── 5. 메뉴 리스트 (홈 화면 스타일) ────── */}
           <section id="menu" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>7. 목록 행</h2>
+            <h2 className={h2Class}>9. 목록 행</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               번호 + 이름(+설명·꼬리표) + 화살표 한 줄. 메뉴 패널과 MY 메뉴가 같은 공용
               컴포넌트(components/ui/row-list.tsx)를 씁니다. 여기를 고치면 모든 목록이
@@ -489,7 +743,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 설정 행 ─────────────────────────── */}
           <section id="settings" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>8. 설정 행</h2>
+            <h2 className={h2Class}>10. 설정 행</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               설정 화면의 그룹과 행입니다 (components/ui/settings-list.tsx).
               목록 행(RowList)과 구분되는 이유는 성격이 달라서입니다 — 목록은
@@ -515,7 +769,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 홈 카테고리 ─────────────────────── */}
           <section id="home-cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>9. 홈 카테고리</h2>
+            <h2 className={h2Class}>11. 홈 카테고리</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               홈의 카드 6개와 아카이빙 배너입니다
               (components/home-category-card.tsx · home-archive-banner.tsx).
@@ -538,7 +792,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 필터 칩 ─────────────────────────── */}
           <section id="chips" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>10. 칩</h2>
+            <h2 className={h2Class}>12. 칩</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               알약 버튼은 쓰임이 둘이라 모양도 둘입니다. 새로 만들기 전에
               어느 쪽인지 먼저 정하세요.
@@ -587,7 +841,7 @@ export default function DesignSystemPage() {
 
           {/* ── 6. 본문(블로그) 스타일 ─────────────── */}
           <section id="prose" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>11. 블로그 본문</h2>
+            <h2 className={h2Class}>13. 블로그 본문</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               글 상세 페이지의 본문(.prose-blog) 스타일.
             </p>
@@ -603,7 +857,7 @@ export default function DesignSystemPage() {
 
           {/* ── 7. 헤더 · 푸터 ─────────────────────── */}
           <section id="chrome" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>12. 헤더 · 푸터</h2>
+            <h2 className={h2Class}>14. 헤더 · 푸터</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               헤더 4종 + 메뉴 서랍 + 푸터 4종을 페이지 케이스에 따라 골라 씁니다. 푸터 기본값은
               리디자인 시안의 <strong className="font-semibold">라임 밴드</strong>입니다.
@@ -760,7 +1014,7 @@ export default function DesignSystemPage() {
 
           {/* ── 8. 그리드 박스 (글 목록) ───────────── */}
           <section id="board" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>13. 카드 아카이브 보드</h2>
+            <h2 className={h2Class}>15. 카드 아카이브 보드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               /archive 페이지와 같은 공용 컴포넌트(components/card-archive-board.tsx)입니다.
               노션에 글을 올리면(Slug 규칙: 덱-대분류-숫자) 자동으로 이 보드에 나타납니다.
@@ -797,7 +1051,7 @@ export default function DesignSystemPage() {
 
           {/* ── 9. 타로 카드 ───────────────────────── */}
           <section id="cards" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>14. 타로 카드</h2>
+            <h2 className={h2Class}>16. 타로 카드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               앞면 · 뒷면 · 번호 슬롯 3종. (components/tarot-card.tsx)
             </p>
@@ -825,7 +1079,7 @@ export default function DesignSystemPage() {
 
           {/* ── 10. 카드 스프레드 ──────────────────── */}
           <section id="spreads" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>15. 카드 스프레드</h2>
+            <h2 className={h2Class}>17. 카드 스프레드</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Site design.pdf의 리딩 화면 배열 전체. 좌표의 원본은 lib/spread-layouts.ts
               하나뿐이라, 거기를 고치면 실제 리딩 화면과 여기가 함께 바뀝니다.
@@ -871,7 +1125,7 @@ export default function DesignSystemPage() {
 
           {/* ── 11. 배경 ───────────────────────────── */}
           <section id="backgrounds" className="mt-14 scroll-mt-24">
-            <h2 className={h2Class}>16. 배경</h2>
+            <h2 className={h2Class}>18. 배경</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               푸터처럼 페이지 성격에 맞게 골라 쓰는 공용 배경입니다.
               (components/page-background.tsx) 현재: 홈·타로·리딩 = 오로라, 목록·본문 = 단색.
