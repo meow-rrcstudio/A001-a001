@@ -3,6 +3,8 @@
 // 애드센스 심사와 방문자 신뢰에 도움이 됩니다.
 // 아래 본문 문구는 자유롭게 직접 수정하세요.
 import type { Metadata } from "next"
+import { BUSINESS } from "@/lib/business"
+import { CONTACT_MAILTO } from "@/lib/contact"
 import { canonicalPath } from "@/lib/seo"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
@@ -64,7 +66,11 @@ export default function aboutPage() {
 
         <h2 className={h2Class}>문의</h2>
         <p className={`mt-2 mb-12 ${pClass}`}>
-          제안이나 문의는 aree.korea@gmail.com 으로 보내주세요.
+          제안이나 문의는{" "}
+          <a href={CONTACT_MAILTO} className="text-primary underline underline-offset-4">
+            {BUSINESS.email}
+          </a>{" "}
+          으로 보내주세요.
         </p>
       </main>
 

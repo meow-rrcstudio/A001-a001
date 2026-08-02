@@ -21,6 +21,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { H, LegalPage, List, P, effectiveDate } from "@/components/legal"
 import { BUSINESS } from "@/lib/business"
+import { mailtoHref } from "@/lib/contact"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
 
 export const metadata: Metadata = {
@@ -239,7 +240,14 @@ export default function PrivacyPage() {
         <li>처리의 정지</li>
       </List>
       <P>
-        요구는 {BUSINESS.email} 로 보내 주세요. 받은 날부터 10일 안에 처리합니다. 대리인이 신청할
+        요구는{" "}
+        <a
+          href={mailtoHref({ subject: "[SoulSeoul] 개인정보 열람·정정·삭제 요구" })}
+          className={linkClass}
+        >
+          {BUSINESS.email}
+        </a>{" "}
+        로 보내 주세요. 받은 날부터 10일 안에 처리합니다. 대리인이 신청할
         때에는 위임장이 필요합니다.
       </P>
 
