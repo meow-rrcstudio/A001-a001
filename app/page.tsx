@@ -45,7 +45,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-brand-lime">
+    <div className="flex min-h-screen flex-col gap-0 bg-brand-lime">
       {/* 사이트 자체를 설명하는 표식 — 검색결과에 사이트 이름이 제대로 뜨게 합니다 */}
       <script {...jsonLdScriptProps(siteJsonLd())} />
       {/* 홈은 선과 검정 면이 화면 오른쪽 끝까지 이어집니다 (시안 "라인·면 연장").
