@@ -47,6 +47,7 @@ export function HomeFriendsGrid() {
               src={friend.src}
               alt={`${friend.name} 캐릭터`}
               className="h-20 w-auto self-center sm:h-24 sm:self-auto"
+              style={{ objectFit: "scale-down" }}
               loading="lazy"
               decoding="async"
             />

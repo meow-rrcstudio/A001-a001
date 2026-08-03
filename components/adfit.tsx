@@ -60,7 +60,13 @@ export function AdFit({ adUnit, width, height, className }: AdFitProps) {
     <div
       className={className}
       // 광고 로딩 전 레이아웃 시프트(CLS) 방지용 최소 높이. NO-AD 시 0 으로 접음.
-      style={{ minHeight: noAd ? 0 : height, maxWidth: width, width: "100%" }}
+      style={{
+        minHeight: noAd ? 0 : height,
+        maxWidth: width,
+        width: "100%",
+        lineHeight: 0,
+        backgroundColor: "rgba(249, 250, 251, 0)",
+      }}
       aria-label="광고"
     >
       {/* 심사 크롤러가 원본 HTML 에서 바로 감지할 수 있도록 SSR 로 그려지는 광고 태그 */}
