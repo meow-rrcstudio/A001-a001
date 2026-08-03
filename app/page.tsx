@@ -5,7 +5,11 @@
 // │ 1) 라임 헤더   — 워드마크 + 햄버거, 그 아래 한 줄 소개
 // │ 2) 카테고리 6칸 — 이름 + 그 달의 인용구 + 화살표 (2열 격자)
 // │ 3) 검정 배너   — 아카이빙 (Tarot · Oracle · Yoga · Movie · Book)
-// │ 4) 광고 · 라임 푸터
+// │ 4) 샨티와 친구들 — 캐릭터 2×2 격자 (components/home-friends-grid.tsx)
+// │ 5) 광고 · 라임 푸터
+// │
+// │ 홈만은 선과 검정 면이 화면 오른쪽 끝까지 이어집니다. 본문을
+// │ max-w-site 로 가두지 않는 것이 그 이유입니다.
 // │
 // │ 메뉴를 거치지 않고 홈에서 바로 리딩에 들어갑니다.
 // │ 카드를 누르면 그 주제의 세부 질문 화면으로 갑니다.
@@ -19,6 +23,7 @@ import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { HomeCategoryGrid } from "@/components/home-category-card"
 import { HomeArchiveBanner } from "@/components/home-archive-banner"
+import { HomeFriendsGrid } from "@/components/home-friends-grid"
 import { AdBand } from "@/components/ad-band"
 import { SITE } from "@/lib/site"
 import { canonicalPath, jsonLdScriptProps, siteJsonLd } from "@/lib/seo"
@@ -43,7 +48,10 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col bg-brand-lime">
       {/* 사이트 자체를 설명하는 표식 — 검색결과에 사이트 이름이 제대로 뜨게 합니다 */}
       <script {...jsonLdScriptProps(siteJsonLd())} />
-      <main className="mx-auto flex w-full max-w-site flex-1 flex-col">
+      {/* 홈은 선과 검정 면이 화면 오른쪽 끝까지 이어집니다 (시안 "라인·면 연장").
+          그래서 본문 폭을 max-w-site 로 가두지 않고 화면 폭을 그대로 씁니다.
+          글줄만 필요한 곳에서 max-w-* 로 따로 잡습니다. */}
+      <main className="flex w-full flex-1 flex-col">
         {/* 1) 헤더 — 워드마크 + 햄버거 (화면 위 16px 고정) */}
         <PageHeader variant="home" />
 
@@ -67,10 +75,17 @@ export default function HomePage() {
         {/* 3) 아카이빙 배너 */}
         <HomeArchiveBanner />
 
-        {/* 4) 광고 */}
-        <div className="px-6 py-8">
-          <AdBand adUnit="DAN-lbLAE5kPgKDh1dxL" width={320} height={50} />
-        </div>
+        {/* 4) 샨티와 친구들 — 아카이빙 검정 면에 곧바로 이어 붙습니다 */}
+        <HomeFriendsGrid />
+
+        {/* 5) 광고 — 친구들 격자 바로 아래, 사이 여백 없이 붙습니다.
+            띠 자체는 화면 끝까지 이어지고 광고(320×50)는 가운데에 놓입니다. */}
+        <AdBand
+          adUnit="DAN-lbLAE5kPgKDh1dxL"
+          width={320}
+          height={50}
+          className="border-b border-black"
+        />
       </main>
 
       <Footer variant="lime" />
