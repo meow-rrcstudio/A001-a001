@@ -24,7 +24,10 @@ export function AdBand({
   className?: string
 }) {
   return (
-    <div className={`flex w-full justify-center overflow-hidden ${className ?? ""}`}>
+    <div
+      className={`flex w-full justify-center overflow-hidden ${className ?? ""}`}
+      style={{ backgroundColor: "var(--background)" }}
+    >
       <AdFit adUnit={adUnit} width={width} height={height} />
     </div>
   )
