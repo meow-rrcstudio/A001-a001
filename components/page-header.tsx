@@ -165,7 +165,12 @@ export function PageHeader({
       <div
         className={`${
           isFixed ? "fixed inset-x-0 top-4 z-50" : "relative pt-4"
-        } mx-auto w-full max-w-site pl-6 pr-4 ${className}`}
+        } mx-auto w-full ${
+          // 홈은 햄버거가 화면 오른쪽 끝에 붙습니다 — 아래 목록의 선과 검정 면이
+          // 같은 끝까지 이어지므로(시안 "라인·면 연장"), 헤더만 가운데로
+          // 좁혀지면 오른쪽 끝이 어긋나 보입니다.
+          variant === "home" ? "" : "max-w-site"
+        } pl-6 pr-4 ${className}`}
       >
         <div className="relative flex items-center justify-between gap-3">
           {/* 왼쪽 — 홈은 워드마크, 닫기형은 비움, 나머지는 뒤로가기 */}
