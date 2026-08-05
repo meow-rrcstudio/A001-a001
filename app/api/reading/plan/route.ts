@@ -7,7 +7,6 @@ import { NextResponse } from "next/server"
 import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { ACTIVE_CHARACTER } from "@/lib/character"
 import {
-  CARE_FALLBACK_PLAN,
   FALLBACK_PLAN,
   PLAN_INSTRUCTION,
   PLAN_JSON_SCHEMA,
@@ -18,13 +17,14 @@ import {
 // ⚠️ 배열 고르기는 해석과 "다른 모델"을 씁니다. 무료 등급의 하루 요청
 //    한도가 모델별이라, 같은 모델로 두 번 부르면 한 판에 해석 몫까지
 //    같이 깎입니다 (lib/ai/gemini.ts 의 GEMINI_PLAN_MODEL 주석 참고).
-import { GEMINI_PLAN_MODEL } from "@/lib/ai/gemini"
+import { GEMINI_FALLBACK_MODEL, GEMINI_PLAN_MODEL, GEMINI_READING_MODEL } from "@/lib/ai/gemini"
 import { requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
 import { FOLLOWUPS_PER_CREDIT, WELCOME_FOLLOWUPS } from "@/lib/credit-rules"
 import { hasEverPaid } from "@/lib/server/free-reading"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
+import { freeSpreadFor } from "@/lib/free-question"
 import {
   auditFreeQuestion,
   needsCare,
@@ -88,8 +88,19 @@ export async function POST(request: Request) {
   // 직접 친 물음만 읽어봅니다 — 준비된 칩 질문은 사람이 설계한 것이라
   // 분류도 배열도 건드리지 않습니다.
   const audit = prepared ? null : auditFreeQuestion(question)
-  // 조심할 물음이면 기본 배열도 다른 것을 씁니다 (결과를 짚는 자리가 없는 쪽).
-  const fallbackPlan = needsCare(audit) ? CARE_FALLBACK_PLAN : FALLBACK_PLAN
+  // ⚠️ 배열 고르기가 실패했을 때 쓰는 기본값입니다.
+  //
+  //    예전에는 무슨 질문이든 세 장(FALLBACK_PLAN)이었습니다. 그런데 이
+  //    호출은 생각보다 자주 실패합니다 — 무료 등급의 하루 몫이 모델마다
+  //    스무 번이고, 맛보기 해석이 같은 모델을 씁니다. 그래서 바쁜 날에는
+  //    자유 질문이 통째로 세 장으로 떨어졌습니다. "세 장뿐이라 약하다"의
+  //    실제 원인입니다.
+  //
+  //    이제 기본값도 여섯 장이고, 자리 이름은 분류에 맞춥니다.
+  const preset = freeSpreadFor(audit)
+  const fallbackPlan: ReadingPlan = audit
+    ? { layoutKey: preset.layoutKey, intro: preset.intro, positions: preset.positions }
+    : FALLBACK_PLAN
 
   // ── 여기가 타로점 한 판이 시작되는 자리입니다 ──────────────────────
   // 크레딧을 깎는 것도, 판을 만드는 것도 여기 한 곳에서만 합니다.
@@ -220,41 +231,64 @@ export async function POST(request: Request) {
   if (!apiKey) return NextResponse.json({ ...fallbackPlan, readingId, followupsAllowed, audit: audit ?? undefined })
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_PLAN_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text: [
-                  ACTIVE_CHARACTER.persona,
-                  PLAN_INSTRUCTION,
-                  SAFETY_BASELINE,
-                  safetyDirective(audit),
-                  planHint(audit),
-                ]
-                  .filter(Boolean)
-                  .join("\n\n"),
-              },
-            ],
-          },
-          // 사용자가 친 글은 user 자리에만, 그것도 씻어내서 싣습니다
-          // (audit.question 이 씻어낸 원문입니다).
-          contents: [{ role: "user", parts: [{ text: `질문: ${audit?.question ?? question.slice(0, 200)}` }] }],
-          generationConfig: {
-            maxOutputTokens: 3000,
-            // 생각 토큰도 maxOutputTokens 에서 깎입니다. 켜두면 생각만 하다
-            // 한도에 닿아 빈 응답이 오고, 무슨 질문이든 기본 배열로 떨어집니다.
-            thinkingConfig: { thinkingBudget: 0 },
-            responseMimeType: "application/json",
-            responseSchema: PLAN_JSON_SCHEMA,
-          },
-        }),
+    const askPlan = (model: string) =>
+      fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [
+                {
+                  text: [
+                    ACTIVE_CHARACTER.persona,
+                    PLAN_INSTRUCTION,
+                    SAFETY_BASELINE,
+                    safetyDirective(audit),
+                    planHint(audit),
+                  ]
+                    .filter(Boolean)
+                    .join("\n\n"),
+                },
+              ],
+            },
+            // 사용자가 친 글은 user 자리에만, 그것도 씻어내서 싣습니다
+            // (audit.question 이 씻어낸 원문입니다).
+            contents: [{ role: "user", parts: [{ text: `질문: ${audit?.question ?? question.slice(0, 200)}` }] }],
+            generationConfig: {
+              maxOutputTokens: 3000,
+              // 생각 토큰도 maxOutputTokens 에서 깎입니다. 켜두면 생각만 하다
+              // 한도에 닿아 빈 응답이 오고, 무슨 질문이든 기본 배열로 떨어집니다.
+              thinkingConfig: { thinkingBudget: 0 },
+              responseMimeType: "application/json",
+              responseSchema: PLAN_JSON_SCHEMA,
+            },
+            }),
+        }
+      )
+
+    // ⚠️ 한 번만 물어보고 포기하면 안 됩니다.
+    //    · 429 하루 몫에 닿음 — 통은 "프로젝트 × 모델"이라 다른 모델은 남아 있습니다
+    //    · 404 그런 모델이 없음 — 구글이 이름을 닫으면 우리 잘못 없이 옵니다
+    //      (실제로 gemini-2.5-flash-lite 가 404 로 죽은 적이 있습니다 —
+    //       lib/ai/gemini.ts 의 같은 주석 참고)
+    //    해석 쪽에는 이 재시도가 있었는데 배열 고르기에는 없어서, 여기만
+    //    조용히 기본 배열로 떨어지고 있었습니다.
+    let response = await askPlan(GEMINI_PLAN_MODEL)
+    if (response.status === 429 || response.status === 404) {
+      const next = [GEMINI_FALLBACK_MODEL, GEMINI_READING_MODEL].find(
+        (m) => m && m !== GEMINI_PLAN_MODEL
+      )
+      if (next) {
+        console.warn(
+          `[reading/plan] ${GEMINI_PLAN_MODEL} 가 ${response.status} 라 ${next} 로 다시 시도합니다`
+        )
+        await response.text() // 몸통을 비워 연결을 놓아줍니다
+        response = await askPlan(next)
       }
-    )
+    }
+
     if (!response.ok) throw new Error(await response.text())
 
     const data = await response.json()

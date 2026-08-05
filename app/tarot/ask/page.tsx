@@ -36,8 +36,8 @@ import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { buildFreeQuestion, CARE_QUESTION_SPREAD, FREE_QUESTION_SLUG } from "@/lib/free-question"
-import { auditFreeQuestion, needsCare, type QuestionAudit } from "@/lib/question-safety"
+import { buildFreeQuestion, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { auditFreeQuestion, type QuestionAudit } from "@/lib/question-safety"
 import { QuestionCareNotice } from "@/components/question-care-notice"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
@@ -253,12 +253,11 @@ export default function AskPage() {
     if (!paid) {
       setAsked({
         topicSlug: (topicSlug ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
-        // ⚠️ 조심할 물음에는 기본 여섯 장 십자를 쓰지 않습니다. 그 배열에는
-        //    "상대의 마음"·"다가올 흐름" 자리가 있어서, 몸이나 소송 결과를
-        //    묻는 물음에 자리 이름부터 어긋납니다.
-        question:
-          prepared ??
-          buildFreeQuestion(q, needsCare(typedAudit) ? CARE_QUESTION_SPREAD : null),
+        // ⚠️ 장수는 여섯으로 지키고 자리 이름만 분류에 맞게 갑니다.
+        //    진로 질문에 "상대의 마음"이 뜨거나, 검사 결과를 기다리는
+        //    사람에게 "다가올 흐름"을 묻는 자리가 생기지 않도록
+        //    (lib/free-question.ts 의 freeSpreadFor).
+        question: prepared ?? buildFreeQuestion(q, freeSpreadFor(typedAudit)),
       })
       setPlan(null)
       setStep("draw")

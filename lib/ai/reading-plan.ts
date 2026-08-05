@@ -44,23 +44,6 @@ export const FALLBACK_PLAN: ReadingPlan = {
   ],
 }
 
-/**
- * 조심해서 다뤄야 하는 물음이 AI 를 못 만났을 때 쓰는 기본 배열.
- *
- * ⚠️ 위의 FALLBACK_PLAN(상황→원인→조언)을 그대로 쓰면 안 됩니다. "조언"
- *    자리가 "그래서 어떻게 될 것인가"로 읽히기 쉬워서, 결과를 짚지 말아야
- *    할 물음에서 가장 위험한 자리가 됩니다.
- */
-export const CARE_FALLBACK_PLAN: ReadingPlan = {
-  layoutKey: "three-inverted",
-  intro: "흐음… 무거운 물음이구나. 결과를 맞히는 대신, 지금 네 마음을 세 장으로 들여다보자꾸나.",
-  positions: [
-    { label: "지금 마음", guide: "지금 네 마음이 어디쯤 있는지 떠올리며 뽑아보라냥" },
-    { label: "가로막는 것", guide: "그 마음을 무겁게 하는 것을 떠올리며 뽑아보라냥" },
-    { label: "지금 붙잡을 것", guide: "자 마지막이야. 오늘 네가 붙잡을 것을 떠올리며 뽑아보라냥" },
-  ],
-}
-
 /** 쓸 수 있는 배열과 장수. spreadLayouts 의 키와 같아야 합니다. */
 export const SPREAD_CHOICES: { key: string; count: number; when: string }[] = [
   { key: "one-card", count: 1, when: "예/아니오, 오늘 한마디처럼 아주 단순한 질문" },
@@ -142,6 +125,7 @@ ${SPREAD_CHOICES.map((s) => `${s.key}(${s.count}장)=${s.when}`).join(",\n")}
 }
 @rule{
 장수=질문의_무게에_맞게|가벼운_질문에_10장은_과하다|무거운_질문에_1장은_모자라다,
+장수_기본=별조각을_낸_판이다|1~2장은_"오늘 한마디"·"예/아니오"처럼_정말_단순한_물음에만_쓴다|보통은_5장_이상으로_충분히_읽어준다,
 positions.길이=고른_배열의_장수와_정확히_일치,
 label=이_질문에_맞춰_지어라|일반적인_"과거/현재/미래"보다_질문에_붙은_말이_좋다,
 guide=뽑기_직전에_건네는_말|"~를 떠올리며 뽑아보라냥"_같은_어투|자리마다_다르게,

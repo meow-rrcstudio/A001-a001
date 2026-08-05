@@ -78,7 +78,7 @@ export interface QuestionAudit {
    * 씻어냈습니다 (sanitizeForPrompt 참고). 뜻은 바뀌지 않습니다.
    */
   question: string
-  /** 이 물음에 어울리는 배열. AI 가 못 고를 때의 기본값으로도 씁니다 */
+  /** 샨티에게 권해줄 배열. 실제로 깔리는 기본 자리는 freeSpreadFor 가 정합니다 */
   layoutKey: string
   /** 사용자에게 보여줄 샨티의 한 마디 (민감·위기일 때만) */
   notice?: string
@@ -216,21 +216,30 @@ const RULES: Rule[] = [
   },
 ]
 
-/** 분류 → 어울리는 배열 (lib/ai/reading-plan.ts 의 SPREAD_CHOICES 키) */
+/**
+ * 분류 → 샨티에게 권해줄 배열 (lib/ai/reading-plan.ts 의 SPREAD_CHOICES 키).
+ *
+ * ⚠️ 이건 "권함"이지 기본값이 아닙니다. 배열 고르기가 실패했을 때 실제로
+ *    깔리는 여섯 자리는 lib/free-question.ts 의 freeSpreadFor 입니다.
+ *
+ * ⚠️ 3장짜리를 권하지 않습니다. 별조각을 낸 판이 세 장으로 끝나면 값을
+ *    치른 만큼 읽어주지 못한 것이 됩니다 — 실제로 그런 판이 한동안
+ *    이어졌습니다.
+ */
 const LAYOUT_BY_CATEGORY: Record<QuestionCategory, string> = {
   연애: "six-cross", // 나와 상대가 얽힌 관계
-  인간관계: "three-arch", // 상황 → 원인 → 조언
-  가족: "three-arch",
-  직장: "four-diamond", // 핵심을 가운데 두고 둘러보기
-  진로: "five-tee", // 중심 주제 + 네 갈래 = 방향성
-  금전: "three-arch",
-  자기성찰: "three-inverted", // 마음 → 걸림돌 → 해법 = 내면 탐색
-  건강: "three-inverted",
-  의료: "three-inverted", // 결과를 맞히는 자리가 아니라 마음을 보는 자리
-  법률: "three-arch",
-  투자: "three-arch",
-  범죄: "three-inverted",
-  기타: "three-arch",
+  인간관계: "six-cross",
+  가족: "six-cross",
+  직장: "five-tee", // 중심 주제 + 네 갈래
+  진로: "five-tee",
+  금전: "five-grid",
+  투자: "five-grid",
+  자기성찰: "five-tee",
+  건강: "five-tee",
+  의료: "five-tee", // 결과를 맞히는 자리가 아니라 마음을 보는 자리
+  법률: "five-tee",
+  범죄: "five-tee",
+  기타: "five-tee",
 }
 
 // ═══════════════════════════════════════════════════════════════════
