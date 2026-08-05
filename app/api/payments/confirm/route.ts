@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   // 우리가 남긴 주문 — 남의 주문번호를 적어 보낼 수 있으니 주인도 함께 봅니다.
   const { data: purchase, error: findError } = await admin
     .from("purchases")
-    .select("id, user_id, credits, amount_krw, status")
+    .select("id, user_id, credits, amount_krw, status, payment_key")
     .eq("order_id", orderId)
     .eq("user_id", user.id)
     .maybeSingle()
@@ -81,6 +81,10 @@ export async function POST(request: Request) {
   // 오류로 돌려보내면 "결제했는데 실패라고 나온다"가 됩니다. 이미 준
   // 크레딧을 다시 주지 않으면서, 화면에는 잘 됐다고 말합니다.
   if (purchase.status === "paid") {
+    if (purchase.payment_key && purchase.payment_key !== paymentKey) {
+      console.warn(`[payments/confirm] 이미 결제된 주문에 다른 paymentKey 가 들어왔습니다 — 주문 ${orderId}`)
+      return NextResponse.json({ error: "이미 다른 결제로 끝난 주문이에요." }, { status: 409 })
+    }
     return NextResponse.json({ ok: true, credits: purchase.credits, already: true })
   }
 
@@ -119,30 +123,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.message, code: result.code }, { status: 402 })
   }
 
-  // ── 크레딧을 얹습니다 ─────────────────────────────────────────────
-  // ⚠️ 크레딧이 먼저, 주문 표시가 나중입니다. 표시를 먼저 남기면, 크레딧
-  //    넣기가 실패했을 때 "결제는 됐는데 크레딧이 없는" 상태로 굳습니다.
-  //    (가입 선물에서 똑같은 실수를 했습니다 — app/api/account/route.ts)
-  //
-  //    두 번 들어가는 것은 열쇠가 막습니다. 주문번호는 unique 라
-  //    purchase:<주문번호> 로는 한 줄만 들어갑니다.
-  const { error: grantError } = await admin.from("credit_entries").upsert(
-    {
-      user_id: user.id,
-      delta: purchase.credits,
-      reason: "purchase",
-      purchase_id: purchase.id,
-      idempotency_key: `purchase:${orderId}`,
-    },
-    { onConflict: "idempotency_key", ignoreDuplicates: true }
-  )
-
-  if (grantError) {
-    // 돈은 이미 나갔습니다. 주문은 pending 으로 두어 다시 시도할 수 있게
-    // 하고, 반드시 사람이 볼 수 있게 남깁니다.
+  if (result.payment.orderId !== orderId || result.payment.totalAmount !== purchase.amount_krw) {
     console.error(
-      `[payments/confirm] 승인은 됐는데 크레딧을 못 넣었습니다 — 주문 ${orderId}:`,
-      grantError.message
+      `[payments/confirm] 승인 응답이 주문과 다릅니다 — 주문 ${orderId}: 응답 ${result.payment.orderId}/${result.payment.totalAmount}`
+    )
+    return NextResponse.json(
+      { error: "결제 승인값이 주문과 맞지 않아요. 고객센터로 알려주세요.", pending: true },
+      { status: 500 }
+    )
+  }
+
+  // ── 크레딧 지급과 결제 완료 표시를 DB 함수 한 덩어리로 끝냅니다 ─────
+  // 둘을 API 서버에서 따로 실행하면 중간 실패 때 "돈은 받았는데 미지급"
+  // 또는 "지급은 됐는데 결제는 pending" 상태가 됩니다. 함수 안에서 해당
+  // purchase 줄을 잠그고, credit_entries idempotency_key 와 paid 표시를
+  // 같은 트랜잭션으로 묶습니다.
+  const { data: finalized, error: finalizeError } = await admin.rpc("finalize_toss_purchase", {
+    p_order_id: orderId,
+    p_user_id: user.id,
+    p_payment_key: result.payment.paymentKey,
+    p_method: result.payment.method ?? null,
+    p_paid_at: result.payment.approvedAt ?? new Date().toISOString(),
+  })
+
+  const finalizedRow = (Array.isArray(finalized) ? finalized[0] : finalized) as
+    | { ok?: boolean; credits?: number; message?: string }
+    | null
+
+  if (finalizeError || !finalizedRow?.ok) {
+    console.error(
+      `[payments/confirm] 승인은 됐는데 완료 처리를 못 했습니다 — 주문 ${orderId}:`,
+      finalizeError?.message ?? finalizedRow?.message ?? "unknown"
     )
     return NextResponse.json(
       { error: `결제는 됐는데 ${withJosa(CREDIT_UNIT.one, "을를")} 얹지 못했어요. 잠시 뒤 다시 열어주세요.`, pending: true },
@@ -150,20 +161,5 @@ export async function POST(request: Request) {
     )
   }
 
-  const { error: markError } = await admin
-    .from("purchases")
-    .update({
-      status: "paid",
-      payment_key: result.payment.paymentKey,
-      method: result.payment.method ?? null,
-      paid_at: result.payment.approvedAt ?? new Date().toISOString(),
-    })
-    .eq("id", purchase.id)
-
-  if (markError) {
-    // 크레딧은 이미 들어갔습니다. 표시만 못 남긴 것이라 사람에게는 성공입니다.
-    console.error("[payments/confirm] 주문 표시를 못 남겼습니다:", markError.message)
-  }
-
-  return NextResponse.json({ ok: true, credits: purchase.credits })
+  return NextResponse.json({ ok: true, credits: finalizedRow.credits ?? purchase.credits })
 }

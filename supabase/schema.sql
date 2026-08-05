@@ -246,6 +246,8 @@ create table if not exists public.purchases (
   order_id      text not null unique,
   -- 토스가 돌려주는 결제 열쇠 (취소·조회에 씁니다)
   payment_key   text,
+  -- 탈퇴 뒤에도 법정 보관 결제기록에 남길 이메일
+  buyer_email   text,
   -- 카드 / 카카오페이 / 토스페이 …
   method        text,
   failure_reason text,
@@ -255,6 +257,70 @@ create table if not exists public.purchases (
 
 create index if not exists purchases_user_idx
   on public.purchases (user_id, created_at desc);
+
+create unique index if not exists purchases_payment_key_unique
+  on public.purchases (payment_key)
+  where payment_key is not null;
+
+create index if not exists purchases_pending_user_created_idx
+  on public.purchases (user_id, created_at desc)
+  where status = 'pending';
+
+create or replace function public.finalize_toss_purchase(
+  p_order_id text,
+  p_user_id uuid,
+  p_payment_key text,
+  p_method text default null,
+  p_paid_at timestamptz default now()
+)
+returns table(ok boolean, credits integer, message text)
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_purchase public.purchases%rowtype;
+begin
+  select * into v_purchase
+  from public.purchases
+  where order_id = p_order_id
+    and user_id = p_user_id
+  for update;
+
+  if not found then
+    return query select false, 0, 'purchase_not_found';
+    return;
+  end if;
+
+  if v_purchase.status = 'paid' then
+    if v_purchase.payment_key is not null and v_purchase.payment_key <> p_payment_key then
+      return query select false, v_purchase.credits, 'payment_key_mismatch';
+      return;
+    end if;
+
+    return query select true, v_purchase.credits, 'already_paid';
+    return;
+  end if;
+
+  if v_purchase.status <> 'pending' then
+    return query select false, v_purchase.credits, 'purchase_not_pending';
+    return;
+  end if;
+
+  insert into public.credit_entries (user_id, delta, reason, purchase_id, idempotency_key)
+  values (v_purchase.user_id, v_purchase.credits, 'purchase', v_purchase.id, 'purchase:' || v_purchase.order_id)
+  on conflict (idempotency_key) do nothing;
+
+  update public.purchases
+  set status = 'paid',
+      payment_key = p_payment_key,
+      method = p_method,
+      paid_at = coalesce(p_paid_at, now()),
+      failure_reason = null
+  where id = v_purchase.id;
+
+  return query select true, v_purchase.credits, 'paid';
+end;
+$$;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 5. 권한 — 남의 것을 못 보게
