@@ -230,7 +230,8 @@ create policy "본인 기억 지우기" on public.user_memories
 -- ═══════════════════════════════════════════════════════════════════
 create table if not exists public.purchases (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references auth.users on delete restrict,
+  -- 탈퇴한 뒤에도 법정 보관 결제 기록은 남기되, 살아 있는 계정과의 연결은 끊습니다.
+  user_id       uuid references auth.users on delete set null,
   -- lib/credit-packs.ts 의 CreditPack.key
   pack_key      text not null,
   credits       integer not null check (credits > 0),
@@ -246,6 +247,8 @@ create table if not exists public.purchases (
   order_id      text not null unique,
   -- 토스가 돌려주는 결제 열쇠 (취소·조회에 씁니다)
   payment_key   text,
+  -- 탈퇴 시 user_id 가 비워져도 법정 보관에 필요한 구매자 식별값은 결제 줄에 남깁니다.
+  buyer_email   text,
   -- 카드 / 카카오페이 / 토스페이 …
   method        text,
   failure_reason text,
@@ -277,16 +280,19 @@ drop policy if exists "본인 크레딧 보기" on public.credit_entries;
 create policy "본인 크레딧 보기" on public.credit_entries
   for select using (auth.uid() = user_id);
 
+-- 상담 원문은 본인도 "보기"만 됩니다. 만들기·수정·삭제는 서버 API가
+-- 크레딧, 소유권, 이어묻기 횟수, 결제 여부를 확인한 뒤 서비스 키로 합니다.
+-- 브라우저가 직접 쓰기를 할 수 있으면 followups_allowed/result/rating 등을
+-- 조작하거나 상담 기록을 위조할 수 있습니다.
 drop policy if exists "본인 타로점만" on public.readings;
-create policy "본인 타로점만" on public.readings
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "본인 타로점 보기" on public.readings;
+create policy "본인 타로점 보기" on public.readings
+  for select using (auth.uid() = user_id);
 
 drop policy if exists "본인 대화만" on public.reading_turns;
-create policy "본인 대화만" on public.reading_turns
-  for all using (
-    exists (select 1 from public.readings r
-            where r.id = reading_id and r.user_id = auth.uid())
-  ) with check (
+drop policy if exists "본인 대화 보기" on public.reading_turns;
+create policy "본인 대화 보기" on public.reading_turns
+  for select using (
     exists (select 1 from public.readings r
             where r.id = reading_id and r.user_id = auth.uid())
   );
@@ -318,6 +324,16 @@ as $$
 declare
   v_balance integer;
 begin
+  -- service_role 이 아닌 클라이언트가 RPC 를 직접 부르면 반드시 자기 크레딧만
+  -- 쓸 수 있어야 합니다. 이 검사가 없으면 anon/authenticated 키로 남의 uuid 를
+  -- 넣어 남의 크레딧을 깎는 DoS 가 가능합니다.
+  if coalesce(auth.role(), '') <> 'service_role' then
+    if auth.uid() is null or auth.uid() <> p_user_id then
+      raise exception 'not allowed to spend credits for another user'
+        using errcode = '42501';
+    end if;
+  end if;
+
   -- 이 회원에 대해서만 순서를 세웁니다. 같은 사람의 요청 둘이 동시에
   -- 들어와도 하나가 끝날 때까지 다른 하나가 기다립니다 (다른 회원은
   -- 서로 안 기다립니다).
@@ -349,6 +365,9 @@ begin
   return v_balance - 1;
 end;
 $$;
+
+revoke all on function public.spend_credit(uuid, text, uuid, text) from public;
+grant execute on function public.spend_credit(uuid, text, uuid, text) to authenticated, service_role;
 
 
 -- ═══════════════════════════════════════════════════════════════════
