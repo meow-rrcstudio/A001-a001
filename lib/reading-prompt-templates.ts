@@ -9,7 +9,14 @@ import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
 import { CHAT_INSTRUCTION } from "@/lib/ai/reading-chat"
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
-import { auditFreeQuestion, safetyInstruction, type QuestionAudit } from "@/lib/question-safety"
+import {
+  auditFreeQuestion,
+  needsCare,
+  safetyDirective,
+  sanitizeForPrompt,
+  SAFETY_BASELINE,
+  type QuestionAudit,
+} from "@/lib/question-safety"
 
 // 하위 호환: 기존 코드가 쓰던 이름을 유지하되, 실체는 reading-topics의 슬러그 타입입니다.
 export type ReadingTopicKey = ReadingTopicSlug
@@ -66,7 +73,10 @@ export function buildReadingLayer({
     )
     .join("\n")
 
-  return `@reading{spread=${cards.length}_card,positions=${positionLabels.join("|")},focus_question=${question.label},priority=core_message>keyword>flow>guidance}
+  // ⚠️ 물음은 씻어내서 싣습니다. 자유 질문은 사용자가 친 글이 그대로
+  //    들어오는 유일한 자리라, @block{} 문법이 섞이면 모델이 그것을 규칙으로
+  //    읽습니다 (sanitizeForPrompt 참고). 뜻은 바뀌지 않습니다.
+  return `@reading{spread=${cards.length}_card,positions=${positionLabels.join("|")},focus_question=${sanitizeForPrompt(question.label)},priority=core_message>keyword>flow>guidance}
 
 ### INPUT
 ${inputLines}`
@@ -110,13 +120,19 @@ export function buildReadingMessages({
 
   // 캐릭터 → (맺음말) → 주제 순서. 이 앞부분이 캐싱됩니다.
   // 맺음말은 surface 마다 고정이라 앞쪽에 둬도 캐싱이 깨지지 않습니다.
+  // 자유 질문만 다시 읽어봅니다 — 칩 질문은 사람이 설계한 것이라 그대로 둡니다.
+  //
+  // ⚠️ 화면에서도 같은 판단을 하지만(비회원은 배열을 화면이 고릅니다),
+  //    프롬프트에 실리는 지침은 반드시 여기서 다시 붙입니다. 화면이 보낸
+  //    값을 믿으면 요청을 손으로 만들어 지침만 빼버릴 수 있습니다.
   const audit = question.slug === "free" ? auditFreeQuestion(question.label) : null
   const layers = [character.persona]
   // 복사용은 맺음말(사이트 링크), 사이트 안은 JSON 출력 형식을 덧붙입니다.
   layers.push(surface === "prompt" ? character.outro : READING_JSON_INSTRUCTION)
+  // 바닥 규칙은 언제나 같은 글자라 캐싱을 깨지 않습니다.
+  layers.push(SAFETY_BASELINE)
   layers.push(buildTopicLayer(topicKey))
-  const safety = safetyInstruction(audit)
-  if (safety) layers.push(safety)
+  if (needsCare(audit)) layers.push(safetyDirective(audit))
 
   return {
     system: layers.join("\n\n"),
@@ -212,7 +228,11 @@ export function buildChatMessages(
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
   const { memories, question, cards, reading, digest, turns, message, reserve, drawTally } = context
-  const audit = context.audit ?? auditFreeQuestion(message)
+  // 이번 물음을 먼저 봅니다. 대화 도중에 무거운 이야기가 나오는 일이
+  // 흔해서입니다 — 처음 물음이 멀쩡했다고 이어지는 말까지 멀쩡하지는
+  // 않습니다. 이번 물음이 보통이면 처음 물음의 분류를 물려받습니다.
+  const own = auditFreeQuestion(message)
+  const audit = needsCare(own) ? own : (context.audit ?? own)
 
   const parts: string[] = []
 
@@ -272,13 +292,19 @@ export function buildChatMessages(
     )
   }
 
-  parts.push(`### 이번 물음\n${audit.effectiveQuestion}`)
+  // ⚠️ 사용자가 친 말을 다른 문장으로 바꿔 싣지 않습니다. 화면에는 자기가
+  //    친 말이 그대로 남아 있는데 샨티가 다른 물음에 답하면, 그건 그냥
+  //    고장 난 것으로 보입니다. 조심할 물음이면 아래 system 쪽에 지침만
+  //    붙습니다.
+  parts.push(`### 이번 물음\n${sanitizeForPrompt(message, 500)}`)
 
   return {
     // ⚠️ persona 가 아니라 chatPersona 입니다. 해석용 페르소나에는 출력
     //    구조(제목·키워드·섹션)가 박혀 있어서, 대화에서도 리딩 한 편을
     //    다시 쓰게 만듭니다 (lib/character.ts 주석 참고).
-    system: [character.chatPersona, CHAT_INSTRUCTION, safetyInstruction(audit)].join("\n\n"),
+    system: [character.chatPersona, CHAT_INSTRUCTION, SAFETY_BASELINE, safetyDirective(audit)]
+      .filter(Boolean)
+      .join("\n\n"),
     user: parts.join("\n\n"),
   }
 }

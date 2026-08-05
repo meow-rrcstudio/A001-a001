@@ -7,10 +7,12 @@ import { NextResponse } from "next/server"
 import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { ACTIVE_CHARACTER } from "@/lib/character"
 import {
+  CARE_FALLBACK_PLAN,
   FALLBACK_PLAN,
   PLAN_INSTRUCTION,
   PLAN_JSON_SCHEMA,
   SPREAD_CHOICES,
+  planHint,
   type ReadingPlan,
 } from "@/lib/ai/reading-plan"
 // ⚠️ 배열 고르기는 해석과 "다른 모델"을 씁니다. 무료 등급의 하루 요청
@@ -23,7 +25,12 @@ import { getSupabaseAdmin } from "@/lib/supabase/server"
 import { FOLLOWUPS_PER_CREDIT, WELCOME_FOLLOWUPS } from "@/lib/credit-rules"
 import { hasEverPaid } from "@/lib/server/free-reading"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
-import { auditFreeQuestion, safetyInstruction } from "@/lib/question-safety"
+import {
+  auditFreeQuestion,
+  needsCare,
+  safetyDirective,
+  SAFETY_BASELINE,
+} from "@/lib/question-safety"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
@@ -78,7 +85,11 @@ export async function POST(request: Request) {
   if (!question) {
     return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
   }
+  // 직접 친 물음만 읽어봅니다 — 준비된 칩 질문은 사람이 설계한 것이라
+  // 분류도 배열도 건드리지 않습니다.
   const audit = prepared ? null : auditFreeQuestion(question)
+  // 조심할 물음이면 기본 배열도 다른 것을 씁니다 (결과를 짚는 자리가 없는 쪽).
+  const fallbackPlan = needsCare(audit) ? CARE_FALLBACK_PLAN : FALLBACK_PLAN
 
   // ── 여기가 타로점 한 판이 시작되는 자리입니다 ──────────────────────
   // 크레딧을 깎는 것도, 판을 만드는 것도 여기 한 곳에서만 합니다.
@@ -162,7 +173,11 @@ export async function POST(request: Request) {
       .from("readings")
       .insert({
         user_id: user.id,
-        question: (audit?.effectiveQuestion ?? question).slice(0, 500),
+        // ⚠️ 사용자가 친 그대로 남깁니다. 한동안 민감한 물음을 다른 문장으로
+        //    바꿔 저장했는데, 그러면 기록에 묻지도 않은 물음이 남고 나중에
+        //    "내가 이런 걸 물었다고?" 가 됩니다. 조심하는 방법은 저장이
+        //    아니라 프롬프트 지침입니다 (lib/question-safety.ts).
+        question: question.slice(0, 500),
         followups_allowed: followupsAllowed,
       })
       .select("id")
@@ -202,7 +217,7 @@ export async function POST(request: Request) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
+  if (!apiKey) return NextResponse.json({ ...fallbackPlan, readingId, followupsAllowed, audit: audit ?? undefined })
 
   try {
     const response = await fetch(
@@ -212,9 +227,23 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: `${ACTIVE_CHARACTER.persona}\n\n${PLAN_INSTRUCTION}\n\n${safetyInstruction(audit)}` }],
+            parts: [
+              {
+                text: [
+                  ACTIVE_CHARACTER.persona,
+                  PLAN_INSTRUCTION,
+                  SAFETY_BASELINE,
+                  safetyDirective(audit),
+                  planHint(audit),
+                ]
+                  .filter(Boolean)
+                  .join("\n\n"),
+              },
+            ],
           },
-          contents: [{ role: "user", parts: [{ text: `질문: ${(audit?.effectiveQuestion ?? question).slice(0, 200)}` }] }],
+          // 사용자가 친 글은 user 자리에만, 그것도 씻어내서 싣습니다
+          // (audit.question 이 씻어낸 원문입니다).
+          contents: [{ role: "user", parts: [{ text: `질문: ${audit?.question ?? question.slice(0, 200)}` }] }],
           generationConfig: {
             maxOutputTokens: 3000,
             // 생각 토큰도 maxOutputTokens 에서 깎입니다. 켜두면 생각만 하다
@@ -241,7 +270,7 @@ export async function POST(request: Request) {
           `positions=${Array.isArray(plan?.positions) ? plan.positions.length : "없음"}, ` +
           `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
       )
-      return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
+      return NextResponse.json({ ...fallbackPlan, readingId, followupsAllowed, audit: audit ?? undefined })
     }
 
     // 고른 배열을 판에 적어둡니다 (다시 열었을 때 그때 모양 그대로 놓이도록)
@@ -259,6 +288,6 @@ export async function POST(request: Request) {
   } catch (error) {
     // 배열을 못 골랐다고 흐름을 멈추진 않습니다. 대신 까닭은 로그로 남깁니다.
     console.warn("[reading/plan] 배열 고르기 실패 — 기본값으로 갑니다:", error)
-    return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
+    return NextResponse.json({ ...fallbackPlan, readingId, followupsAllowed, audit: audit ?? undefined })
   }
 }
