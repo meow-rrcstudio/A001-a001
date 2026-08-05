@@ -9,6 +9,7 @@ import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
 import { CHAT_INSTRUCTION } from "@/lib/ai/reading-chat"
 import type { ReadingTopicSlug } from "@/lib/reading-topics"
+import { auditFreeQuestion, safetyInstruction, type QuestionAudit } from "@/lib/question-safety"
 
 // 하위 호환: 기존 코드가 쓰던 이름을 유지하되, 실체는 reading-topics의 슬러그 타입입니다.
 export type ReadingTopicKey = ReadingTopicSlug
@@ -109,10 +110,13 @@ export function buildReadingMessages({
 
   // 캐릭터 → (맺음말) → 주제 순서. 이 앞부분이 캐싱됩니다.
   // 맺음말은 surface 마다 고정이라 앞쪽에 둬도 캐싱이 깨지지 않습니다.
+  const audit = question.slug === "free" ? auditFreeQuestion(question.label) : null
   const layers = [character.persona]
   // 복사용은 맺음말(사이트 링크), 사이트 안은 JSON 출력 형식을 덧붙입니다.
   layers.push(surface === "prompt" ? character.outro : READING_JSON_INSTRUCTION)
   layers.push(buildTopicLayer(topicKey))
+  const safety = safetyInstruction(audit)
+  if (safety) layers.push(safety)
 
   return {
     system: layers.join("\n\n"),
@@ -169,6 +173,8 @@ export interface ChatContext {
   drawTally?: { shanti: number; user: number }
   /** 이번에 새로 던진 물음 */
   message: string
+  /** 처음 물음/이번 물음이 민감 영역인지 분류한 결과 */
+  audit?: QuestionAudit | null
   /** 어느 판에 이어 묻는지. 서버가 주인과 횟수를 확인합니다 */
   readingId?: string
   /**
@@ -206,6 +212,7 @@ export function buildChatMessages(
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
   const { memories, question, cards, reading, digest, turns, message, reserve, drawTally } = context
+  const audit = context.audit ?? auditFreeQuestion(message)
 
   const parts: string[] = []
 
@@ -265,13 +272,13 @@ export function buildChatMessages(
     )
   }
 
-  parts.push(`### 이번 물음\n${message}`)
+  parts.push(`### 이번 물음\n${audit.effectiveQuestion}`)
 
   return {
     // ⚠️ persona 가 아니라 chatPersona 입니다. 해석용 페르소나에는 출력
     //    구조(제목·키워드·섹션)가 박혀 있어서, 대화에서도 리딩 한 편을
     //    다시 쓰게 만듭니다 (lib/character.ts 주석 참고).
-    system: [character.chatPersona, CHAT_INSTRUCTION].join("\n\n"),
+    system: [character.chatPersona, CHAT_INSTRUCTION, safetyInstruction(audit)].join("\n\n"),
     user: parts.join("\n\n"),
   }
 }

@@ -37,6 +37,7 @@ import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
 import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { auditFreeQuestion } from "@/lib/question-safety"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
@@ -214,7 +215,9 @@ export default function AskPage() {
   async function submit(text: string, prepared?: ReadingQuestion, topicSlug?: ReadingTopicSlug) {
     const q = text.trim()
     if (!q || planning) return
-    setQuestion(q)
+    const typedAudit = prepared ? null : auditFreeQuestion(q)
+    const effectiveQuestion = typedAudit?.effectiveQuestion ?? q
+    setQuestion(effectiveQuestion)
     setStartError(null)
 
     // 어떻게 질문을 정했는지 — 칩인가, 주제 고르기 전 추천인가, 직접 쳤는가
@@ -243,8 +246,8 @@ export default function AskPage() {
     //    골라준다"가 가입하면 달라지는 것 하나가 됩니다.
     if (!paid) {
       setAsked({
-        topicSlug: (topicSlug ?? "self") as ReadingTopicKey,
-        question: prepared ?? buildFreeQuestion(q),
+        topicSlug: (topicSlug ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
+        question: prepared ?? buildFreeQuestion(effectiveQuestion),
       })
       setPlan(null)
       setStep("draw")
@@ -321,8 +324,8 @@ export default function AskPage() {
     //    들려주는 말)이 통째로 사라지고 일반 문구로 바뀌었습니다.
     //    직접 친 질문일 때만 샨티가 고른 배열을 입힙니다.
     setAsked({
-      topicSlug: (topicSlug ?? "self") as ReadingTopicKey,
-      question: prepared ?? buildFreeQuestion(q, nextPlan),
+      topicSlug: (topicSlug ?? nextPlan.audit?.topicKey ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
+      question: prepared ?? buildFreeQuestion(nextPlan.audit?.effectiveQuestion ?? effectiveQuestion, nextPlan),
     })
     setPlanning(false)
     setStep("draw")
@@ -335,7 +338,7 @@ export default function AskPage() {
    */
   async function runReading(picked: PickedCard[]) {
     const built = await run({
-      topicKey: "self",
+      topicKey: asked?.topicSlug ?? "self",
       questionSlug: FREE_QUESTION_SLUG,
       questionLabel: question,
       plan,

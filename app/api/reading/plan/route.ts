@@ -23,6 +23,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/server"
 import { FOLLOWUPS_PER_CREDIT, WELCOME_FOLLOWUPS } from "@/lib/credit-rules"
 import { hasEverPaid } from "@/lib/server/free-reading"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
+import { auditFreeQuestion, safetyInstruction } from "@/lib/question-safety"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 30
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
   if (!question) {
     return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
   }
+  const audit = prepared ? null : auditFreeQuestion(question)
 
   // ── 여기가 타로점 한 판이 시작되는 자리입니다 ──────────────────────
   // 크레딧을 깎는 것도, 판을 만드는 것도 여기 한 곳에서만 합니다.
@@ -160,7 +162,7 @@ export async function POST(request: Request) {
       .from("readings")
       .insert({
         user_id: user.id,
-        question: question.slice(0, 500),
+        question: (audit?.effectiveQuestion ?? question).slice(0, 500),
         followups_allowed: followupsAllowed,
       })
       .select("id")
@@ -200,7 +202,7 @@ export async function POST(request: Request) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
+  if (!apiKey) return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
 
   try {
     const response = await fetch(
@@ -210,9 +212,9 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: `${ACTIVE_CHARACTER.persona}\n\n${PLAN_INSTRUCTION}` }],
+            parts: [{ text: `${ACTIVE_CHARACTER.persona}\n\n${PLAN_INSTRUCTION}\n\n${safetyInstruction(audit)}` }],
           },
-          contents: [{ role: "user", parts: [{ text: `질문: ${question.slice(0, 200)}` }] }],
+          contents: [{ role: "user", parts: [{ text: `질문: ${(audit?.effectiveQuestion ?? question).slice(0, 200)}` }] }],
           generationConfig: {
             maxOutputTokens: 3000,
             // 생각 토큰도 maxOutputTokens 에서 깎입니다. 켜두면 생각만 하다
@@ -239,7 +241,7 @@ export async function POST(request: Request) {
           `positions=${Array.isArray(plan?.positions) ? plan.positions.length : "없음"}, ` +
           `finishReason=${data?.candidates?.[0]?.finishReason ?? "없음"}`
       )
-      return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
+      return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
     }
 
     // 고른 배열을 판에 적어둡니다 (다시 열었을 때 그때 모양 그대로 놓이도록)
@@ -253,10 +255,10 @@ export async function POST(request: Request) {
         .eq("id", readingId)
     }
 
-    return NextResponse.json({ ...plan, readingId, followupsAllowed })
+    return NextResponse.json({ ...plan, readingId, followupsAllowed, audit: audit ?? undefined })
   } catch (error) {
     // 배열을 못 골랐다고 흐름을 멈추진 않습니다. 대신 까닭은 로그로 남깁니다.
     console.warn("[reading/plan] 배열 고르기 실패 — 기본값으로 갑니다:", error)
-    return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed })
+    return NextResponse.json({ ...FALLBACK_PLAN, readingId, followupsAllowed, audit: audit ?? undefined })
   }
 }
