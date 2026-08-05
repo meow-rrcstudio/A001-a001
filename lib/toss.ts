@@ -51,8 +51,9 @@ const TOSS_API = "https://api.tosspayments.com/v1/payments"
  */
 export function makeOrderId(packKey: string): string {
   const now = Date.now().toString(36)
-  const rand = Math.random().toString(36).slice(2, 10)
-  return `ss_${packKey}_${now}${rand}`
+  const bytes = crypto.getRandomValues(new Uint8Array(12))
+  const rand = Array.from(bytes, (byte) => byte.toString(36).padStart(2, "0")).join("").slice(0, 24)
+  return `ss_${packKey}_${now}_${rand}`
 }
 
 /** 토스가 승인 응답으로 돌려주는 것 중 우리가 쓰는 것만 */
