@@ -12,6 +12,7 @@
 // └──────────────────────────────────────────────────────────────────
 import { NextResponse } from "next/server"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
+import { recoverPendingPurchases } from "@/lib/server/payment-recovery"
 
 export const dynamic = "force-dynamic"
 
@@ -25,6 +26,14 @@ export async function POST() {
 
   const admin = getSupabaseAdmin()
   if (!admin) return NextResponse.json({ entries: null })
+
+  // 내역을 읽기 전에, 돈은 나갔는데 마무리가 안 된 주문이 있는지 봅니다.
+  // "샀는데 별조각이 안 들어왔다" 는 사람이 여기부터 엽니다.
+  try {
+    await recoverPendingPurchases(admin, user.id)
+  } catch (error) {
+    console.error("[account/credits] 미확정 결제 살펴보기 실패:", error)
+  }
 
   // ⚠️ select("*") 입니다. 칸 이름을 하나하나 적으면, 그 중 하나가 없는
   //    프로젝트에서 조회가 통째로 실패합니다 — 예전에 rating 칸 때문에

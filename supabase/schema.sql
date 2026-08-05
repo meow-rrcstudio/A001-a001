@@ -252,7 +252,12 @@ create table if not exists public.purchases (
   method        text,
   failure_reason text,
   created_at    timestamptz not null default now(),
-  paid_at       timestamptz
+  paid_at       timestamptz,
+  -- 환불한 날과 실제로 돌려준 금액 (status = 'canceled' 일 때만 찹니다).
+  -- ⚠️ 환불은 돈만 돌려주고 끝나지 않습니다. 남은 별조각도 함께 거둬야
+  --    합니다 — refund_purchase() 가 둘을 한 번에 합니다.
+  canceled_at   timestamptz,
+  refund_krw    integer
 );
 
 create index if not exists purchases_user_idx
@@ -321,6 +326,92 @@ begin
   return query select true, v_purchase.credits, 'paid';
 end;
 $$;
+
+-- ⚠️⚠️ 이 두 줄이 없으면 결제 없이 별조각을 받을 수 있습니다.
+--    security definer 함수는 만들면 PUBLIC 에게 실행 권한이 열립니다.
+--    로그인한 사람이 브라우저의 anon 키로 자기 pending 주문에 대고
+--    이 함수를 부르면, 토스에 한 푼도 내지 않고 별조각이 지급되고 주문이
+--    paid 로 바뀝니다. 우리 서버(서비스 키)만 부를 수 있어야 합니다.
+revoke all on function public.finalize_toss_purchase(text, uuid, text, text, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.finalize_toss_purchase(text, uuid, text, text, timestamptz)
+  to service_role;
+
+-- ── 환불 — 돈을 돌려줄 때 남은 별조각도 함께 거둡니다 ────────────────
+-- 토스 대시보드에서 돈만 돌려주면 별조각은 계정에 그대로 남습니다.
+-- 열 장을 사고 환불받은 뒤에도 열 판을 볼 수 있다는 뜻입니다.
+-- 손으로 credit_entries 를 고치는 방식은 언젠가 반드시 빠집니다.
+--
+--   select * from public.refund_purchase('ss_ten_...', 6880, '고객 요청');
+--
+-- 거두는 것은 "아직 남아 있는 만큼"입니다. 이미 쓴 것은 되돌릴 수 없으니
+-- 잔액 아래로 내려가지 않습니다 — 쓴 몫은 돈 쪽에서 낱개 값으로 쳐서
+-- 뺍니다 (app/refund 제4조 · lib/credit-packs.ts 의 refundAmount).
+create or replace function public.refund_purchase(
+  p_order_id text,
+  p_refund_krw integer,
+  p_note text default null
+)
+returns table(ok boolean, credits_taken integer, balance_after integer, message text)
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_purchase public.purchases%rowtype;
+  v_balance integer;
+  v_take integer;
+begin
+  select * into v_purchase
+  from public.purchases
+  where order_id = p_order_id
+  for update;
+
+  if not found then
+    return query select false, 0, 0, 'purchase_not_found';
+    return;
+  end if;
+
+  if v_purchase.status = 'canceled' then
+    select coalesce(sum(delta), 0) into v_balance
+    from public.credit_entries where user_id = v_purchase.user_id;
+    return query select true, 0, v_balance, 'already_refunded';
+    return;
+  end if;
+
+  if v_purchase.status <> 'paid' then
+    return query select false, 0, 0, 'purchase_not_paid';
+    return;
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(v_purchase.user_id::text, 0));
+
+  select coalesce(sum(delta), 0) into v_balance
+  from public.credit_entries where user_id = v_purchase.user_id;
+
+  v_take := least(greatest(v_balance, 0), v_purchase.credits);
+
+  if v_take > 0 then
+    insert into public.credit_entries (user_id, delta, reason, purchase_id, idempotency_key)
+    values (v_purchase.user_id, -v_take, 'refund', v_purchase.id, 'refund:' || v_purchase.order_id)
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  update public.purchases
+  set status = 'canceled',
+      canceled_at = now(),
+      refund_krw = p_refund_krw,
+      failure_reason = coalesce(p_note, failure_reason)
+  where id = v_purchase.id;
+
+  select coalesce(sum(delta), 0) into v_balance
+  from public.credit_entries where user_id = v_purchase.user_id;
+
+  return query select true, v_take, v_balance, 'refunded';
+end;
+$$;
+
+revoke all on function public.refund_purchase(text, integer, text) from public, anon, authenticated;
+grant execute on function public.refund_purchase(text, integer, text) to service_role;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 5. 권한 — 남의 것을 못 보게
