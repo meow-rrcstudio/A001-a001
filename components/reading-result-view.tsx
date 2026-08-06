@@ -30,6 +30,7 @@ import { FollowupBanner } from "@/components/followup-banner"
 import type { ChatErrorInfo } from "@/lib/chat-errors"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
+import { AiBadge } from "@/components/ai-badge"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import {
   FOLLOWUPS_PER_CREDIT,
@@ -483,8 +484,13 @@ export function ReadingResultView({
             />
           )}
 
+          {/* 이 글이 AI 가 지은 것임을 제목 바로 위에서 알립니다.
+              법이 요구하는 "즉시 알아볼 수 있는 표시"입니다
+              (components/ai-badge.tsx 머리말 참고). */}
+          {result.title && <AiBadge className="mt-4" />}
+
           {result.title ? (
-            <h1 className="mt-4 text-reading-xl font-bold leading-snug tracking-tight text-foreground">
+            <h1 className="mt-2 text-reading-xl font-bold leading-snug tracking-tight text-foreground">
               {result.title}
               {streaming && !result.summary && <Cursor />}
             </h1>

@@ -47,6 +47,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Menu, MoreHorizontal, Share, X } from "lucide-react"
+import { useAppsInToss } from "@/lib/use-runtime"
 import { SiteMenu } from "@/components/site-menu"
 import { Wordmark } from "@/components/brand-mark"
 import { BlinkingShanti } from "@/components/pixel-sprite"
@@ -135,6 +136,10 @@ export function PageHeader({
   // 웹뷰(앱인토스 미니앱)에서는 navigator.share 도 클립보드도 막힐 수
   // 있는데, 그때 조용히 실패하면 사용자는 버튼이 고장 났다고 여깁니다.
   const [shared, setShared] = useState<"copied" | "failed" | null>(null)
+  // ⚠️ 앱인토스 미니앱에서는 공유 단추를 내지 않습니다. 서비스 오픈 정책
+  //    4번이 "공유하기 링크가 자사 웹사이트로 랜딩되는 경우"를 제한합니다 —
+  //    우리 공유는 soulseoul.xyz 주소를 건네는 것이라 그대로 걸립니다.
+  const inToss = useAppsInToss()
 
   async function handleShare() {
     const url = window.location.href
@@ -251,7 +256,7 @@ export function PageHeader({
             )
           ) : (
             <div className="flex items-center gap-2">
-              {showShare && (
+              {showShare && !inToss && (
                 <button type="button" onClick={handleShare} className={roundButton} aria-label="공유">
                   <Share className="h-5 w-5" />
                 </button>
