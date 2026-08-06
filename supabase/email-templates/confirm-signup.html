@@ -2,7 +2,7 @@
   가입 확인 메일 — Supabase 대시보드의 Authentication → Emails →
   "Confirm sign up" 에 붙여넣습니다.
 
-  제목(Subject) 도 함께 바꿔야 합니다:
+  제목(Subject):
       [SoulSeoul] 이메일 주소를 확인해 주세요
 
   ┌─ 왜 파일로 두는가 ────────────────────────────────────────────────
@@ -11,21 +11,16 @@
   │ 이 파일이 원본이고 대시보드는 그 사본입니다.
   └──────────────────────────────────────────────────────────────────
 
-  ┌─ 생김새는 사이트를 따릅니다 ──────────────────────────────────────
-  │ · 라임 머리띠(#c7fe74) + 검정 글씨 — 사이트 상단바와 같은 얼굴
-  │ · 모서리를 둥글리지 않습니다. 시안이 그렇습니다
-  │   (components/login-form.tsx: "각진 버튼. 모서리를 둥글리지 않습니다")
-  │ · 흰 칸 + 얇은 검정 테두리 — 로그인 입력칸과 같은 결
-  │ · ✦ 는 로고와 별조각의 표식입니다. 장식으로 흩뿌리지 않습니다
-  │
-  │ ⚠️ 각진 것이 메일에서는 오히려 안전합니다. 아웃룩(데스크톱)은
-  │    border-radius 를 통째로 무시해서, 둥글게 만들면 그 사람에게만
-  │    각지게 보입니다. 처음부터 각지면 어디서나 같습니다.
+  ┌─ 생김새 (2026-08 시안) ───────────────────────────────────────────
+  │ · 라임에서 흰색으로 지는 머리띠 + Soulseoul ✦
+  │ · 둥근 검정 버튼 — 사이트 버튼은 각지지만 편지는 둥근 쪽입니다
+  │ · 아래에 발신 전용 안내와 저작권을 회색 띠로
+  │ · 넷(가입확인·재설정·비밀번호변경·로그인방법추가)이 한 얼굴입니다.
+  │   한쪽만 고치지 마세요.
   └──────────────────────────────────────────────────────────────────
 
   ⚠️ 색은 값을 그대로 적었습니다 (app/globals.css 의 --brand-lime #c7fe74 /
      --brand-ink #1c1c1e). 메일에서는 CSS 변수가 통하지 않습니다.
-     브랜드 색을 바꾸면 이 폴더의 파일 넷을 함께 바꿔야 합니다.
 
   ⚠️ 이미지를 넣지 않았습니다. 네이버·다음은 스팸함에 들어간 메일의
      이미지를 아예 가려서, 이미지에 기댄 편지는 그 자리에서 빈 종이가
@@ -35,72 +30,93 @@
 
   쓸 수 있는 자리표시자: {{ .ConfirmationURL }} {{ .Token }} {{ .Email }} {{ .SiteURL }}
 -->
-<div style="margin:0;padding:24px 16px;background:#faf9f5;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard','Malgun Gothic',sans-serif;color:#1c1c1e;">
-  <div style="max-width:480px;margin:0 auto;border:1px solid #1c1c1e;">
+<div style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard','Malgun Gothic',sans-serif;color:#1c1c1e;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;">
 
-    <!-- 라임 머리띠 — 사이트 상단바와 같은 얼굴 -->
-    <div style="background:#c7fe74;padding:18px 24px;border-bottom:1px solid #1c1c1e;">
-      <p style="margin:0;font-size:17px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1e;">
+    <!-- 라임에서 흰색으로 지는 머리띠.
+         ⚠️ background-color 를 먼저 두는 것은 아웃룩 때문입니다 — 그라데이션을
+            못 그리는 프로그램에서는 이 색 하나로 떨어집니다. 그때도 라임이
+            보이도록 진한 쪽을 바탕색으로 둡니다. -->
+    <div style="background-color:#c7fe74;background-image:linear-gradient(180deg,#c7fe74 0%,#e6ffbf 55%,#ffffff 100%);padding:40px 32px 28px;">
+      <p style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;color:#1c1c1e;">
         Soulseoul ✦
       </p>
     </div>
 
-    <div style="background:#ffffff;padding:32px 24px;">
+    <div style="padding:0 32px 36px;">
 
-      <h1 style="margin:0 0 20px;font-size:21px;line-height:1.45;font-weight:700;letter-spacing:-0.01em;">
-        이메일 주소를 확인해 주세요
+      <h1 style="margin:0 0 28px;font-size:17px;line-height:1.6;font-weight:700;letter-spacing:-0.01em;color:#1c1c1e;">
+        샨티! SoulSeoul 가입해 주셔서 감사합니다.<br />
+        아래를 누르면 확인이 끝나고 바로 타로를 볼 수 있어요.
       </h1>
 
-      <p style="margin:0 0 8px;font-size:15px;line-height:1.75;">
-        SoulSeoul 가입을 시작하셨네요. 아래를 누르면 확인이 끝나고 바로 타로를 볼 수 있어요.
-      </p>
-      <p style="margin:0 0 28px;font-size:15px;line-height:1.75;color:#6b6b70;">
-        이 링크는 잠시 뒤에 만료됩니다. 늦으셨다면 로그인 화면에서 다시 받으시면 돼요 —
-        새로 받는 것이 곧 연장입니다.
-      </p>
-
-      <!-- 각진 검정 버튼 (사이트 버튼과 같은 결) -->
+      <!-- ⚠️ 이 버튼만 모서리를 둥글립니다. 사이트 버튼은 각지지만
+              편지에서는 시안이 둥근 쪽입니다.
+           ⚠️ 아웃룩은 border-radius 를 무시합니다 — 그 사람에게는 각지게
+              보입니다. 모양만 달라지고 눌리는 데는 지장이 없습니다. -->
       <a href="{{ .ConfirmationURL }}"
          style="display:block;background:#1c1c1e;color:#ffffff;text-decoration:none;
-                font-size:15px;font-weight:600;padding:16px 24px;text-align:center;">
-        이메일 확인하기
+                font-size:16px;font-weight:700;padding:18px 24px;border-radius:12px;text-align:center;">
+        이메일 확인
       </a>
 
-      <p style="margin:20px 0 0;font-size:13px;line-height:1.7;color:#8a8a8e;">
-        버튼이 눌리지 않으면 아래 주소를 브라우저에 붙여넣어 주세요.<br />
-        <span style="word-break:break-all;color:#6b6b70;">{{ .ConfirmationURL }}</span>
+      <p style="margin:28px 0 8px;font-size:14px;line-height:1.75;color:#8a8a8e;">
+        버튼이 눌리지 않으면 아래 주소를 브라우저에 붙여넣어 주세요.
+      </p>
+      <p style="margin:0;font-size:13px;line-height:1.7;word-break:break-all;">
+        <a href="{{ .ConfirmationURL }}" style="color:#2b6ef5;">{{ .ConfirmationURL }}</a>
       </p>
       <!-- ⚠️ 이 한 줄을 빼지 마세요.
-           위 주소는 supabase.co 로 시작합니다. 우리 도메인이 아니라서,
-           처음 보는 사람에게는 "가짜 메일인가" 싶은 자리입니다. 로그인
-           화면의 물음표에서는 이걸 설명해두었는데(components/login-help.tsx)
-           정작 편지 안에서 아무 말이 없으면 설명이 닿지 않습니다. -->
+              위 주소는 supabase.co 로 시작합니다. 우리 도메인이 아니라서,
+              처음 보는 사람에게는 "가짜 메일인가" 싶은 자리입니다. 로그인
+              화면의 물음표에서 설명해두었지만(components/login-help.tsx),
+              편지를 받은 사람은 그 화면을 보고 있지 않습니다. -->
       <p style="margin:8px 0 0;font-size:12px;line-height:1.7;color:#a3a3a8;">
         주소가 <span style="white-space:nowrap;">supabase.co</span> 로 시작하는 것은 정상이에요.
         저희가 회원 인증을 맡기고 있는 곳입니다.
       </p>
 
-      <!-- 가입 선물 — 여기서 한 번 말해두면 확인을 누를 이유가 생깁니다.
+      <!-- 가입 선물 — 확인을 누를 이유가 하나 더 생깁니다.
            ⚠️ 숫자가 lib/credit-rules.ts 와 어긋나면 안 됩니다.
            ⚠️ 탈퇴 후 30일 안에 다시 가입하는 분에게는 선물이 안 나갑니다
               (welcome_grants, 마이그레이션 004). 드문 경우라 문구를 따로
               가르지 않았습니다. 그 안내가 필요해지면 이 칸을 지우세요 —
               여기서 약속하고 화면에서 안 주는 것이 제일 나쁩니다. -->
-      <div style="margin:28px 0 0;background:#dcf7b1;padding:16px 18px;">
-        <p style="margin:0;font-size:14px;line-height:1.7;color:#1c1c1e;">
+      <div style="margin:28px 0 0;background:#f2fee0;border-radius:12px;padding:18px 20px;">
+        <p style="margin:0;font-size:14px;line-height:1.75;color:#1c1c1e;">
           ✦ 확인을 마치시면 <strong style="font-weight:700;">별조각 한 장과 이어묻기 세 번</strong>을
           가입 선물로 얹어드려요.
         </p>
       </div>
 
-      <hr style="border:none;border-top:1px solid #e8e6e0;margin:28px 0 16px;" />
-
-      <p style="margin:0 0 6px;font-size:12px;line-height:1.7;color:#8a8a8e;">
-        이 편지는 <strong style="color:#6b6b70;">{{ .Email }}</strong> 로 SoulSeoul 가입을 시도한
-        분에게만 보냅니다. 가입한 적이 없으시면 그냥 지우시면 됩니다 — 아무 일도 일어나지 않아요.
+      <p style="margin:28px 0 0;font-size:14px;line-height:1.75;color:#6b6b70;">
+        이 인증을 요청하지 않으셨다면 다른 사람이 계정
+        <span style="color:#1c1c1e;">{{ .Email }}</span> 에 접근하려는 것일 수 있어요.
+        누구에게도 이 링크를 전달하거나 알려주지 마세요.
       </p>
-      <p style="margin:0;font-size:12px;line-height:1.7;color:#8a8a8e;">
-        SoulSeoul · <a href="{{ .SiteURL }}" style="color:#8a8a8e;">soulseoul.xyz</a>
+
+      <p style="margin:24px 0 0;font-size:14px;line-height:1.75;color:#6b6b70;">
+        감사합니다.<br />
+        SoulSeoul팀
+      </p>
+    </div>
+
+    <!-- 발신 전용 안내 + 저작권 -->
+    <!-- 발신 전용 안내 + 저작권.
+         ⚠️ 다크모드 대비로 선을 함께 둡니다. Gmail 앱과 Outlook 은 밝은
+            메일을 강제로 반전시키는데, 그때 이 옅은 면(검정 6%)은 옅은
+            흰색이 되어 배경과 구분이 안 됩니다. 면만으로 나눈 구역은
+            다크모드에서 제일 먼저 사라집니다 — 선은 남습니다.
+         ⚠️ rgba 대신 불투명 값(#f0f0f0 = 흰 바탕 위 검정 6%)을 씁니다.
+            메일 프로그램 중에는 반투명을 못 다루는 것이 있습니다. -->
+    <div style="background:#f0f0f0;border-top:1px solid #e0e0e0;padding:20px 32px;">
+      <p style="margin:0 0 4px;font-size:12px;line-height:1.7;color:#8a8a8e;">
+        이 이메일은 발신 전용입니다. 궁금한 점은
+        <a href="mailto:hello@soulseoul.xyz" style="color:#6b6b70;">SoulSeoul팀 고객센터</a>
+        로 알려주세요.
+      </p>
+      <p style="margin:0;font-size:12px;line-height:1.7;color:#a3a3a8;">
+        ©2026 Meow RRC Studio. Soulseoul Archive. All Rights Reserved.
       </p>
     </div>
   </div>

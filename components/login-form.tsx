@@ -84,11 +84,15 @@ type Status = {
 const RESEND_COOLDOWN_SEC = 60
 
 /**
- * 남은시간 숫자의 고정 너비 (시안 실측 42px).
+ * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px — "00:00" 폭에 좌우 2px).
  *
- * ⚠️ 고정하지 않으면 "00:9" → "00:10" 처럼 자릿수가 바뀔 때마다 뒤에
- *    있는 물음표가 좌우로 흔들립니다. 1초마다 움직이는 화면은 읽기
- *    어렵습니다. tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
+ * ⚠️ "남은시간 00:00" 전체가 아니라 "00:00" 에만 겁니다. 전체에 걸면
+ *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다 (한 번
+ *    그렇게 만들었다가 아이콘이 그대로 흔들렸습니다).
+ *
+ * ⚠️ 고정하지 않으면 자릿수가 바뀔 때마다 뒤의 물음표가 좌우로
+ *    흔들립니다. 1초마다 움직이는 화면은 읽기 어렵습니다.
+ *    tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
  */
 const TIMER_WIDTH = "42px"
 
@@ -794,12 +798,15 @@ function StatusRow({
         {text}
         <div className="flex flex-wrap items-baseline gap-x-1">
           {actions}
-          {/* 42px 고정 + tabular-nums — 자릿수가 바뀌어도 뒤가 안 흔들립니다 */}
-          <span
-            className="ml-1 inline-block text-sm text-brand-ink/50 tabular-nums"
-            style={{ minWidth: TIMER_WIDTH }}
-          >
-            남은시간 {mmss(waitLeft)}
+          <span className="ml-1 text-sm text-brand-ink/50">
+            남은시간
+            {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
+            <span
+              className="inline-block text-center tabular-nums"
+              style={{ width: TIMER_WIDTH }}
+            >
+              {mmss(waitLeft)}
+            </span>
           </span>
           {help && <span className="ml-3 inline-flex">{help}</span>}
         </div>
