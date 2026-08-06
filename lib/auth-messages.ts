@@ -91,6 +91,10 @@ const MAP: [RegExp, string][] = [
   [/unable to exchange external code|code.*exchange/i, "로그인을 마치지 못했어요. 다시 시도해 주세요."],
   [/server_error|temporarily_unavailable/i, "로그인 서버가 잠시 불안정해요. 잠시 뒤 다시 시도해 주세요."],
 
+  // ── 메일이 안 나감 (커스텀 SMTP 설정 문제) ───────────────────────
+  // 위쪽 이른 검사에서 대부분 걸리지만, 문구가 바뀌었을 때를 위해 둡니다.
+  [/sending.*(email|mail)|mail.*(server|delivery).*(fail|error)/i, "메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요."],
+
   // ── 그 밖에 ──────────────────────────────────────────────────────
   [/rate limit|too many|for security purposes/i, "잠시 뒤에 다시 시도해 주세요."],
   [/network|fetch failed|failed to fetch/i, "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요."],
@@ -121,6 +125,20 @@ export function lastAuthErrorRaw(): string | null {
  *             문구는 판이 바뀌면 달라지지만 code 는 잘 안 바뀝니다.
  */
 export function translateAuthError(raw: string, code?: string | null): string {
+  // ⚠️ 이것만 코드보다 먼저 봅니다 — 메일 발송 실패.
+  //
+  // 커스텀 SMTP 가 잘못 붙어 있으면 Supabase 는 "Error sending confirmation
+  // email" 같은 문구에 code=unexpected_failure 를 얹어 보냅니다. 코드를
+  // 먼저 보면 "계정을 만들다 막혔어요"가 되는데, 계정은 멀쩡히 만들어졌고
+  // 막힌 것은 메일입니다. 엉뚱한 데를 고치게 됩니다.
+  //
+  // 이 갈래는 우리가 손쓸 수 없는 자리라(설정 문제) 사람에게는 담담히
+  // 알리고, 진짜 원인은 Supabase 의 Auth 로그와 발송 서비스 로그에
+  // 남습니다 (supabase/email-templates/README.md 참고).
+  if (/error sending|failed to send|smtp|mailer/i.test(raw)) {
+    return "메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요."
+  }
+
   // 코드가 먼저입니다. 문구가 어떻게 바뀌든 여기서 걸리면 정확합니다.
   if (code && CODE_MAP[code]) return CODE_MAP[code]
 
