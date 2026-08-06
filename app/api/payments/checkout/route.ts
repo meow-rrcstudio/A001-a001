@@ -19,7 +19,7 @@ import { NextResponse } from "next/server"
 import { findPack, nameCredits } from "@/lib/credit-packs"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
-import { TOSS_CLIENT_KEY, isTossConfigured, makeOrderId } from "@/lib/toss"
+import { TOSS_CLIENT_KEY, isTossConfigured, isTossTestMode, makeOrderId } from "@/lib/toss"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +33,13 @@ export async function POST(request: Request) {
   // 사람이 결제창을 여닫는 속도로는 닿지 않을 만큼 넉넉히 둡니다.
   const limited = rateLimit(rateKey("checkout", user.id, request), 20, 10 * 60_000)
   if (limited) return limited
+
+  // ⚠️ 운영 배포에 테스트 키가 올라가 있으면 결제창은 열리는데 돈은 한 푼도
+  //    들어오지 않습니다. 화면에도 표시가 나가지만(isTossTestMode), 그 표시를
+  //    못 보고 지나가는 일이 실제로 잦아서 서버 로그에도 남깁니다.
+  if (isTossTestMode && process.env.VERCEL_ENV === "production") {
+    console.error("[payments/checkout] 운영 배포인데 토스 테스트 키입니다 — 실결제가 되지 않습니다")
+  }
 
   if (!isTossConfigured) {
     // 키가 아직 없는 배포입니다. 화면은 이 답을 받아 "준비 중"으로 그립니다.
@@ -66,6 +73,11 @@ export async function POST(request: Request) {
     status: "pending",
     provider: "toss",
     order_id: orderId,
+    // 전자상거래법 제6조는 대금 결제 기록을 5년 보관하라고 정합니다.
+    // 탈퇴하면 user_id 가 비워지므로(001 마이그레이션), 누가 냈는지는
+    // 결제 줄 자체에 박아 둬야 합니다. 탈퇴 시점에 채우는 길도 있지만
+    // (app/api/account/delete), 그 한 번이 실패하면 영영 비어 있게 됩니다.
+    buyer_email: user.email ?? null,
   })
 
   if (error) {

@@ -118,7 +118,30 @@ export async function POST(request: Request) {
       .eq("reading_id", owned.value.id)
       .eq("role", "user")) ?? { count: 0 }
 
-    if ((count ?? 0) >= owned.value.followupsAllowed) {
+    let allowed = owned.value.followupsAllowed
+
+    // ── 선물이 남아 있으면 별조각보다 먼저 씁니다 ──────────────────
+    // 가입 선물 이어묻기 3회는 계정에 있습니다. 어느 판에서 이어묻든
+    // 이것부터 쓰이고, 다 쓴 뒤에야 별조각을 씁니다.
+    //
+    // ⚠️ 예전에는 3회가 "판 하나"에 박혀 있었습니다. 그 판이 아닌 데서
+    //    대화하려 하면 여기서 402 가 나갔고, 화면에 남는 길은 "별조각
+    //    한 장 더 쓰고 이어서 묻기"뿐이라 방금 받은 선물 별조각이 그
+    //    자리에서 사라졌습니다 (supabase/migrations/004 참고).
+    if ((count ?? 0) >= allowed && guard.value) {
+      const { data: granted, error: giftError } = (await admin?.rpc("claim_welcome_followups", {
+        p_user_id: guard.value.id,
+        p_reading_id: owned.value.id,
+      })) ?? { data: 0, error: null }
+
+      if (giftError) {
+        console.warn("[reading/chat] 선물 이어묻기를 못 끌어왔습니다:", giftError.message)
+      } else if (typeof granted === "number" && granted > 0) {
+        allowed += granted
+      }
+    }
+
+    if ((count ?? 0) >= allowed) {
       return NextResponse.json(
         { error: "이 판으로는 여기까지예요.", kind: "needCredits", needCredits: true },
         { status: 402 }

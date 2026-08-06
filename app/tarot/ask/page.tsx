@@ -36,7 +36,9 @@ import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { buildFreeQuestion, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { buildFreeQuestion, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { auditFreeQuestion, type QuestionAudit } from "@/lib/question-safety"
+import { QuestionCareNotice } from "@/components/question-care-notice"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
@@ -103,6 +105,9 @@ export default function AskPage() {
   const [cards, setCards] = useState<PickedCard[]>([])
   // 샨티가 이 질문에 맞게 고른 배열 (몇 장 · 어떤 자리)
   const [plan, setPlan] = useState<ReadingPlan | null>(null)
+  // 직접 친 물음을 읽어본 결과 — 조심할 물음이면 뽑기 전에 한 마디 겁니다.
+  // ⚠️ 물음 자체를 바꾸지는 않습니다 (lib/question-safety.ts 머리말 참고).
+  const [audit, setAudit] = useState<QuestionAudit | null>(null)
   const [planning, setPlanning] = useState(false)
   // 판을 시작하지도 못하고 막혔을 때의 사유 (지금은 무료 총량 문 하나입니다).
   // ⚠️ 카드를 뽑기 전에 말해줘야 합니다. 다 뽑고 나서 막히면 한 판을
@@ -214,7 +219,11 @@ export default function AskPage() {
   async function submit(text: string, prepared?: ReadingQuestion, topicSlug?: ReadingTopicSlug) {
     const q = text.trim()
     if (!q || planning) return
+    // 직접 친 물음만 읽어봅니다 (칩 질문은 사람이 설계한 것이라 그대로).
+    // 물음은 친 그대로 두고, 조심할 물음이면 배열과 안내만 달라집니다.
+    const typedAudit = prepared ? null : auditFreeQuestion(q)
     setQuestion(q)
+    setAudit(typedAudit)
     setStartError(null)
 
     // 어떻게 질문을 정했는지 — 칩인가, 주제 고르기 전 추천인가, 직접 쳤는가
@@ -243,8 +252,12 @@ export default function AskPage() {
     //    골라준다"가 가입하면 달라지는 것 하나가 됩니다.
     if (!paid) {
       setAsked({
-        topicSlug: (topicSlug ?? "self") as ReadingTopicKey,
-        question: prepared ?? buildFreeQuestion(q),
+        topicSlug: (topicSlug ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
+        // ⚠️ 장수는 여섯으로 지키고 자리 이름만 분류에 맞게 갑니다.
+        //    진로 질문에 "상대의 마음"이 뜨거나, 검사 결과를 기다리는
+        //    사람에게 "다가올 흐름"을 묻는 자리가 생기지 않도록
+        //    (lib/free-question.ts 의 freeSpreadFor).
+        question: prepared ?? buildFreeQuestion(q, freeSpreadFor(typedAudit)),
       })
       setPlan(null)
       setStep("draw")
@@ -320,8 +333,10 @@ export default function AskPage() {
     //    덮어썼더니, 손으로 쓴 배열(켈틱 십자 열 장의 자리 이름과 뽑을 때
     //    들려주는 말)이 통째로 사라지고 일반 문구로 바뀌었습니다.
     //    직접 친 질문일 때만 샨티가 고른 배열을 입힙니다.
+    // 서버가 다시 읽어본 결과가 있으면 그것을 씁니다 (화면 것은 참고용).
+    setAudit(nextPlan.audit ?? typedAudit)
     setAsked({
-      topicSlug: (topicSlug ?? "self") as ReadingTopicKey,
+      topicSlug: (topicSlug ?? nextPlan.audit?.topicKey ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
       question: prepared ?? buildFreeQuestion(q, nextPlan),
     })
     setPlanning(false)
@@ -335,7 +350,7 @@ export default function AskPage() {
    */
   async function runReading(picked: PickedCard[]) {
     const built = await run({
-      topicKey: "self",
+      topicKey: asked?.topicSlug ?? "self",
       questionSlug: FREE_QUESTION_SLUG,
       questionLabel: question,
       plan,
@@ -376,6 +391,8 @@ export default function AskPage() {
           {/* 뒤로가면 질문 고르기로 돌아옵니다. 주소를 옮기지 않고 단계만
               되돌립니다 — 옮기면 고른 주제와 친 글이 사라집니다. */}
           <PageHeader variant="reading" centerCharacter onBack={backToAsk} />
+          {/* 조심할 물음이면 카드보다 먼저 이 상자를 봅니다 (위기면 연락처까지). */}
+          <QuestionCareNotice audit={audit} className="mb-3 shrink-0" />
           <CardReadingFlow
             question={asked.question}
             introMessage={drawIntro(asked, question, plan)}

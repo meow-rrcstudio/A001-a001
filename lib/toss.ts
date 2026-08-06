@@ -51,8 +51,9 @@ const TOSS_API = "https://api.tosspayments.com/v1/payments"
  */
 export function makeOrderId(packKey: string): string {
   const now = Date.now().toString(36)
-  const rand = Math.random().toString(36).slice(2, 10)
-  return `ss_${packKey}_${now}${rand}`
+  const bytes = crypto.getRandomValues(new Uint8Array(12))
+  const rand = Array.from(bytes, (byte) => byte.toString(36).padStart(2, "0")).join("").slice(0, 24)
+  return `ss_${packKey}_${now}_${rand}`
 }
 
 /** 토스가 승인 응답으로 돌려주는 것 중 우리가 쓰는 것만 */
@@ -69,6 +70,47 @@ export interface TossPayment {
 export type TossResult =
   | { ok: true; payment: TossPayment }
   | { ok: false; code: string; message: string }
+
+/**
+ * 승인이 됐는지 안 됐는지 "우리가 알 수 없는" 답들.
+ *
+ * ⚠️ 이런 답에 failed 를 찍으면 안 됩니다. 실제로는 승인된 결제를 우리가
+ *    실패로 덮어버리면, 돈은 나갔는데 별조각은 영영 못 주고 사람은
+ *    "결제 실패"라는 화면만 봅니다. 모를 때는 pending 그대로 두고 다시
+ *    확인할 수 있게 둡니다 (confirm-view 의 "다시 확인하기").
+ */
+export const TOSS_UNCERTAIN_CODES = new Set([
+  "NETWORK",
+  "PROVIDER_ERROR",
+  "UNKNOWN_PAYMENT_ERROR",
+  "FAILED_INTERNAL_SYSTEM_PROCESSING",
+  "FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING",
+  "TIMEOUT",
+])
+
+/**
+ * "이미 처리된 결제" — 돈은 이미 나갔고 우리 쪽 뒷정리만 남은 상태.
+ *
+ * 우리가 승인을 청했는데 응답을 못 받고 끊긴 뒤 다시 청하면 이 답이
+ * 옵니다. 이때 실패로 처리하면 낸 사람이 별조각을 못 받습니다 —
+ * 조회해서 우리 주문이 맞는지 확인하고 이어서 마무리해야 합니다.
+ */
+export const TOSS_ALREADY_PROCESSED = new Set([
+  "ALREADY_PROCESSED_PAYMENT",
+  "ALREADY_COMPLETED_PAYMENT",
+])
+
+/**
+ * 승인이 끝나 돈이 실제로 들어온 상태인가.
+ *
+ * ⚠️ 응답이 200 이라고 다 끝난 것이 아닙니다. 가상계좌(무통장)는
+ *    WAITING_FOR_DEPOSIT 으로 돌아옵니다 — 계좌만 발급됐고 입금은
+ *    아직입니다. 여기서 별조각을 주면 돈을 받기도 전에 물건을 내주는
+ *    셈이고, 입금 없이 만료되면 그대로 손해입니다.
+ */
+export function isPaymentSettled(payment: TossPayment): boolean {
+  return payment.status === "DONE"
+}
 
 /**
  * 결제 승인.
@@ -120,6 +162,88 @@ export async function confirmPayment(args: {
       ok: false,
       code: body?.code ?? "UNKNOWN",
       message: body?.message ?? "결제 승인이 거절됐어요.",
+    }
+  }
+
+  return { ok: true, payment: body }
+}
+
+/**
+ * 결제 조회 — 승인을 다시 청하지 않고 지금 상태만 봅니다.
+ *
+ * 승인 요청이 "이미 처리된 결제"로 거절됐을 때, 그게 정말 우리 주문이
+ * 맞는지(같은 orderId · 같은 금액) 확인하는 데 씁니다. 돈은 나갔는데
+ * 별조각이 없는 상태를 사람 손 없이 되돌리는 유일한 길입니다.
+ */
+export async function fetchPayment(paymentKey: string): Promise<TossResult> {
+  if (!TOSS_SECRET_KEY) {
+    return { ok: false, code: "NOT_CONFIGURED", message: "결제 설정이 아직 없어요." }
+  }
+
+  const auth = Buffer.from(`${TOSS_SECRET_KEY}:`).toString("base64")
+
+  let response: Response
+  try {
+    response = await fetch(`${TOSS_API}/${encodeURIComponent(paymentKey)}`, {
+      method: "GET",
+      headers: { Authorization: `Basic ${auth}` },
+      cache: "no-store",
+    })
+  } catch {
+    return { ok: false, code: "NETWORK", message: "결제 확인에 실패했어요. 잠시 뒤 다시 확인해 주세요." }
+  }
+
+  const body = (await response.json().catch(() => null)) as
+    | (TossPayment & { code?: string; message?: string })
+    | null
+
+  if (!response.ok || !body) {
+    return {
+      ok: false,
+      code: body?.code ?? "UNKNOWN",
+      message: body?.message ?? "결제를 조회하지 못했어요.",
+    }
+  }
+
+  return { ok: true, payment: body }
+}
+
+/**
+ * 주문번호로 결제를 조회합니다.
+ *
+ * 결제 열쇠(paymentKey)를 우리가 못 받은 경우에도 쓸 수 있는 유일한 길입니다.
+ * 승인 요청은 화면(브라우저)이 청하는데, 그 사이에 창을 닫거나 연결이
+ * 끊기면 우리 표에는 pending 한 줄만 남고 열쇠가 없습니다. 돈이 나갔는지
+ * 아닌지는 토스에게 주문번호로 물어보는 수밖에 없습니다
+ * (lib/server/payment-recovery.ts).
+ */
+export async function fetchPaymentByOrderId(orderId: string): Promise<TossResult> {
+  if (!TOSS_SECRET_KEY) {
+    return { ok: false, code: "NOT_CONFIGURED", message: "결제 설정이 아직 없어요." }
+  }
+
+  const auth = Buffer.from(`${TOSS_SECRET_KEY}:`).toString("base64")
+
+  let response: Response
+  try {
+    response = await fetch(`${TOSS_API}/orders/${encodeURIComponent(orderId)}`, {
+      method: "GET",
+      headers: { Authorization: `Basic ${auth}` },
+      cache: "no-store",
+    })
+  } catch {
+    return { ok: false, code: "NETWORK", message: "결제 확인에 실패했어요." }
+  }
+
+  const body = (await response.json().catch(() => null)) as
+    | (TossPayment & { code?: string; message?: string })
+    | null
+
+  if (!response.ok || !body) {
+    return {
+      ok: false,
+      code: body?.code ?? "UNKNOWN",
+      message: body?.message ?? "결제를 조회하지 못했어요.",
     }
   }
 

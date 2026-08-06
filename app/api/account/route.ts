@@ -9,7 +9,12 @@
 // 없으면 로그아웃했다 다시 들어올 때마다 계속 받아갑니다.
 import { NextResponse } from "next/server"
 import { getCurrentUser, getSupabaseAdmin, getSupabaseServer } from "@/lib/supabase/server"
-import { WELCOME_CREDITS } from "@/lib/credit-rules"
+import { createHash } from "node:crypto"
+import {
+  WELCOME_COOLDOWN_DAYS,
+  WELCOME_CREDITS,
+  WELCOME_FOLLOWUPS,
+} from "@/lib/credit-rules"
 
 export const dynamic = "force-dynamic"
 
@@ -122,25 +127,99 @@ export async function GET() {
   //    같은 열쇠로는 한 줄만 들어가므로, 몇 번을 불러도 한 번만 받습니다.
   //    그래서 매번 시도해도 안전하고, 예전에 표시만 남은 계정도 여기서
   //    저절로 복구됩니다.
-  const { error: grantError } = await admin.from("credit_entries").upsert(
-    {
-      user_id: user.id,
-      delta: WELCOME_CREDITS,
-      reason: "welcome",
-      idempotency_key: `welcome:${user.id}`,
-    },
-    { onConflict: "idempotency_key", ignoreDuplicates: true }
-  )
+  // ── 탈퇴 → 재가입으로 선물을 계속 받아가는 것을 막습니다 ───────────
+  //
+  // ⚠️ welcomed_at 은 프로필에 있고, 프로필은 탈퇴할 때 계정과 함께
+  //    지워집니다(cascade). 그래서 탈퇴하고 다시 가입하면 선물이 처음부터
+  //    또 나갑니다 — 몇 번이고 되풀이할 수 있었습니다.
+  //
+  //    표시가 사람과 함께 지워지지 않으려면 사람 밖에 있어야 합니다.
+  //    다만 탈퇴한 사람의 이메일을 그대로 들고 있을 수는 없어서, 되돌릴
+  //    수 없는 지문(sha256)만 남깁니다 (supabase/migrations/004 참고).
+  //
+  // ⚠️ 재가입 자체는 막지 않습니다. 30일 안에 다시 오면 가입은 되고
+  //    선물만 안 나갑니다.
+  const emailHash = user.email
+    ? createHash("sha256").update(user.email.trim().toLowerCase()).digest("hex")
+    : null
 
-  if (grantError) {
-    // 조용히 넘어가면 "가입했는데 크레딧이 없는" 상태가 됩니다.
-    console.error("[account] 가입 크레딧을 못 넣었습니다:", grantError.message)
+  let giftBlocked = false
+  if (emailHash) {
+    const since = new Date(Date.now() - WELCOME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { data: seen, error: seenError } = await admin
+      .from("welcome_grants")
+      .select("granted_at")
+      .eq("email_hash", emailHash)
+      .maybeSingle()
+
+    // ⚠️ 못 읽었으면 막지 않습니다. 표가 아직 없는 배포(004 를 안 돌린 곳)
+    //    에서 여기서 막아버리면 새로 가입하는 모두가 선물을 못 받습니다.
+    //    악용을 놓치는 쪽이 정상 가입을 막는 쪽보다 낫습니다.
+    if (seenError) {
+      console.warn("[account] 선물 지급 이력을 못 읽었습니다:", seenError.message)
+    } else if (seen?.granted_at && String(seen.granted_at) > since) {
+      giftBlocked = true
+      console.warn(`[account] 최근 ${WELCOME_COOLDOWN_DAYS}일 안에 선물을 받은 적이 있어 건너뜁니다`)
+    }
+  }
+
+  if (giftBlocked) {
+    // 선물만 건너뜁니다. 계정은 정상이고, 별조각을 사서 쓰는 데는 아무
+    // 제약이 없습니다.
   } else {
-    await admin
-      .from("profiles")
-      .update({ welcomed_at: new Date().toISOString() })
-      .eq("id", user.id)
-      .is("welcomed_at", null)
+    // 크레딧을 먼저 넣고, 그다음에 표시를 남깁니다.
+    //
+    // ⚠️ 순서가 중요합니다. 예전에는 표시를 먼저 남기고 크레딧을 넣었는데,
+    //    크레딧 넣기가 실패하면 표시만 남아서 그 사람은 영영 못 받았습니다.
+    //
+    //    두 번 받아가는 걸 막는 건 표시가 아니라 idempotency_key 입니다.
+    //    같은 열쇠로는 한 줄만 들어가므로, 몇 번을 불러도 한 번만 받습니다.
+    const { error: grantError } = await admin.from("credit_entries").upsert(
+      {
+        user_id: user.id,
+        delta: WELCOME_CREDITS,
+        reason: "welcome",
+        idempotency_key: `welcome:${user.id}`,
+      },
+      { onConflict: "idempotency_key", ignoreDuplicates: true }
+    )
+
+    if (grantError) {
+      // 조용히 넘어가면 "가입했는데 크레딧이 없는" 상태가 됩니다.
+      console.error("[account] 가입 크레딧을 못 넣었습니다:", grantError.message)
+    } else {
+      // ── 이어묻기 선물은 계정에 얹습니다 ──────────────────────────
+      // 판이 아니라 계정입니다. 어느 판에서 이어묻든 이것부터 쓰이고,
+      // 다 쓴 뒤에야 별조각을 씁니다 (supabase/migrations/004 참고).
+      //
+      // ⚠️ welcomed_at 이 비어 있을 때만 채웁니다. 이미 선물을 받고
+      //    3회를 다 쓴 사람에게 다시 3을 넣지 않기 위해서입니다.
+      const { error: followupError } = await admin
+        .from("profiles")
+        .update({
+          welcome_followups_left: WELCOME_FOLLOWUPS,
+          welcomed_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+        .is("welcomed_at", null)
+
+      if (followupError) {
+        // 004 를 아직 안 돌린 배포에서는 칸이 없어 실패합니다. 별조각은
+        // 이미 들어갔으므로 가입 자체는 멀쩡합니다 — 로그만 남깁니다.
+        console.warn("[account] 선물 이어묻기를 못 얹었습니다:", followupError.message)
+      }
+
+      // 이 지문에게 선물을 줬다고 남깁니다 (탈퇴해도 남습니다).
+      if (emailHash) {
+        const { error: markError } = await admin
+          .from("welcome_grants")
+          .upsert({ email_hash: emailHash, granted_at: new Date().toISOString() },
+            { onConflict: "email_hash" })
+        if (markError) {
+          console.warn("[account] 선물 지급 이력을 못 남겼습니다:", markError.message)
+        }
+      }
+    }
   }
 
   // 잔액은 admin 으로 읽습니다. 위에서 이미 "이 요청이 누구인지" 확인했고

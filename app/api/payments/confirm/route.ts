@@ -19,7 +19,14 @@
 import { NextResponse } from "next/server"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
-import { confirmPayment } from "@/lib/toss"
+import {
+  confirmPayment,
+  fetchPayment,
+  isPaymentSettled,
+  TOSS_ALREADY_PROCESSED,
+  TOSS_UNCERTAIN_CODES,
+  type TossPayment,
+} from "@/lib/toss"
 import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 
 export const dynamic = "force-dynamic"
@@ -63,7 +70,7 @@ export async function POST(request: Request) {
   // 우리가 남긴 주문 — 남의 주문번호를 적어 보낼 수 있으니 주인도 함께 봅니다.
   const { data: purchase, error: findError } = await admin
     .from("purchases")
-    .select("id, user_id, credits, amount_krw, status")
+    .select("id, user_id, credits, amount_krw, status, payment_key")
     .eq("order_id", orderId)
     .eq("user_id", user.id)
     .maybeSingle()
@@ -81,6 +88,10 @@ export async function POST(request: Request) {
   // 오류로 돌려보내면 "결제했는데 실패라고 나온다"가 됩니다. 이미 준
   // 크레딧을 다시 주지 않으면서, 화면에는 잘 됐다고 말합니다.
   if (purchase.status === "paid") {
+    if (purchase.payment_key && purchase.payment_key !== paymentKey) {
+      console.warn(`[payments/confirm] 이미 결제된 주문에 다른 paymentKey 가 들어왔습니다 — 주문 ${orderId}`)
+      return NextResponse.json({ error: "이미 다른 결제로 끝난 주문이에요." }, { status: 409 })
+    }
     return NextResponse.json({ ok: true, credits: purchase.credits, already: true })
   }
 
@@ -103,46 +114,114 @@ export async function POST(request: Request) {
   // ── 여기서 돈이 나갑니다 ──────────────────────────────────────────
   const result = await confirmPayment({ paymentKey, orderId, amount })
 
+  let payment: TossPayment | null = result.ok ? result.payment : null
+
   if (!result.ok) {
-    // NETWORK 는 "승인이 됐는지 안 됐는지 모른다"는 뜻입니다. 그때 failed 로
-    // 적어버리면, 실제로는 승인된 결제를 우리가 실패로 덮어 크레딧을 영영
-    // 못 주게 됩니다. 모를 때는 pending 그대로 두고 다시 확인할 수 있게 둡니다.
-    if (result.code === "NETWORK") {
+    // ── ① 이미 승인된 결제 ────────────────────────────────────────
+    // 우리가 승인을 청했는데 응답을 못 받고 끊긴 뒤 다시 청하면 여기로
+    // 옵니다. 돈은 이미 나갔습니다. 실패로 처리하면 낸 사람이 별조각을
+    // 영영 못 받으므로, 조회해서 우리 주문이 맞는지 확인하고 이어서
+    // 마무리합니다. (사람 손 없이 되돌아오는 유일한 길입니다)
+    if (TOSS_ALREADY_PROCESSED.has(result.code)) {
+      const found = await fetchPayment(paymentKey)
+      if (found.ok) {
+        payment = found.payment
+        console.warn(
+          `[payments/confirm] 이미 승인된 결제를 이어서 마무리합니다 — 주문 ${orderId} (${result.code})`
+        )
+      } else {
+        console.error(
+          `[payments/confirm] 이미 승인된 결제인데 조회도 실패 — 주문 ${orderId}:`,
+          `${found.code}: ${found.message}`
+        )
+        return NextResponse.json(
+          { error: "결제를 확인하는 중이에요. 잠시 뒤 다시 열어주세요.", pending: true },
+          { status: 503 }
+        )
+      }
+    }
+    // ── ② 승인됐는지 모르는 답 ────────────────────────────────────
+    // 여기서 failed 를 찍으면 실제로는 승인된 결제를 우리가 실패로
+    // 덮습니다. 모를 때는 pending 그대로 두고 다시 확인하게 둡니다.
+    else if (TOSS_UNCERTAIN_CODES.has(result.code)) {
+      console.warn(`[payments/confirm] 승인 여부를 모릅니다 — 주문 ${orderId}: ${result.code}`)
       return NextResponse.json({ error: result.message, pending: true }, { status: 503 })
     }
+    // ── ③ 분명한 거절 ────────────────────────────────────────────
+    else {
+      await admin
+        .from("purchases")
+        .update({ status: "failed", failure_reason: `${result.code}: ${result.message}`.slice(0, 300) })
+        .eq("id", purchase.id)
 
-    await admin
-      .from("purchases")
-      .update({ status: "failed", failure_reason: `${result.code}: ${result.message}`.slice(0, 300) })
-      .eq("id", purchase.id)
-
-    return NextResponse.json({ error: result.message, code: result.code }, { status: 402 })
+      return NextResponse.json({ error: result.message, code: result.code }, { status: 402 })
+    }
   }
 
-  // ── 크레딧을 얹습니다 ─────────────────────────────────────────────
-  // ⚠️ 크레딧이 먼저, 주문 표시가 나중입니다. 표시를 먼저 남기면, 크레딧
-  //    넣기가 실패했을 때 "결제는 됐는데 크레딧이 없는" 상태로 굳습니다.
-  //    (가입 선물에서 똑같은 실수를 했습니다 — app/api/account/route.ts)
-  //
-  //    두 번 들어가는 것은 열쇠가 막습니다. 주문번호는 unique 라
-  //    purchase:<주문번호> 로는 한 줄만 들어갑니다.
-  const { error: grantError } = await admin.from("credit_entries").upsert(
-    {
-      user_id: user.id,
-      delta: purchase.credits,
-      reason: "purchase",
-      purchase_id: purchase.id,
-      idempotency_key: `purchase:${orderId}`,
-    },
-    { onConflict: "idempotency_key", ignoreDuplicates: true }
-  )
+  if (!payment) {
+    return NextResponse.json(
+      { error: "결제를 확인하지 못했어요. 잠시 뒤 다시 열어주세요.", pending: true },
+      { status: 503 }
+    )
+  }
 
-  if (grantError) {
-    // 돈은 이미 나갔습니다. 주문은 pending 으로 두어 다시 시도할 수 있게
-    // 하고, 반드시 사람이 볼 수 있게 남깁니다.
+  // ── 받은 답이 정말 이 주문인가 ────────────────────────────────────
+  // 토스가 짝을 검사하지만, 우리 쪽에서도 한 번 더 봅니다. 승인 응답을
+  // 그대로 믿고 지급하는 코드는 응답을 만들어 낼 수 있는 순간 무너집니다.
+  if (payment.orderId !== orderId || payment.totalAmount !== purchase.amount_krw) {
     console.error(
-      `[payments/confirm] 승인은 됐는데 크레딧을 못 넣었습니다 — 주문 ${orderId}:`,
-      grantError.message
+      `[payments/confirm] 승인 응답이 주문과 다릅니다 — 주문 ${orderId}: 응답 ${payment.orderId}/${payment.totalAmount}`
+    )
+    return NextResponse.json(
+      { error: "결제 승인값이 주문과 맞지 않아요. 고객센터로 알려주세요.", pending: true },
+      { status: 500 }
+    )
+  }
+
+  // ── 돈이 실제로 들어왔는가 ───────────────────────────────────────
+  // ⚠️ 가상계좌(무통장)는 승인 응답이 200 이어도 WAITING_FOR_DEPOSIT 입니다.
+  //    계좌만 발급된 것이고 입금은 아직입니다. 여기서 별조각을 주면 돈을
+  //    받기도 전에 물건을 내주는 셈이고, 입금 없이 만료되면 그대로 손해가
+  //    됩니다. 주문은 pending 으로 두고, 입금이 확인되면 그때 지급합니다.
+  //
+  //    ⚠️ 지금 우리에겐 웹훅이 없어서, 입금 뒤 자동으로 지급되지 않습니다.
+  //       가상계좌를 열려면 웹훅(DONE 이벤트)을 먼저 붙이세요. 그전까지는
+  //       토스 상점 설정에서 가상계좌를 꺼두는 편이 안전합니다.
+  if (!isPaymentSettled(payment)) {
+    console.warn(
+      `[payments/confirm] 아직 입금 전입니다 — 주문 ${orderId}: status=${payment.status}`
+    )
+    return NextResponse.json(
+      {
+        error: "아직 입금이 확인되지 않았어요. 입금이 확인되면 별조각이 들어옵니다.",
+        pending: true,
+        status: payment.status,
+      },
+      { status: 202 }
+    )
+  }
+
+  // ── 크레딧 지급과 결제 완료 표시를 DB 함수 한 덩어리로 끝냅니다 ─────
+  // 둘을 API 서버에서 따로 실행하면 중간 실패 때 "돈은 받았는데 미지급"
+  // 또는 "지급은 됐는데 결제는 pending" 상태가 됩니다. 함수 안에서 해당
+  // purchase 줄을 잠그고, credit_entries idempotency_key 와 paid 표시를
+  // 같은 트랜잭션으로 묶습니다.
+  const { data: finalized, error: finalizeError } = await admin.rpc("finalize_toss_purchase", {
+    p_order_id: orderId,
+    p_user_id: user.id,
+    p_payment_key: payment.paymentKey,
+    p_method: payment.method ?? null,
+    p_paid_at: payment.approvedAt ?? new Date().toISOString(),
+  })
+
+  const finalizedRow = (Array.isArray(finalized) ? finalized[0] : finalized) as
+    | { ok?: boolean; credits?: number; message?: string }
+    | null
+
+  if (finalizeError || !finalizedRow?.ok) {
+    console.error(
+      `[payments/confirm] 승인은 됐는데 완료 처리를 못 했습니다 — 주문 ${orderId}:`,
+      finalizeError?.message ?? finalizedRow?.message ?? "unknown"
     )
     return NextResponse.json(
       { error: `결제는 됐는데 ${withJosa(CREDIT_UNIT.one, "을를")} 얹지 못했어요. 잠시 뒤 다시 열어주세요.`, pending: true },
@@ -150,20 +229,5 @@ export async function POST(request: Request) {
     )
   }
 
-  const { error: markError } = await admin
-    .from("purchases")
-    .update({
-      status: "paid",
-      payment_key: result.payment.paymentKey,
-      method: result.payment.method ?? null,
-      paid_at: result.payment.approvedAt ?? new Date().toISOString(),
-    })
-    .eq("id", purchase.id)
-
-  if (markError) {
-    // 크레딧은 이미 들어갔습니다. 표시만 못 남긴 것이라 사람에게는 성공입니다.
-    console.error("[payments/confirm] 주문 표시를 못 남겼습니다:", markError.message)
-  }
-
-  return NextResponse.json({ ok: true, credits: purchase.credits })
+  return NextResponse.json({ ok: true, credits: finalizedRow.credits ?? purchase.credits })
 }

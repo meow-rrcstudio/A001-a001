@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server"
 import { requireUser } from "@/lib/server/guard"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
+import { recoverPendingPurchases } from "@/lib/server/payment-recovery"
 
 export const dynamic = "force-dynamic"
 
@@ -45,6 +46,20 @@ export async function GET() {
 
   const admin = getSupabaseAdmin()
   if (!admin) return NextResponse.json({ purchases: [] })
+
+  // ⚠️ 목록을 읽기 "전에" 미확정 주문을 먼저 살펴봅니다.
+  //    "결제했는데 별조각이 없다"는 사람이 가장 먼저 여는 화면이 여기입니다.
+  //    돈이 나갔는데 우리가 마무리를 못 한 주문이 있으면 이 자리에서
+  //    되살아나고, 그 결과가 아래 목록에 바로 보입니다
+  //    (lib/server/payment-recovery.ts).
+  //
+  //    ⚠️ 실패해도 목록은 그대로 내줍니다. 곁다리로 도는 일이 화면을
+  //       막으면 안 됩니다.
+  try {
+    await recoverPendingPurchases(admin, user.id)
+  } catch (error) {
+    console.error("[account/purchases] 미확정 결제 살펴보기 실패:", error)
+  }
 
   // ⚠️ pending·failed 는 내주지 않습니다. 결제창을 띄웠다가 닫은 것까지
   //    "결제내역"에 쌓이면, 낸 적 없는 줄이 목록을 채워 진짜 결제를
