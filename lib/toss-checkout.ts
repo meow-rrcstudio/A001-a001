@@ -1,5 +1,10 @@
 // lib/toss-checkout.ts
-// 화면에서 토스 결제창을 여는 한 걸음.
+// 화면에서 결제창을 여는 한 걸음.
+//
+// ⚠️ 결제사가 둘입니다 (웹=카카오페이 · 앱인토스=토스 예정). 화면은 어느
+//    쪽인지 몰라도 됩니다 — 서버가 "어디로 가라"까지 정해서 내려줍니다.
+//    · 카카오페이  받은 주소로 이동합니다 (카카오톡에서 결제)
+//    · 토스        SDK 로 결제창을 띄웁니다
 //
 // ┌─ 하는 일 ─────────────────────────────────────────────────────────
 // │ 1. 서버에 주문을 만들어 달라고 한다 (POST /api/payments/checkout)
@@ -79,11 +84,15 @@ export type CheckoutResult =
  */
 export async function openTossCheckout(packKey: string): Promise<CheckoutResult> {
   let order: {
+    provider?: "kakaopay" | "toss"
     orderId: string
     amount: number
     orderName: string
-    clientKey: string
-    customerKey: string
+    /** 토스 */
+    clientKey?: string
+    customerKey?: string
+    /** 카카오페이 — 기기에 맞는 주소를 고릅니다 */
+    redirect?: { pc: string; mobile: string; app: string }
   }
 
   try {
@@ -107,6 +116,17 @@ export async function openTossCheckout(packKey: string): Promise<CheckoutResult>
     return { ok: false, message: "연결이 닿지 않았어요. 잠시 뒤 다시 해주세요." }
   }
 
+  // ── 카카오페이 — 받은 주소로 이동합니다 ──────────────────────────
+  //
+  // ⚠️ 팝업(window.open)이 아니라 이동입니다. 팝업은 모바일 브라우저와
+  //    앱 웹뷰에서 자주 막히고, 막히면 아무 일도 일어나지 않은 것처럼
+  //    보입니다. 카카오도 모바일에서는 웹뷰로 띄우라고 안내합니다.
+  if (order.provider === "kakaopay" && order.redirect) {
+    const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent)
+    window.location.href = isMobile ? order.redirect.mobile : order.redirect.pc
+    return { ok: true }
+  }
+
   try {
     await loadSdk()
   } catch {
@@ -122,7 +142,7 @@ export async function openTossCheckout(packKey: string): Promise<CheckoutResult>
   const origin = window.location.origin
 
   try {
-    await sdk.payment({ customerKey: order.customerKey }).requestPayment({
+    await sdk.payment({ customerKey: order.customerKey ?? "" }).requestPayment({
       method: "CARD",
       amount: { currency: "KRW", value: order.amount },
       orderId: order.orderId,

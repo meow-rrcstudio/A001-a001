@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
+import { approvePayment, isUncertainKakaoError } from "@/lib/kakaopay"
 import {
   confirmPayment,
   fetchPayment,
@@ -33,9 +34,14 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 30
 
 interface Body {
+  /** 카카오페이면 "kakaopay", 없으면 토스(옛 화면 호환) */
+  provider?: string
+  /** 토스 — 결제 열쇠 */
   paymentKey?: string
   orderId?: string
   amount?: number
+  /** 카카오페이 — 결제수단을 고르고 돌아올 때 붙어 오는 표 */
+  pgToken?: string
 }
 
 export async function POST(request: Request) {
@@ -54,11 +60,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 })
   }
 
+  const isKakao = body.provider === "kakaopay"
   const paymentKey = String(body.paymentKey ?? "")
   const orderId = String(body.orderId ?? "")
+  const pgToken = String(body.pgToken ?? "")
   const amount = Number(body.amount)
 
-  if (!paymentKey || !orderId || !Number.isFinite(amount)) {
+  if (!orderId) {
+    return NextResponse.json({ error: "결제 정보가 모자라요." }, { status: 400 })
+  }
+  // 카카오는 주문번호와 pg_token 만 돌아옵니다 (금액·열쇠는 우리 표에 있습니다).
+  // 토스는 결제 열쇠와 금액이 함께 돌아옵니다.
+  if (isKakao ? !pgToken : !paymentKey || !Number.isFinite(amount)) {
     return NextResponse.json({ error: "결제 정보가 모자라요." }, { status: 400 })
   }
 
@@ -70,7 +83,7 @@ export async function POST(request: Request) {
   // 우리가 남긴 주문 — 남의 주문번호를 적어 보낼 수 있으니 주인도 함께 봅니다.
   const { data: purchase, error: findError } = await admin
     .from("purchases")
-    .select("id, user_id, credits, amount_krw, status, payment_key")
+    .select("id, user_id, credits, amount_krw, status, payment_key, provider")
     .eq("order_id", orderId)
     .eq("user_id", user.id)
     .maybeSingle()
@@ -99,7 +112,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "이미 끝난 주문이에요." }, { status: 409 })
   }
 
-  if (purchase.amount_krw !== amount) {
+  // ⚠️ 카카오는 금액이 화면에서 오지 않습니다. 우리가 적어둔 값을 그대로
+  //    승인에 싣고, 카카오가 준비 때와 다르면 막아줍니다. 아래 대조는
+  //    화면이 금액을 보내는 토스에만 해당합니다.
+  if (!isKakao && purchase.amount_krw !== amount) {
     // 금액이 어긋나면 승인 자체를 하지 않습니다. 우리가 적어둔 값이 옳습니다.
     console.warn(
       `[payments/confirm] 금액이 어긋납니다 — 주문 ${orderId}: 우리 ${purchase.amount_krw} / 받은 ${amount}`
@@ -111,6 +127,94 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "결제 금액이 맞지 않아요." }, { status: 400 })
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // 카카오페이 — 승인
+  // ══════════════════════════════════════════════════════════════════
+  if (isKakao) {
+    // tid 는 결제 준비 때 우리가 받아 적어둔 값입니다. 화면이 보낸 것을
+    // 쓰지 않습니다 — 남의 결제 열쇠를 적어 보낼 수 있으니까요.
+    const tid = String(purchase.payment_key ?? "")
+    if (!tid) {
+      console.error(`[payments/confirm] tid 가 없습니다 — 주문 ${orderId}`)
+      return NextResponse.json(
+        { error: "결제 정보를 찾지 못했어요. 다시 시도해 주세요." },
+        { status: 500 }
+      )
+    }
+
+    // ── 여기서 돈이 나갑니다 ────────────────────────────────────────
+    const approved = await approvePayment({
+      tid,
+      orderId,
+      userKey: user.id,
+      pgToken,
+      // 우리가 적어둔 값을 싣습니다. 준비 때와 다르면 카카오가 막습니다.
+      amountKrw: purchase.amount_krw,
+    })
+
+    if (!approved.ok) {
+      // 승인됐는지 모르는 답은 failed 로 굳히지 않습니다. 굳히면 실제로는
+      // 승인된 결제를 실패로 덮어 별조각을 영영 못 줍니다.
+      if (isUncertainKakaoError(approved.code)) {
+        console.warn(`[payments/confirm] 카카오 승인 여부를 모릅니다 — 주문 ${orderId}: ${approved.code}`)
+        return NextResponse.json({ error: approved.message, pending: true }, { status: 503 })
+      }
+
+      await admin
+        .from("purchases")
+        .update({
+          status: "failed",
+          failure_reason: `${approved.code}: ${approved.message}`.slice(0, 300),
+        })
+        .eq("id", purchase.id)
+
+      return NextResponse.json({ error: approved.message, code: approved.code }, { status: 402 })
+    }
+
+    // 받은 답이 정말 이 주문인가. 카카오도 검사하지만 우리 쪽에서도 봅니다.
+    if (approved.value.orderId !== orderId || approved.value.totalAmount !== purchase.amount_krw) {
+      console.error(
+        `[payments/confirm] 카카오 승인 응답이 주문과 다릅니다 — 주문 ${orderId}: ` +
+          `${approved.value.orderId}/${approved.value.totalAmount}`
+      )
+      return NextResponse.json(
+        { error: "결제 승인값이 주문과 맞지 않아요. 고객센터로 알려주세요.", pending: true },
+        { status: 500 }
+      )
+    }
+
+    const { data: done, error: doneError } = await admin.rpc("finalize_purchase", {
+      p_order_id: orderId,
+      p_user_id: user.id,
+      p_payment_key: approved.value.tid,
+      p_method: approved.value.method || null,
+      p_paid_at: approved.value.approvedAt ?? new Date().toISOString(),
+    })
+
+    const doneRow = (Array.isArray(done) ? done[0] : done) as
+      | { ok?: boolean; credits?: number; message?: string }
+      | null
+
+    if (doneError || !doneRow?.ok) {
+      console.error(
+        `[payments/confirm] 카카오 승인은 됐는데 완료 처리를 못 했습니다 — 주문 ${orderId}:`,
+        doneError?.message ?? doneRow?.message ?? "unknown"
+      )
+      return NextResponse.json(
+        {
+          error: `결제는 됐는데 ${withJosa(CREDIT_UNIT.one, "을를")} 얹지 못했어요. 잠시 뒤 다시 열어주세요.`,
+          pending: true,
+        },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ ok: true, credits: doneRow.credits ?? purchase.credits })
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // 토스 — 승인
+  // ══════════════════════════════════════════════════════════════════
   // ── 여기서 돈이 나갑니다 ──────────────────────────────────────────
   const result = await confirmPayment({ paymentKey, orderId, amount })
 
@@ -206,7 +310,7 @@ export async function POST(request: Request) {
   // 또는 "지급은 됐는데 결제는 pending" 상태가 됩니다. 함수 안에서 해당
   // purchase 줄을 잠그고, credit_entries idempotency_key 와 paid 표시를
   // 같은 트랜잭션으로 묶습니다.
-  const { data: finalized, error: finalizeError } = await admin.rpc("finalize_toss_purchase", {
+  const { data: finalized, error: finalizeError } = await admin.rpc("finalize_purchase", {
     p_order_id: orderId,
     p_user_id: user.id,
     p_payment_key: payment.paymentKey,
