@@ -100,6 +100,13 @@ const MAP: [RegExp, string][] = [
   [/network|fetch failed|failed to fetch/i, "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요."],
 ]
 
+/** 메일 발송 자체가 실패했을 때 (커스텀 SMTP 설정 문제) */
+const MAIL_SEND_FAILED = "메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요."
+
+function isMailSendFailure(raw: string): boolean {
+  return /error sending|failed to send|smtp|mailer/i.test(raw)
+}
+
 /** 못 알아본 사유를 감쌀 우리말 (원문은 콘솔에만) */
 const FALLBACK = "잠시 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요."
 
@@ -112,6 +119,19 @@ const FALLBACK = "잠시 문제가 생겼어요. 잠시 뒤 다시 시도해 주
  */
 let lastUntranslated: string | null = null
 
+/**
+ * 원문을 남깁니다 — 화면에는 안 나오고 /login?debug=1 과 콘솔에만.
+ *
+ * ⚠️ 사유가 통째로 비어 오는 일이 실제로 있습니다("{}" 하나만 찍혔습니다).
+ *    그때 상태 코드마저 없으면 500 인지 400 인지도 몰라 처음부터 다시
+ *    뒤지게 됩니다. 그래서 code 와 status 를 함께 적어둡니다.
+ */
+function note(raw: string, code?: string | null, status?: number): void {
+  const marks = [code && `code=${code}`, status && `status=${status}`].filter(Boolean)
+  lastUntranslated = marks.length ? `${raw || "(사유 없음)"} (${marks.join(" ")})` : raw
+  if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 사유:", lastUntranslated)
+}
+
 /** 마지막으로 옮기지 못한 사유 (없으면 null) */
 export function lastAuthErrorRaw(): string | null {
   return lastUntranslated
@@ -123,8 +143,30 @@ export function lastAuthErrorRaw(): string | null {
  * @param raw  공급자·Supabase 가 준 영어 문구
  * @param code supabase-js AuthApiError 의 code. 있으면 이걸 먼저 봅니다 —
  *             문구는 판이 바뀌면 달라지지만 code 는 잘 안 바뀝니다.
+ * @param status HTTP 상태. 500 대는 우리 잘못이 아니라 서버가 답을 못
+ *               하는 것이라, 사유가 비어 있어도 그렇게 말해줄 수 있습니다.
  */
-export function translateAuthError(raw: string, code?: string | null): string {
+export function translateAuthError(raw: string, code?: string | null, status?: number): string {
+  // ⚠️ 사유가 비어 있는 오류가 실제로 옵니다.
+  //
+  // 커스텀 SMTP 를 붙인 직후 비밀번호 재설정이 실패했는데, 화면의
+  // 디버그 창에 찍힌 것이 "{}" 하나였습니다. Supabase 가 500 을 주면서
+  // 본문을 비워 보낸 것입니다 — 오류 객체를 펴면 안이 비어 있습니다.
+  //
+  // 이때 "잠시 문제가 생겼어요"로 뭉개면 쓰는 사람도 우리도 아무것도
+  // 모릅니다. 적어도 "우리 잘못이 아니라 서버가 답을 못 하는 중"이라는
+  // 것은 말해줄 수 있습니다. 진짜 사유는 Supabase 의 Auth 로그에만
+  // 남습니다.
+  //
+  // ⚠️ 사유를 알아봤더라도 원문은 남깁니다. 이 갈래는 화면만 보고는
+  //    무엇이 막혔는지 알 수 없어서, /login?debug=1 이 제일 빠른 창입니다.
+  if (status && status >= 500) {
+    note(raw, code, status)
+    // 발송이 원인이라고 적혀 있으면 그쪽이 더 정확합니다.
+    if (isMailSendFailure(raw)) return MAIL_SEND_FAILED
+    return "지금 서버가 답을 못 하고 있어요. 잠시 뒤 다시 시도해 주세요."
+  }
+
   // ⚠️ 이것만 코드보다 먼저 봅니다 — 메일 발송 실패.
   //
   // 커스텀 SMTP 가 잘못 붙어 있으면 Supabase 는 "Error sending confirmation
@@ -135,18 +177,13 @@ export function translateAuthError(raw: string, code?: string | null): string {
   // 이 갈래는 우리가 손쓸 수 없는 자리라(설정 문제) 사람에게는 담담히
   // 알리고, 진짜 원인은 Supabase 의 Auth 로그와 발송 서비스 로그에
   // 남습니다 (supabase/email-templates/README.md 참고).
-  if (/error sending|failed to send|smtp|mailer/i.test(raw)) {
-    return "메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요."
-  }
+  if (isMailSendFailure(raw)) return MAIL_SEND_FAILED
 
   // 코드가 먼저입니다. 문구가 어떻게 바뀌든 여기서 걸리면 정확합니다.
   if (code && CODE_MAP[code]) return CODE_MAP[code]
 
   if (!raw) {
-    if (code) {
-      lastUntranslated = `code=${code}`
-      if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 코드:", code)
-    }
+    if (code || status) note(raw, code, status)
     return FALLBACK
   }
 
@@ -165,7 +202,6 @@ export function translateAuthError(raw: string, code?: string | null): string {
   for (const [pattern, korean] of MAP) if (pattern.test(raw)) return korean
 
   // 원문은 버리지 않습니다 — 어떤 사유가 안 옮겨졌는지 알아야 고칠 수 있습니다.
-  lastUntranslated = code ? `${raw} (code=${code})` : raw
-  if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 사유:", lastUntranslated)
+  note(raw, code, status)
   return FALLBACK
 }

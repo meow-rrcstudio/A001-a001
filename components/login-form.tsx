@@ -127,7 +127,7 @@ export function LoginForm({
     })
     if (error) {
       setBusy(false)
-      setStatus({ kind: "error", text: translateAuthError(error.message, error.code) })
+      setStatus({ kind: "error", text: translateAuthError(error.message, error.code, error.status) })
     }
     // 성공하면 이 창이 그대로 공급자 화면으로 넘어갑니다 (busy 유지)
   }
@@ -202,7 +202,7 @@ export function LoginForm({
 
       return setStatus({
         kind: "error",
-        text: translateAuthError(signIn.error.message, signIn.error.code),
+        text: translateAuthError(signIn.error.message, signIn.error.code, signIn.error.status),
         canResend: notConfirmed,
       })
     }
@@ -237,7 +237,7 @@ export function LoginForm({
     }
 
     if (signUp.error) {
-      return setStatus({ kind: "error", text: translateAuthError(signUp.error.message, signUp.error.code) })
+      return setStatus({ kind: "error", text: translateAuthError(signUp.error.message, signUp.error.code, signUp.error.status) })
     }
 
     // 메일 확인을 꺼 두었다면 가입과 동시에 로그인됩니다.
@@ -293,7 +293,7 @@ export function LoginForm({
     if (result.error) {
       return setStatus({
         kind: "error",
-        text: translateAuthError(result.error.message, result.error.code),
+        text: translateAuthError(result.error.message, result.error.code, result.error.status),
       })
     }
 
@@ -329,7 +329,7 @@ export function LoginForm({
     if (result.error) {
       return setStatus({
         kind: "error",
-        text: translateAuthError(result.error.message, result.error.code),
+        text: translateAuthError(result.error.message, result.error.code, result.error.status),
         canResend: true,
       })
     }
