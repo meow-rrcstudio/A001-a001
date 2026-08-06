@@ -17,20 +17,117 @@
 // 심볼은 components/provider-marks.tsx 에 있습니다.
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { GoogleMark, KakaoMark } from "@/components/provider-marks"
+import { LoginHelp } from "@/components/login-help"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
-import { lastAuthErrorRaw, translateAuthError } from "@/lib/auth-messages"
+import { lastAuthErrorRaw, retryAfterSeconds, translateAuthError } from "@/lib/auth-messages"
+import { QuestionMark } from "@/components/icon-question"
+import { PASSWORD_RULE_TEXT, passwordMeetsPolicy } from "@/lib/password-policy"
 
 type Mode = "buttons" | "email"
 
+/**
+ * 상태줄에 놓을 수 있는 길.
+ *
+ * ⚠️ 이름이 곧 "누르면 실제로 일어나는 일"이어야 합니다. 예전에 두었던
+ *    "다시 시도"는 무엇을 다시 하는지(로그인인지 메일인지) 알 수 없어서
+ *    지웠습니다.
+ */
+type Action = "resend" | "reset" | "retryLogin"
+
+const ACTION_LABEL: Record<Action, string> = {
+  resend: "재전송",
+  reset: "비밀번호 찾기",
+  retryLogin: "다시 로그인",
+}
+
 /** 상태줄에 무엇을 띄울지 — 빨간 글씨(잘못됨)와 검은 글씨(알림)를 나눕니다 */
-type Status =
-  | { kind: "error"; text: string; canReset?: boolean }
-  | { kind: "info"; text: string; canResend?: boolean }
-  | null
+type Status = {
+  kind: "error" | "info"
+  /** 문구. 줄을 나눠 쓸 수 있습니다 (시안 5·10·11번) */
+  lines: string[]
+  /** 낼 길. 왼쪽부터 이 순서로 놓입니다 */
+  actions?: Action[]
+  /**
+   * 재전송이 다시 가능해지는 시각(ms).
+   *
+   * 있으면 `남은시간 00:59` 를 세고, 그동안 재전송 단추를 흐립니다.
+   * 값은 두 곳에서 옵니다 — 우리가 보낸 직후에는 60초(대시보드의
+   * "사용자별 최소 간격"과 같은 값), 서버가 "after 43 seconds" 라고
+   * 알려주면 그 숫자. 서버 말이 언제나 우선입니다.
+   */
+  waitUntil?: number
+  /** 오류를 알릴 때 붙이는 꼬리표 — 문의할 때 이 값을 불러주면 됩니다 */
+  code?: string
+  /**
+   * 물음표(?)를 낼지.
+   *
+   * ⚠️ 모든 케이스에 달지 않습니다. 시안이 그렇습니다 — 물음표는
+   *    "왜 이러는지 설명이 필요한 자리"에만 답니다. 비밀번호가 틀린
+   *    것처럼 뜻이 분명한 자리에까지 달면, 물음표가 그냥 장식이 되어
+   *    정작 필요한 자리에서 눈에 안 들어옵니다.
+   */
+  help?: boolean
+} | null
+
+/**
+ * 같은 사람에게 메일을 다시 보낼 수 있게 되기까지.
+ *
+ * ⚠️ Supabase 대시보드의 **사용자별 최소 간격**과 같은 값이어야 합니다
+ *    (Authentication → Rate Limits). 거기를 바꾸면 여기도 바꾸세요 —
+ *    화면이 0 초라고 하는데 서버가 막으면 그게 제일 나쁩니다.
+ *    다만 서버가 남은 초를 알려줄 때는 그 값을 씁니다.
+ */
+const RESEND_COOLDOWN_SEC = 60
+
+/**
+ * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px — "00:00" 폭에 좌우 2px).
+ *
+ * ⚠️ "남은시간 00:00" 전체가 아니라 "00:00" 에만 겁니다. 전체에 걸면
+ *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다 (한 번
+ *    그렇게 만들었다가 아이콘이 그대로 흔들렸습니다).
+ *
+ * ⚠️ 고정하지 않으면 자릿수가 바뀔 때마다 뒤의 물음표가 좌우로
+ *    흔들립니다. 1초마다 움직이는 화면은 읽기 어렵습니다.
+ *    tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
+ */
+const TIMER_WIDTH = "42px"
+
+/** 오류가 이어질 때 알릴 곳 (시안 10·11번) */
+const SUPPORT_EMAIL = "hello@soulseoul.xyz"
+
+/** 문의용 꼬리표. 영어 사유를 그대로 보이지 않으면서 어디가 막혔는지 남깁니다 */
+function errorTag(code?: string | null, status?: number): string | undefined {
+  const parts = [status, code].filter(Boolean)
+  return parts.length ? `(${parts.join("·")})` : undefined
+}
+
+/**
+ * 지금부터 seconds 초 뒤의 시각.
+ *
+ * ⚠️ 컴포넌트 안에서 Date.now() 를 직접 부르지 않습니다. 그리는 동안
+ *    시계를 읽으면 같은 상태인데 그릴 때마다 값이 달라져서, React
+ *    컴파일러가 막습니다(Cannot call impure function). 시계는 이 두
+ *    함수 안에서만 읽고, 화면은 그 결과를 상태로 들고 있습니다.
+ */
+function cooldownUntil(seconds: number = RESEND_COOLDOWN_SEC): number {
+  return Date.now() + seconds * 1000
+}
+
+/** 그 시각까지 남은 초 (지났으면 0) */
+function secondsLeft(until?: number): number {
+  return until ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0
+}
+
+/** 00:59 */
+function mmss(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+}
 
 /**
  * 카카오에 요청할 동의항목.
@@ -105,17 +202,52 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(
-    notice ? { kind: "error", text: notice } : null,
+    notice ? { kind: "error", lines: [notice] } : null,
   )
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  // 남은 초. 상태를 바꿀 때 한 번 정하고(show), 그 뒤로는 시계가 깎습니다.
+  //
+  // ⚠️ setInterval 안의 setState 는 효과 "본문"이 아니라 콜백이라
+  //    react-hooks/set-state-in-effect 에 걸리지 않습니다.
+  const [waitLeft, setWaitLeft] = useState(0)
+  const waitUntil = status?.waitUntil
+  useEffect(() => {
+    if (!waitUntil) return
+    const id = setInterval(() => setWaitLeft(secondsLeft(waitUntil)), 250)
+    return () => clearInterval(id)
+  }, [waitUntil])
+
+  /**
+   * 상태줄을 바꿉니다.
+   *
+   * ⚠️ setStatus 를 직접 부르지 마세요. 남은 초를 함께 맞춰야 하는데,
+   *    한 군데서라도 빠뜨리면 그 갈래만 타이머가 안 돕니다 — 갈래마다
+   *    손으로 챙기다 빠뜨려서 사람이 갇혔던 일이 이미 있었습니다.
+   */
+  function show(next: Status) {
+    setStatus(next)
+    setWaitLeft(secondsLeft(next?.waitUntil))
+  }
+
+  function runAction(action: Action) {
+    if (action === "resend") return void resendSignup()
+    if (action === "reset") return void sendReset()
+    return void runEmailFlow()
+  }
 
   const redirectTo = () =>
     `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
 
+  /** 어느 소셜 단추에서 막혔는지 — 사유를 그 단추 아래에 붙입니다 (시안) */
+  const [failedProvider, setFailedProvider] = useState<"kakao" | "google" | null>(null)
+
   async function signInWith(provider: "kakao" | "google") {
     const supabase = getSupabaseBrowser()
-    if (!supabase) return setStatus({ kind: "error", text: "아직 로그인 설정이 안 되어 있어요." })
+    if (!supabase) return show({ kind: "error", lines: ["아직 로그인 설정이 안 되어 있어요."] })
     setBusy(true)
-    setStatus(null)
+    show(null)
+    setFailedProvider(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -126,7 +258,14 @@ export function LoginForm({
     })
     if (error) {
       setBusy(false)
-      setStatus({ kind: "error", text: translateAuthError(error.message, error.code) })
+      // ⚠️ 사유를 화면 아래가 아니라 "누른 단추 바로 밑"에 답니다.
+      //    카카오가 막혔는데 사유가 저 아래 있으면 구글 이야기인지
+      //    카카오 이야기인지 알 수 없습니다.
+      setFailedProvider(provider)
+      show({
+        kind: "error",
+        lines: [translateAuthError(error.message, error.code, error.status)],
+      })
     }
     // 성공하면 이 창이 그대로 공급자 화면으로 넘어갑니다 (busy 유지)
   }
@@ -152,12 +291,16 @@ export function LoginForm({
    */
   async function submitEmail(e: React.FormEvent) {
     e.preventDefault()
+    await runEmailFlow()
+  }
+
+  async function runEmailFlow() {
     const supabase = getSupabaseBrowser()
-    if (!supabase) return setStatus({ kind: "error", text: "아직 로그인 설정이 안 되어 있어요." })
+    if (!supabase) return show({ kind: "error", lines: ["아직 로그인 설정이 안 되어 있어요."] })
     if (!email.trim() || !password) return
 
     setBusy(true)
-    setStatus(null)
+    show(null)
 
     // ⚠️ 시간 제한이 꼭 필요합니다. 답이 안 오면 화면이 아무 말 없이
     //    멈춰 있고, 사용자는 무엇을 해야 할지 알 수 없습니다.
@@ -167,10 +310,13 @@ export function LoginForm({
 
     if (signIn === "timeout") {
       setBusy(false)
-      return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
+      return show(noAnswer(["retryLogin"]))
     }
 
     if (!signIn.error) {
+      // ⚠️ 여기서 바로 넘기지 않고 한 마디 합니다. 화면이 바뀌기까지
+      //    한 박자가 있는데, 그 사이가 비어 있으면 "눌렸나?" 싶습니다.
+      show({ kind: "info", lines: ["다시 만나서 반가워요!", "로그인 중이에요…"] })
       router.push(next)
       router.refresh()
       return
@@ -189,13 +335,48 @@ export function LoginForm({
 
     if (!wrongCredentials) {
       setBusy(false)
-      return setStatus({
-        kind: "error",
-        text: translateAuthError(signIn.error.message, signIn.error.code),
-      })
+
+      // ⚠️ 아직 메일 인증을 안 한 계정입니다. 여기서 사유만 말하고 끝내면
+      //    사람이 갇힙니다 — 메일이 스팸함에 들어갔거나 지워졌으면 다시
+      //    받을 길이 화면에 하나도 없습니다. (가입 직후 한 번은 재전송
+      //    단추가 보이지만, 새로고침하거나 다시 로그인하면 이 갈래로
+      //    빠져서 단추가 사라졌습니다 — 실제로 그렇게 막혔습니다)
+      const notConfirmed =
+        signIn.error.code === "email_not_confirmed" ||
+        /email not confirmed/i.test(signIn.error.message)
+
+      if (notConfirmed) {
+        return show({
+          kind: "error",
+          // ⚠️ 여기에는 타이머를 걸지 않습니다. 이 화면에 온 사람은 마지막
+          //    발송으로부터 이미 한참 지났을 수 있는데, 들어오자마자 60초를
+          //    세면 누를 수 있는 것을 못 누르게 막는 셈입니다. 눌러보고
+          //    서버가 막으면 그때부터 셉니다 (failure 가 남은 초를 받습니다).
+          lines: ["인증이 완료되지 않았어요.", "메일함에서 인증 링크를 먼저 눌러주세요."],
+          actions: ["resend"],
+          help: true,
+        })
+      }
+      return show(failure(signIn.error, ["retryLogin", "reset"]))
     }
 
     // 여기부터는 "비밀번호가 틀렸거나 계정이 없거나" — 가입을 시도해 봅니다.
+    //
+    // ⚠️ 시안에는 이 자리에 "가입되지 않은 계정이에요"가 적혀 있었는데
+    //    뺐습니다. 이 시점에는 계정이 있는지 없는지 **아직 모릅니다** —
+    //    있으면 바로 아래에서 "비밀번호가 맞지 않아요"로 갈라집니다.
+    //    모르는 것을 단정해서 말하면, 비밀번호를 틀린 사람에게 잠깐
+    //    "너는 가입한 적 없다"고 말하는 셈이 됩니다.
+    show({ kind: "info", lines: ["가입 인증 메일을 보내는 중이에요…"] })
+
+    // 새로 계정을 만드는 자리이므로 여기서만 비밀번호 조건을 봅니다.
+    // 로그인에는 보지 않습니다 — 옛 계정이 지금 조건을 안 지날 수 있고,
+    // 그때 막으면 자기 계정에 못 들어갑니다.
+    if (!passwordMeetsPolicy(password)) {
+      setBusy(false)
+      return show({ kind: "error", lines: [PASSWORD_RULE_TEXT] })
+    }
+
     const signUp = await withTimeout(
       supabase.auth.signUp({
         email: email.trim(),
@@ -207,7 +388,7 @@ export function LoginForm({
     setBusy(false)
 
     if (signUp === "timeout") {
-      return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
+      return show(noAnswer(["retryLogin"]))
     }
 
     const already =
@@ -216,29 +397,44 @@ export function LoginForm({
       (signUp.error && /already registered|already been registered/i.test(signUp.error.message)) ||
       (!signUp.error && signUp.data.user?.identities?.length === 0)
 
+    // 여기까지 왔다는 것은 계정이 있다는 뜻입니다. 그러니 "이메일이나
+    // 비밀번호가"가 아니라 비밀번호 하나만 짚어 말할 수 있습니다.
     if (already) {
-      return setStatus({
+      return show({
         kind: "error",
-        text: "비밀번호가 맞지 않아요.",
-        canReset: true,
+        lines: ["비밀번호가 맞지 않아요."],
+        actions: ["reset"],
       })
     }
 
     if (signUp.error) {
-      return setStatus({ kind: "error", text: translateAuthError(signUp.error.message, signUp.error.code) })
+      return show(failure(signUp.error, ["retryLogin"]))
     }
 
     // 메일 확인을 꺼 두었다면 가입과 동시에 로그인됩니다.
     if (signUp.data.session) {
+      show({ kind: "info", lines: ["다시 만나서 반가워요!", "로그인 중이에요…"] })
       router.push(next)
       router.refresh()
       return
     }
 
-    setStatus({
+    show({
       kind: "info",
-      text: "입력한 이메일로 인증 메일이 전송되었어요.",
-      canResend: true,
+      lines: [
+        // ⚠️ "가입되지 않은 계정"이라고 말할 수 있는 자리는 여기뿐입니다.
+        //    누르기 전에는 계정이 있는지 없는지 알 수 없고, 여기까지
+        //    왔다는 것은 실제로 새 계정이 만들어졌다는 뜻입니다.
+        "가입되지 않은 이메일이라 새로 가입했어요.",
+        "입력한 이메일로 인증 메일이 전송되었어요.",
+        // ⚠️ 이메일 오타를 잡을 수 있는 자리도 여기뿐입니다. 주소를
+        //    잘못 치면 그 주소로 계정이 만들어지고 메일은 남의 집으로
+        //    갑니다 — 화면에는 아무 이상이 없어 보입니다.
+        "메일이 오지 않으면 주소를 다시 확인해 주세요.",
+      ],
+      actions: ["resend"],
+      waitUntil: cooldownUntil(),
+      help: true,
     })
   }
 
@@ -253,6 +449,10 @@ export function LoginForm({
     const supabase = getSupabaseBrowser()
     if (!supabase || !email.trim()) return
 
+    // ⚠️ 누르는 즉시 말합니다. 메일 보내기는 몇 초 걸릴 수 있는데, 그동안
+    //    화면이 그대로면 "눌러도 아무 반응이 없다"가 됩니다 — 실제로
+    //    그렇게 보였습니다.
+    show({ kind: "info", lines: ["메일을 보내는 중이에요…"] })
     setBusy(true)
     const result = await withTimeout(
       supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -263,14 +463,24 @@ export function LoginForm({
     )
     setBusy(false)
 
-    if (result === "timeout") {
-      return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
-    }
-    // 너무 자주 보내면 Supabase 가 막습니다 — 그건 알려줘야 합니다.
-    if (result.error && /rate limit|for security purposes|too many/i.test(result.error.message)) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
-    }
-    setStatus({ kind: "info", text: "비밀번호를 새로 정하는 링크를 보냈어요." })
+    if (result === "timeout") return show(noAnswer(["reset"]))
+
+    // ⚠️ 실패를 삼키지 않습니다. 예전에는 "너무 자주 보냈다"만 알리고 그
+    //    밖의 오류(메일 서버 문제 등)에는 "보냈어요"라고 답했습니다.
+    //    오지 않는 메일을 기다리게 하는 것이 제일 나쁩니다.
+    //
+    // ⚠️ 다만 "그런 계정 없습니다"는 여전히 말하지 않습니다 — Supabase 도
+    //    없는 계정에 오류를 주지 않습니다. 아무 주소나 넣어보며 누가
+    //    가입했는지 알아내는 길이 되기 때문입니다.
+    if (result.error) return show(failure(result.error, ["reset"]))
+
+    show({
+      kind: "info",
+      lines: ["비밀번호를 새로 정하는 링크를 메일로 보냈어요."],
+      actions: ["reset"],
+      waitUntil: cooldownUntil(),
+      help: true,
+    })
   }
 
   /** 인증 메일 다시 보내기 */
@@ -278,6 +488,7 @@ export function LoginForm({
     const supabase = getSupabaseBrowser()
     if (!supabase || !email.trim()) return
 
+    show({ kind: "info", lines: ["메일을 보내는 중이에요…"], actions: ["resend"] })
     setBusy(true)
     const result = await withTimeout(
       supabase.auth.resend({
@@ -288,13 +499,75 @@ export function LoginForm({
     )
     setBusy(false)
 
-    if (result === "timeout") {
-      return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
+    // ⚠️ 재전송이 실패해도 단추를 남깁니다. 가장 흔한 실패는 "너무 자주
+    //    보냈어요"(1분에 한 번)인데, 그때 단추가 사라지면 잠시 뒤에 다시
+    //    누를 방법이 없어집니다.
+    if (result === "timeout") return show(noAnswer(["resend"]))
+    if (result.error) return show(failure(result.error, ["resend"]))
+
+    show({
+      kind: "info",
+      lines: ["인증 메일을 다시 보냈어요."],
+      actions: ["resend"],
+      waitUntil: cooldownUntil(),
+      help: true,
+    })
+  }
+
+  /** 답이 아예 없을 때 (시안 11번) */
+  function noAnswer(actions: Action[]): Status {
+    return {
+      kind: "error",
+      lines: [
+        "잠시 장애가 있었어요. 잠시 뒤 다시 시도해 주세요.",
+        `오류가 계속되면 ${SUPPORT_EMAIL} 로 알려주세요.`,
+      ],
+      actions,
+      code: "(timeout)",
     }
-    if (result.error) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
+  }
+
+  /**
+   * 실패를 상태줄로 옮깁니다.
+   *
+   * 한 곳에서 만드는 까닭 — 갈래마다 손으로 적으면 어느 갈래에서는
+   * 길을 안 내고, 어느 갈래에서는 꼬리표를 빠뜨립니다. 실제로 그렇게
+   * 사람이 갇혔던 자리가 넷이었습니다.
+   */
+  function failure(
+    error: { message: string; code?: string; status?: number },
+    actions: Action[],
+  ): Status {
+    const text = translateAuthError(error.message, error.code, error.status)
+    const wait = retryAfterSeconds(error.message)
+
+    // 발송 간격에 걸린 것은 "오류"라기보다 "잠깐 기다리는 일"입니다.
+    // 남은 초를 세어주면 사람이 화면을 떠나지 않습니다.
+    const rateLimited =
+      wait !== null ||
+      error.code === "over_email_send_rate_limit" ||
+      error.code === "over_request_rate_limit"
+
+    if (rateLimited) {
+      return {
+        kind: "error",
+        lines: ["메일을 너무 자주 보냈어요."],
+        actions,
+        waitUntil: cooldownUntil(wait ?? RESEND_COOLDOWN_SEC),
+        help: true,
+      }
     }
-    setStatus({ kind: "info", text: "인증 메일을 다시 보냈어요.", canResend: true })
+
+    // 서버가 답을 못 하는 갈래에는 어디로 알릴지까지 적습니다.
+    const serverSide = (error.status ?? 0) >= 500
+    return {
+      kind: "error",
+      lines: serverSide ? [text, `오류가 계속되면 ${SUPPORT_EMAIL} 로 알려주세요.`] : [text],
+      actions,
+      code: errorTag(error.code, error.status),
+      // 메일이 안 나가는 것은 설명이 필요한 자리입니다 (우리 쪽 설정 문제).
+      help: /메일/.test(text),
+    }
   }
 
   // 시안: 각진 버튼. 모서리를 둥글리지 않습니다.
@@ -323,13 +596,15 @@ export function LoginForm({
   if (mode === "email") {
     const invalid = status?.kind === "error"
 
+    // 시안 실측 (2026-08): 돌 아래 20 · 칸 사이 8 · 칸 아래 8 ·
+    // 상태줄 아래 80 · 좌우 24 (좌우 여백은 이 화면을 감싸는 쪽에 있습니다)
     return (
-      <div className="space-y-5">
+      <div>
         {/* ⚠️ 시안에 보내기 버튼이 없습니다 — 키보드 엔터로 보냅니다.
             눈에 보이는 버튼을 넣지 않는 대신, 화면읽개와 키보드만 쓰는
             사람을 위해 sr-only 제출 버튼을 둡니다. 버튼을 다시 세우려면
             아래 sr-only 를 solidBtn 으로 바꾸면 됩니다. */}
-        <form onSubmit={submitEmail} className="space-y-3">
+        <form onSubmit={submitEmail} className="space-y-2">
           <input
             type="email"
             value={email}
@@ -360,60 +635,68 @@ export function LoginForm({
           </button>
         </form>
 
-        {/* 상태줄 — 왼쪽에 사유, 오른쪽에 할 수 있는 일.
-            자리를 늘 비워두지 않습니다. 빈 줄을 남겨두면 시안의
-            여백 리듬이 깨집니다. */}
-        {status && (
-          <div className="flex items-start justify-between gap-3 text-xs">
-            <p className={status.kind === "error" ? "text-red-600" : "text-brand-ink/80"}>
-              {status.text}
-            </p>
+        {/* 상태줄 (시안 2026-08 — 케이스 12가지).
 
-            {status.kind === "error" && status.canReset && (
-              <button
-                type="button"
-                onClick={sendReset}
-                disabled={busy}
-                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
-              >
-                비밀번호 찾기
-              </button>
-            )}
+            ┌─ 배치 규칙 ─────────────────────────────────────────────
+            │ · 타이머가 있으면  → 문구 아래 새 줄에 왼쪽 정렬
+            │                      [재전송] [남은시간 00:59] [?]
+            │ · 타이머가 없으면  → 문구와 같은 줄, 오른쪽 끝에
+            │                      문구가 길면 알아서 아랫줄로 내려갑니다
+            └─────────────────────────────────────────────────────────
 
-            {status.kind === "info" && status.canResend && (
-              <button
-                type="button"
-                onClick={resendSignup}
-                disabled={busy}
-                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
-              >
-                재전송
-              </button>
-            )}
-          </div>
-        )}
+            ⚠️ 오류일 때 길을 반드시 함께 냅니다. 예전에는 사유만 말하고
+               끝나는 갈래가 여럿이었습니다 — 인증 전 계정으로 로그인,
+               메일 발송이 잦아 막힌 경우, 응답 없음 등. 그때 화면에는
+               빨간 글씨만 남고 누를 것이 하나도 없어서 사람이 갇혔습니다.
 
-        <DebugLine show={debug} />
-        <Consent />
+            ⚠️ 물음표를 여기 둡니다. 예전에는 동의 고지 아래에 달았는데
+               푸터처럼 보여서, 정작 궁금해지는 순간에 눈이 안 갔습니다. */}
+        <StatusRow
+          status={status}
+          waitLeft={waitLeft}
+          busy={busy}
+          onAction={runAction}
+          onHelp={() => setHelpOpen(true)}
+        />
+
+        <div className="mt-20">
+          <DebugLine show={debug} />
+          <Consent />
+        </div>
+
+        <LoginHelp open={helpOpen} onOpenChange={setHelpOpen} />
       </div>
     )
   }
 
   return (
-    <div className="space-y-5">
+    // ⚠️ mt-5 는 돌과의 사이를 40px 로 만드는 몫입니다. 페이지 쪽 여백이
+    //    20px 이고(이메일 화면 시안), 이 화면만 20px 을 더합니다.
+    <div className="mt-5 space-y-5">
+      {/* ⚠️ 카카오·구글에서 되돌아오다 실패한 사유는 어느 단추에서 났는지
+             알 수 없습니다 (/login?error= 에 공급자가 실리지 않습니다).
+             그것만 단추 위에 둡니다. */}
+      <ProviderNotice show={failedProvider === null} status={status} />
+
       <div className="space-y-3">
         {SHOW_KAKAO && (
-          <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>
-            <KakaoMark />
-            카카오로 계속하기
-          </button>
+          <>
+            <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>
+              <KakaoMark />
+              카카오로 계속하기
+            </button>
+            <ProviderNotice show={failedProvider === "kakao"} status={status} />
+          </>
         )}
 
         {SHOW_GOOGLE && (
-          <button type="button" disabled={busy} onClick={() => signInWith("google")} className={solidBtn}>
-            <GoogleMark />
-            Google로 계속하기
-          </button>
+          <>
+            <button type="button" disabled={busy} onClick={() => signInWith("google")} className={solidBtn}>
+              <GoogleMark />
+              Google로 계속하기
+            </button>
+            <ProviderNotice show={failedProvider === "google"} status={status} />
+          </>
         )}
 
         {/* 이메일은 보조 — 연라임 바탕에 검정 글씨 (시안).
@@ -422,7 +705,7 @@ export function LoginForm({
           type="button"
           onClick={() => {
             setMode("email")
-            setStatus(null)
+            show(null)
           }}
           className={SHOW_KAKAO || SHOW_GOOGLE ? softBtn : solidBtn}
         >
@@ -430,18 +713,133 @@ export function LoginForm({
         </button>
       </div>
 
-      {status && (
-        <p
-          className={`text-center text-xs ${
-            status.kind === "error" ? "text-red-600" : "text-brand-ink/80"
-          }`}
-        >
-          {status.text}
+      <div className="space-y-3">
+        <Consent />
+        <p className="text-center">
+          <LoginHelp open={helpOpen} onOpenChange={setHelpOpen} withTrigger />
         </p>
-      )}
-
-      <Consent />
+      </div>
     </div>
+  )
+}
+
+/**
+ * 상태줄 한 덩어리.
+ *
+ * ┌─ 왜 따로 뺐는가 ──────────────────────────────────────────────────
+ * │ 케이스가 열두 가지가 되면서, 폼 안에 그대로 두면 "어떤 오류에 어떤
+ * │ 단추"를 또 갈래마다 손으로 적게 됩니다. 그러다 한 갈래를 빠뜨리면
+ * │ 그 갈래에 걸린 사람이 갇힙니다 — 실제로 넷이 그랬습니다.
+ * │ 무엇을 보여줄지는 Status 하나가 정하고, 여기서는 그리기만 합니다.
+ * └──────────────────────────────────────────────────────────────────
+ */
+function StatusRow({
+  status,
+  waitLeft,
+  busy,
+  onAction,
+  onHelp,
+}: {
+  status: Status
+  waitLeft: number
+  busy: boolean
+  onAction: (action: Action) => void
+  onHelp: () => void
+}) {
+  if (!status) return null
+
+  const timed = Boolean(status.waitUntil)
+
+  // 시안 실측: 14px · weight 400 · 밑줄. 오류 빨강은 #EF2B2A 입니다
+  // (디자인 토큰 --product-colors-warning-red-500). Tailwind 의 red-600
+  // 과 미세하게 달라서 값을 그대로 적습니다.
+  const link =
+    "whitespace-nowrap text-sm font-normal text-brand-ink underline underline-offset-4 disabled:opacity-40"
+
+  const actions = (status.actions ?? []).map((action) => (
+    <button
+      key={action}
+      type="button"
+      onClick={() => onAction(action)}
+      // 기다리는 동안 재전송만 흐립니다. 비밀번호 찾기는 다른 메일이라
+      // 같은 시계에 묶지 않습니다.
+      disabled={busy || (action === "resend" && waitLeft > 0)}
+      className={link}
+    >
+      {ACTION_LABEL[action]}
+    </button>
+  ))
+
+  // ⚠️ 물음표는 status.help 가 켜진 케이스에만 냅니다. 다 달면 장식이
+  //    되어 정작 필요한 자리에서 눈에 안 들어옵니다 (시안).
+  const help = status.help ? (
+    <button
+      type="button"
+      onClick={onHelp}
+      aria-label="로그인이 왜 이렇게 물어보나요?"
+      className="inline-flex shrink-0 items-center text-brand-ink"
+    >
+      <QuestionMark />
+    </button>
+  ) : null
+
+  const text = (
+    <p className={`text-sm font-normal ${status.kind === "error" ? "text-[#EF2B2A]" : "text-brand-ink"}`}>
+      {status.lines.map((line, i) => (
+        <span key={i} className="block break-keep">
+          {line}
+        </span>
+      ))}
+      {status.code && <span className="block text-brand-ink/40">{status.code}</span>}
+    </p>
+  )
+
+  // 타이머가 있는 케이스 — 문구 아래 새 줄, 왼쪽 정렬 (시안 3·4·5·7·8)
+  if (timed) {
+    return (
+      <div className="mt-2 space-y-2">
+        {text}
+        <div className="flex flex-wrap items-baseline gap-x-1">
+          {actions}
+          <span className="ml-1 text-sm text-brand-ink/50">
+            남은시간
+            {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
+            <span
+              className="inline-block text-center tabular-nums"
+              style={{ width: TIMER_WIDTH }}
+            >
+              {mmss(waitLeft)}
+            </span>
+          </span>
+          {help && <span className="ml-3 inline-flex">{help}</span>}
+        </div>
+      </div>
+    )
+  }
+
+  // 그 밖 — 문구와 같은 줄, 오른쪽 끝. 문구가 길면 알아서 내려갑니다.
+  return (
+    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+      {text}
+      <div className="flex shrink-0 items-baseline gap-x-3">
+        {actions}
+        {help}
+      </div>
+    </div>
+  )
+}
+
+/** 소셜 단추 밑에 붙는 사유 한 줄 */
+function ProviderNotice({ show, status }: { show: boolean; status: Status }) {
+  if (!show || !status || status.kind !== "error") return null
+  return (
+    <p className="text-center text-xs break-keep text-red-600">
+      {status.lines.map((line, i) => (
+        <span key={i} className="block">
+          {line}
+        </span>
+      ))}
+    </p>
   )
 }
 
