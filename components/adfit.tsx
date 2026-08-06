@@ -15,6 +15,7 @@
 // 절대 임의로 변경하면 안 됩니다.
 
 import { useEffect, useState } from "react"
+import { useAppsInToss } from "@/lib/use-runtime"
 
 interface AdFitProps {
   /** 애드핏에서 발급받은 광고단위 ID (예: DAN-xxxxxxxx) */
@@ -30,11 +31,16 @@ interface AdFitProps {
 export function AdFit({ adUnit, width, height, className }: AdFitProps) {
   // NO-AD(노출할 광고 없음) 여부 → 빈 박스 높이만 접음(태그 자체는 유지)
   const [noAd, setNoAd] = useState(false)
+  // 앱인토스 미니앱 안에서는 광고를 부르지 않습니다 (심사에서 걸립니다).
+  // 태그는 그대로 두고 CSS 가 숨깁니다 — 서버가 그리는 HTML 은 웹과
+  // 같아야 애드핏 심사 크롤러가 광고 설치를 확인할 수 있습니다.
+  const inToss = useAppsInToss()
 
   // onfail 콜백명을 광고단위별로 고유하게 만들어 충돌 방지
   const callbackName = `adfitOnFail_${adUnit.replace(/[^a-zA-Z0-9]/g, "")}`
 
   useEffect(() => {
+    if (inToss) return
     // NO-AD 콜백: 광고가 없으면 영역 높이만 접습니다(요소는 그대로 둠).
     ;(window as unknown as Record<string, unknown>)[callbackName] = () => {
       setNoAd(true)
@@ -54,11 +60,12 @@ export function AdFit({ adUnit, width, height, className }: AdFitProps) {
     }
     // adUnit 이 바뀌면(라우트 전환 등) 스크립트를 다시 불러 재실행합니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adUnit])
+  }, [adUnit, inToss])
 
   return (
     <div
       className={className}
+      data-ad-slot=""
       // 광고 로딩 전 레이아웃 시프트(CLS) 방지용 최소 높이. NO-AD 시 0 으로 접음.
       style={{
         minHeight: noAd ? 0 : height,

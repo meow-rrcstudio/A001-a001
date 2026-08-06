@@ -131,16 +131,28 @@ export function PageHeader({
   const showScrim = isFixed
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // 눌렀는데 아무 일도 안 일어나는 것을 막습니다.
+  // 웹뷰(앱인토스 미니앱)에서는 navigator.share 도 클립보드도 막힐 수
+  // 있는데, 그때 조용히 실패하면 사용자는 버튼이 고장 났다고 여깁니다.
+  const [shared, setShared] = useState<"copied" | "failed" | null>(null)
+
   async function handleShare() {
+    const url = window.location.href
     if (navigator.share) {
       try {
-        await navigator.share({ title: document.title, url: window.location.href })
+        await navigator.share({ title: document.title, url })
+        return
       } catch {
-        // 사용자가 공유를 취소한 경우 등 — 무시
+        // 취소했거나 웹뷰가 막은 경우 — 아래 복사로 이어갑니다
       }
-    } else {
-      await navigator.clipboard.writeText(window.location.href)
     }
+    try {
+      await navigator.clipboard.writeText(url)
+      setShared("copied")
+    } catch {
+      setShared("failed")
+    }
+    setTimeout(() => setShared(null), 2000)
   }
 
   return (
@@ -243,6 +255,17 @@ export function PageHeader({
                 <button type="button" onClick={handleShare} className={roundButton} aria-label="공유">
                   <Share className="h-5 w-5" />
                 </button>
+              )}
+              {/* 공유가 어떻게 됐는지 한 줄. 웹뷰에서 공유·복사가 모두
+                  막히면 아무 일도 안 일어난 것처럼 보이는데, 그때 버튼이
+                  고장 난 줄 알게 됩니다. */}
+              {shared && (
+                <span
+                  role="status"
+                  className="pointer-events-none absolute right-14 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  {shared === "copied" ? "주소를 복사했어요" : "주소를 복사하지 못했어요"}
+                </span>
               )}
               <button
                 type="button"
