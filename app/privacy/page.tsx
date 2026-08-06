@@ -98,6 +98,12 @@ export default function PrivacyPage() {
           <strong className="text-foreground">자동으로 쌓이는 것</strong> — 접속 일시, 브라우저
           종류, 페이지 방문 통계, 쿠키.
         </li>
+        <li>
+          <strong className="text-foreground">가입 선물 지급 이력</strong> — 이메일 주소를 되돌릴
+          수 없게 변환한 값(해시)만 남깁니다. 탈퇴 후 곧바로 다시 가입해 가입 선물을 되풀이해
+          받는 것을 막는 데에만 씁니다. 이 값으로는 누구인지 알아낼 수 없고, 이메일 주소 자체는
+          탈퇴할 때 함께 지워집니다.
+        </li>
       </List>
       <P>
         회사는 만 14세 미만 아동의 개인정보를 수집하지 않습니다. 사상·신념, 건강, 성생활 등
@@ -130,6 +136,10 @@ export default function PrivacyPage() {
         <li>
           <strong className="text-foreground">소비자 불만·분쟁 처리 기록</strong> — 3년
           (전자상거래법)
+        </li>
+        <li>
+          <strong className="text-foreground">가입 선물 지급 이력(이메일 해시)</strong> — 30일.
+          기간이 지나면 지웁니다.
         </li>
         <li>
           <strong className="text-foreground">접속 기록</strong> — 3개월 (통신비밀보호법)

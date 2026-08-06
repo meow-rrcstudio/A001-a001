@@ -21,7 +21,7 @@ import { GEMINI_FALLBACK_MODEL, GEMINI_PLAN_MODEL, GEMINI_READING_MODEL } from "
 import { requireUser } from "@/lib/server/guard"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase/server"
-import { FOLLOWUPS_PER_CREDIT, WELCOME_FOLLOWUPS } from "@/lib/credit-rules"
+import { FOLLOWUPS_PER_CREDIT } from "@/lib/credit-rules"
 import { hasEverPaid } from "@/lib/server/free-reading"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
 import { freeSpreadFor } from "@/lib/free-question"
@@ -118,6 +118,9 @@ export async function POST(request: Request) {
   // 이 판에 딸려가는 이어묻기 몫. 화면이 남은 횟수를 셀 때 이 값을 봅니다
   // (연결 전에는 산 판과 같게 둡니다 — 깎을 근거가 없으니까요).
   let followupsAllowed = FOLLOWUPS_PER_CREDIT
+  // 한 번이라도 결제한 적이 있는 사람인가 (선물 이어묻기는 그렇지 않은
+  // 사람에게만 딸려옵니다). 판을 만든 뒤에도 봐야 해서 밖에 둡니다.
+  let paidBefore = true
 
   if (user) {
     const admin = getSupabaseAdmin()
@@ -154,11 +157,20 @@ export async function POST(request: Request) {
     // ── 선물로 보는 판인가, 산 판인가 ──────────────────────────────
     // 한 번이라도 결제한 적이 있으면 손님입니다 (lib/server/free-reading.ts).
     const paid = await hasEverPaid(admin, user.id)
+    paidBefore = paid
 
     if (!paid) {
-      // 선물 판은 이어묻기 몫이 적습니다. 선물은 맛보기고, 더 묻고 싶으면
-      // 사는 것이 자연스럽습니다 (lib/credit-rules.ts 의 WELCOME_FOLLOWUPS).
-      followupsAllowed = WELCOME_FOLLOWUPS
+      // ⚠️ 여기서 이어묻기 3회를 판에 박지 않습니다.
+      //
+      //    예전에는 박았습니다. 그런데 선물 3회가 붙는 자리가 두 곳이었고
+      //    (이 판 · 가입 전 맛보기 판), 그 판이 아닌 데서 대화를 이어가려
+      //    하면 남는 길이 "별조각 한 장 더 쓰고 이어서 묻기"뿐이었습니다.
+      //    누르면 방금 받은 선물 별조각이 그 자리에서 나갔습니다.
+      //
+      //    이제 3회는 계정에 있고, 판을 만든 뒤 아래에서 끌어옵니다.
+      //    이미 다른 판에서 썼다면 이 판은 0회로 시작합니다 (선물은 모두
+      //    합쳐 세 번입니다).
+      followupsAllowed = 0
 
       // 그리고 사이트 전체의 무료 총량에서 한 판을 꺼내 씁니다.
       // 다 떨어졌으면 문을 내립니다 — 하지만 크레딧으로 가는 길은
@@ -200,6 +212,22 @@ export async function POST(request: Request) {
     }
 
     readingId = created.id
+
+    // 선물 이어묻기를 이 판으로 끌어옵니다 (계정에 남아 있으면).
+    //
+    // ⚠️ 실패해도 판은 그대로 씁니다. 004 를 아직 안 돌린 배포에서는
+    //    함수가 없어 실패하는데, 여기서 멈추면 타로점이 통째로 안 됩니다.
+    if (!paidBefore) {
+      const { data: granted, error: giftError } = await admin.rpc("claim_welcome_followups", {
+        p_user_id: user.id,
+        p_reading_id: readingId,
+      })
+      if (giftError) {
+        console.warn("[reading/plan] 선물 이어묻기를 못 끌어왔습니다:", giftError.message)
+      } else if (typeof granted === "number" && granted > 0) {
+        followupsAllowed += granted
+      }
+    }
   }
 
   // ── 이미 배열이 정해진 질문 ──────────────────────────────────────
