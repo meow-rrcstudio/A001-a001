@@ -264,6 +264,10 @@ export function LoginForm({
     const supabase = getSupabaseBrowser()
     if (!supabase || !email.trim()) return
 
+    // ⚠️ 누르는 즉시 말합니다. 메일 보내기는 몇 초 걸릴 수 있는데, 그동안
+    //    화면이 그대로면 "눌러도 아무 반응이 없다"가 됩니다 — 실제로
+    //    그렇게 보였습니다.
+    setStatus({ kind: "info", text: "메일을 보내는 중이에요…" })
     setBusy(true)
     const result = await withTimeout(
       supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -277,11 +281,22 @@ export function LoginForm({
     if (result === "timeout") {
       return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
     }
-    // 너무 자주 보내면 Supabase 가 막습니다 — 그건 알려줘야 합니다.
-    if (result.error && /rate limit|for security purposes|too many/i.test(result.error.message)) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
+
+    // ⚠️ 실패를 삼키지 않습니다. 예전에는 "너무 자주 보냈다"만 알리고 그
+    //    밖의 오류(메일 서버 문제 등)에는 "보냈어요"라고 답했습니다.
+    //    오지 않는 메일을 기다리게 하는 것이 제일 나쁩니다.
+    //
+    // ⚠️ 다만 "그런 계정 없습니다"는 여전히 말하지 않습니다 — Supabase 도
+    //    없는 계정에 오류를 주지 않습니다. 아무 주소나 넣어보며 누가
+    //    가입했는지 알아내는 길이 되기 때문입니다.
+    if (result.error) {
+      return setStatus({
+        kind: "error",
+        text: translateAuthError(result.error.message, result.error.code),
+      })
     }
-    setStatus({ kind: "info", text: "비밀번호를 새로 정하는 링크를 보냈어요." })
+
+    setStatus({ kind: "info", text: "비밀번호를 새로 정하는 링크를 보냈어요. 메일함을 봐주세요." })
   }
 
   /** 인증 메일 다시 보내기 */
@@ -289,6 +304,7 @@ export function LoginForm({
     const supabase = getSupabaseBrowser()
     if (!supabase || !email.trim()) return
 
+    setStatus({ kind: "info", text: "메일을 보내는 중이에요…", canResend: true })
     setBusy(true)
     const result = await withTimeout(
       supabase.auth.resend({
@@ -345,13 +361,15 @@ export function LoginForm({
   if (mode === "email") {
     const invalid = status?.kind === "error"
 
+    // 시안 실측 (2026-08): 돌 아래 20 · 칸 사이 8 · 칸 아래 8 ·
+    // 상태줄 아래 80 · 좌우 24 (좌우 여백은 이 화면을 감싸는 쪽에 있습니다)
     return (
-      <div className="space-y-5">
+      <div>
         {/* ⚠️ 시안에 보내기 버튼이 없습니다 — 키보드 엔터로 보냅니다.
             눈에 보이는 버튼을 넣지 않는 대신, 화면읽개와 키보드만 쓰는
             사람을 위해 sr-only 제출 버튼을 둡니다. 버튼을 다시 세우려면
             아래 sr-only 를 solidBtn 으로 바꾸면 됩니다. */}
-        <form onSubmit={submitEmail} className="space-y-3">
+        <form onSubmit={submitEmail} className="space-y-2">
           <input
             type="email"
             value={email}
@@ -382,32 +400,34 @@ export function LoginForm({
           </button>
         </form>
 
-        {/* 상태줄 — 무슨 일이 있었는지, 그리고 무엇을 할 수 있는지.
+        {/* 상태줄 — 왼쪽에 사유, 오른쪽에 할 수 있는 일 (시안).
             ⚠️ 오류일 때 길을 반드시 함께 냅니다. 예전에는 사유만 말하고
                끝나는 갈래가 여럿이었습니다 — 인증 전 계정으로 로그인,
-               메일 발송이 너무 잦아 막힌 경우 등. 그때 화면에는 빨간
-               글씨만 남고 누를 것이 하나도 없어서, 사람이 그 자리에
-               갇혔습니다. (실제로 그렇게 막혔습니다)
+               메일 발송이 잦아 막힌 경우, 응답 없음 등. 그때 화면에는
+               빨간 글씨만 남고 누를 것이 하나도 없어서 사람이 갇혔습니다.
 
-               그래서 "어떤 오류에는 어떤 단추"를 하나하나 정하지 않고,
-               이메일이 적혀 있으면 두 길을 늘 냅니다. 둘 다 눌러도
-               해롭지 않고, 하나라도 있으면 갇히지 않습니다. */}
+               "어떤 오류에는 어떤 단추"를 하나하나 정하지 않습니다. 그렇게
+               두면 새 갈래가 생길 때마다 단추 다는 것을 잊습니다.
+               이메일이 적혀 있으면 비밀번호 찾기는 늘 내고, 인증 메일
+               재전송은 그것이 도움이 되는 상황에서 함께 냅니다. */}
         {status && (
-          <div className="flex flex-col gap-2">
-            <p className={status.kind === "error" ? "text-xs text-red-600" : "text-xs text-brand-ink/80"}>
+          <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className={`text-xs ${status.kind === "error" ? "text-red-600" : "text-brand-ink/80"}`}>
               {status.text}
             </p>
 
-            {email.trim() && (status.kind === "error" || status.canResend) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                <button
-                  type="button"
-                  onClick={resendSignup}
-                  disabled={busy}
-                  className="whitespace-nowrap text-brand-ink underline underline-offset-4 disabled:opacity-50"
-                >
-                  인증 메일 다시 받기
-                </button>
+            {email.trim() && (
+              <div className="flex shrink-0 items-baseline gap-x-4 text-xs">
+                {status.canResend && (
+                  <button
+                    type="button"
+                    onClick={resendSignup}
+                    disabled={busy}
+                    className="whitespace-nowrap text-brand-ink underline underline-offset-4 disabled:opacity-50"
+                  >
+                    인증 메일 다시 받기
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={sendReset}
@@ -421,14 +441,18 @@ export function LoginForm({
           </div>
         )}
 
-        <DebugLine show={debug} />
-        <Consent />
+        <div className="mt-20">
+          <DebugLine show={debug} />
+          <Consent />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-5">
+    // ⚠️ mt-5 는 돌과의 사이를 40px 로 만드는 몫입니다. 페이지 쪽 여백이
+    //    20px 이고(이메일 화면 시안), 이 화면만 20px 을 더합니다.
+    <div className="mt-5 space-y-5">
       <div className="space-y-3">
         {SHOW_KAKAO && (
           <button type="button" disabled={busy} onClick={() => signInWith("kakao")} className={solidBtn}>

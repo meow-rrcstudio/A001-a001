@@ -66,7 +66,7 @@ export default async function LoginPage({
           이상한 그라데이션 자국이 생깁니다. */}
       <PageHeader backHref="/" surface="lime" centerMark />
 
-      <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 ${HEADER_SPACE}`}>
+      <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-6 ${HEADER_SPACE}`}>
         <h1 className="sr-only">SoulSeoul 로그인</h1>
 
         {/* 마스코트 돌 (components/stone.tsx).
@@ -76,7 +76,9 @@ export default async function LoginPage({
             그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 이 칸만
             줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
 
-            ⚠️ 치수는 시안 실측입니다 — 돌 높이 51px, 아래 버튼까지 40px.
+            ⚠️ 치수는 시안 실측입니다 — 돌 높이 51px.
+               아래 여백은 20px 이고(이메일 화면 시안), 첫 화면(카카오·구글
+               단추)에서는 폼 쪽에서 20px 을 더해 40px 이 됩니다.
                가로는 그림 비율(75:51)대로 따라옵니다. 시안의 80 은 돌을
                감싼 상자 폭이라 그림 자체는 그보다 조금 좁습니다.
 
@@ -87,7 +89,7 @@ export default async function LoginPage({
             ⚠️ 빈자리가 넓어 보인다고 크기를 키우지 마세요. 이 칸은
                키보드가 올라올 때 줄어드는 자리라(min-h-0 flex-1), 크게
                두면 입력할 때 버튼이 화면 밖으로 밀립니다. */}
-        <div className="flex min-h-0 flex-1 items-end justify-center pb-10 pt-4">
+        <div className="flex min-h-0 flex-1 items-end justify-center pb-5 pt-4">
           <BlinkingStone className="h-[51px] w-auto shrink-0 text-brand-ink" />
         </div>
 
