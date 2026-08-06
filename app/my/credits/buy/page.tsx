@@ -28,7 +28,7 @@
 //    화면에 약관 문단을 얹으면 정작 읽어야 할 값(가격)이 뒤로 밀립니다.
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import { useAccount } from "@/lib/use-account"
@@ -41,7 +41,7 @@ import {
   withJosa,
   type CreditPack,
 } from "@/lib/credit-packs"
-import { isTossReady, isTossTestKey } from "@/lib/toss-client"
+import type { PaymentConfig } from "@/app/api/payments/config/route"
 import { openTossCheckout } from "@/lib/toss-checkout"
 import { CreditList, CreditScreen } from "../credit-screen"
 
@@ -118,13 +118,29 @@ function PackRow({
 
 export default function BuyCreditsPage() {
   const { account, ready } = useAccount()
+  // 결제를 열 수 있는지는 서버가 압니다 (결제사가 둘이고, NEXT_PUBLIC_ 값은
+  // 빌드에 박혀서 낡을 수 있습니다 — app/api/payments/config 머리말 참고).
+  // 모르는 동안에는 "준비 중"도 "살 수 있음"도 말하지 않습니다.
+  const [payment, setPayment] = useState<PaymentConfig | null>(null)
+  useEffect(() => {
+    let alive = true
+    void fetch("/api/payments/config", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<PaymentConfig>) : null))
+      .then((data) => {
+        if (alive && data) setPayment(data)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
   // 지금 결제창을 여는 중인 묶음 (두 번 눌러 두 주문이 생기지 않게)
   const [buying, setBuying] = useState<string | null>(null)
   const [buyError, setBuyError] = useState<string | null>(null)
 
   // 로그인 전에는 살 수 없습니다 — 별조각이 붙을 자리가 없으니까요.
   // 버튼을 내주고 401 로 돌려보내는 것보다, 로그인 길을 먼저 내주는 편이 낫습니다.
-  const canBuy = isTossReady && account.isLoggedIn
+  const canBuy = payment?.ready === true && account.isLoggedIn
 
   async function buy(packKey: string) {
     if (buying) return
@@ -168,7 +184,7 @@ export default function BuyCreditsPage() {
       {buyError && <p className="mt-3 text-sm leading-relaxed text-foreground">{buyError}</p>}
 
       {/* 로그인 전이면 살 수가 없습니다. 그 사실과 길을 함께 둡니다 */}
-      {isTossReady && !account.isLoggedIn && (
+      {payment?.ready && !account.isLoggedIn && (
         <Link
           href="/login?next=/my/credits/buy"
           className="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-brand-ink px-7 text-[15px] font-semibold text-white transition-opacity hover:opacity-90"
@@ -181,7 +197,7 @@ export default function BuyCreditsPage() {
           분명히 말합니다. 계약 전에 흐름을 확인할 때의 상태입니다.
           ⚠️ "돈이 안 나간다"만 말하면 눌러도 되는지가 안 걸립니다.
              눌러봐도 된다는 말까지 함께 둡니다. */}
-      {isTossReady && isTossTestKey && (
+      {payment?.ready && payment.test && (
         <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
           지금은 결제 테스트 상태라 실제로 결제되지 않아요.
           <br />
@@ -192,7 +208,7 @@ export default function BuyCreditsPage() {
       {/* ⚠️ 결제가 붙은 배포에서는 이 말을 지웁니다. 살 수 있는 화면에
           "아직 준비 중"이 남아 있으면, 방금 산 사람이 자기가 뭘 한 건지
           헷갈립니다. */}
-      {!isTossReady && (
+      {payment?.ready === false && (
         <p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">
           결제는 아직 준비 중이에요.
           <br />

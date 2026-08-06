@@ -26,6 +26,7 @@ import { ArrowRight, RotateCw } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { ChatErrorBox } from "@/components/chat-error-box"
+import { AiBadge } from "@/components/ai-badge"
 import { MiniSpread, type PickedCard } from "@/components/reading-result-view"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { buildReadingPrompt, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
@@ -176,8 +177,10 @@ export function FreeReadingResult({
             </p>
           )}
 
+          {reading?.title && <AiBadge className="mt-4" />}
+
           {reading?.title && (
-            <h1 className="mt-4 text-reading-xl font-bold leading-snug tracking-tight text-foreground">
+            <h1 className="mt-2 text-reading-xl font-bold leading-snug tracking-tight text-foreground">
               {reading.title}
               {streaming && !reading.summary && <Cursor />}
             </h1>

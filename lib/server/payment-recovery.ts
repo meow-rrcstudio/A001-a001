@@ -61,6 +61,11 @@ export async function recoverPendingPurchases(
     .select("order_id, amount_krw")
     .eq("user_id", userId)
     .eq("status", "pending")
+    // ⚠️ 토스 주문만 봅니다. 카카오페이는 "주문 조회" API 가 따로 있어서
+    //    같은 방식으로 물어볼 수 없습니다. 다만 카카오는 승인 자체가
+    //    pg_token 이 있어야만 일어나서, 창을 닫으면 돈이 나가지 않습니다 —
+    //    "돈만 나가고 미지급"이 생길 자리가 토스보다 좁습니다.
+    .eq("provider", "toss")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(MAX_ORDERS)
@@ -89,7 +94,7 @@ export async function recoverPendingPurchases(
       continue
     }
 
-    const { data: finalized, error: finalizeError } = await admin.rpc("finalize_toss_purchase", {
+    const { data: finalized, error: finalizeError } = await admin.rpc("finalize_purchase", {
       p_order_id: orderId,
       p_user_id: userId,
       p_payment_key: payment.paymentKey,

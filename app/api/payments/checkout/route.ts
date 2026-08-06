@@ -19,7 +19,9 @@ import { NextResponse } from "next/server"
 import { findPack, nameCredits } from "@/lib/credit-packs"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { getCurrentUser, getSupabaseAdmin } from "@/lib/supabase/server"
-import { TOSS_CLIENT_KEY, isTossConfigured, isTossTestMode, makeOrderId } from "@/lib/toss"
+import { TOSS_CLIENT_KEY, makeOrderId } from "@/lib/toss"
+import { readyPayment } from "@/lib/kakaopay"
+import { activeProvider, isTestMode } from "@/lib/payments/provider"
 
 export const dynamic = "force-dynamic"
 
@@ -34,16 +36,18 @@ export async function POST(request: Request) {
   const limited = rateLimit(rateKey("checkout", user.id, request), 20, 10 * 60_000)
   if (limited) return limited
 
-  // ⚠️ 운영 배포에 테스트 키가 올라가 있으면 결제창은 열리는데 돈은 한 푼도
-  //    들어오지 않습니다. 화면에도 표시가 나가지만(isTossTestMode), 그 표시를
-  //    못 보고 지나가는 일이 실제로 잦아서 서버 로그에도 남깁니다.
-  if (isTossTestMode && process.env.VERCEL_ENV === "production") {
-    console.error("[payments/checkout] 운영 배포인데 토스 테스트 키입니다 — 실결제가 되지 않습니다")
-  }
-
-  if (!isTossConfigured) {
+  // 어느 결제사로 받을지는 한 곳에서 정합니다 (lib/payments/provider.ts).
+  const provider = activeProvider()
+  if (!provider) {
     // 키가 아직 없는 배포입니다. 화면은 이 답을 받아 "준비 중"으로 그립니다.
     return NextResponse.json({ error: "결제가 아직 열리지 않았어요." }, { status: 503 })
+  }
+
+  // ⚠️ 운영 배포에 테스트 키가 올라가 있으면 결제창은 열리는데 돈은 한 푼도
+  //    들어오지 않습니다. 화면에도 표시가 나가지만, 그 표시를 못 보고
+  //    지나가는 일이 실제로 잦아서 서버 로그에도 남깁니다.
+  if (isTestMode(provider) && process.env.VERCEL_ENV === "production") {
+    console.error(`[payments/checkout] 운영 배포인데 ${provider} 테스트 키입니다 — 실결제가 되지 않습니다`)
   }
 
   let packKey = ""
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
     credits: pack.credits,
     amount_krw: pack.priceKrw,
     status: "pending",
-    provider: "toss",
+    provider,
     order_id: orderId,
     // 전자상거래법 제6조는 대금 결제 기록을 5년 보관하라고 정합니다.
     // 탈퇴하면 user_id 가 비워지므로(001 마이그레이션), 누가 냈는지는
@@ -88,14 +92,78 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "결제를 시작하지 못했어요." }, { status: 500 })
   }
 
+  const orderName = nameCredits(pack.credits)
+
+  // ── 카카오페이 — 여기서 "결제 준비"까지 마칩니다 ───────────────────
+  //
+  // 토스는 화면이 SDK 로 결제창을 열지만, 카카오는 서버가 먼저 준비를
+  // 청하고 받은 주소로 사용자를 "이동"시킵니다. 그래서 준비가 이 자리에
+  // 들어옵니다.
+  //
+  // ⚠️ 받은 tid 를 반드시 저장합니다. 승인할 때 필요한데 다시 받을 길이
+  //    없습니다 — 잃어버리면 낸 돈을 확인할 방법이 사라집니다.
+  if (provider === "kakaopay") {
+    const origin = new URL(request.url).origin
+    const back = (path: string) =>
+      `${origin}${path}?provider=kakaopay&orderId=${encodeURIComponent(orderId)}`
+
+    const ready = await readyPayment({
+      orderId,
+      // ⚠️ 개인정보를 넣지 말라고 카카오 문서가 못박고 있습니다
+      //    (실명·휴대폰번호·이메일·ID 금지). 계정 uuid 만 넘깁니다.
+      userKey: user.id,
+      itemName: orderName,
+      amountKrw: pack.priceKrw,
+      approvalUrl: back("/my/credits/success"),
+      cancelUrl: back("/my/credits/fail"),
+      failUrl: back("/my/credits/fail"),
+    })
+
+    if (!ready.ok) {
+      console.error(`[payments/checkout] 카카오 결제 준비 실패 — 주문 ${orderId}: ${ready.code} ${ready.message}`)
+      await admin
+        .from("purchases")
+        .update({ status: "failed", failure_reason: `ready ${ready.code}: ${ready.message}`.slice(0, 300) })
+        .eq("order_id", orderId)
+      return NextResponse.json({ error: ready.message }, { status: 502 })
+    }
+
+    const { error: tidError } = await admin
+      .from("purchases")
+      .update({ payment_key: ready.value.tid })
+      .eq("order_id", orderId)
+
+    if (tidError) {
+      // tid 를 못 남기면 승인할 길이 없습니다. 결제창을 띄우지 않습니다 —
+      // 띄웠다가는 돈만 나가고 우리가 확인하지 못합니다.
+      console.error("[payments/checkout] tid 를 못 남겼습니다:", tidError.message)
+      return NextResponse.json({ error: "결제를 시작하지 못했어요." }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      provider,
+      orderId,
+      amount: pack.priceKrw,
+      orderName,
+      // 화면이 기기에 맞는 것을 고릅니다 (PC 는 팝업, 모바일은 이동).
+      redirect: {
+        pc: ready.value.pcUrl,
+        mobile: ready.value.mobileUrl,
+        app: ready.value.appUrl,
+      },
+    })
+  }
+
+  // ── 토스 — 결제창은 화면이 SDK 로 엽니다 ──────────────────────────
   return NextResponse.json({
+    provider,
     orderId,
     amount: pack.priceKrw,
-    // 결제 내역에 남는 이름입니다 (토스 화면과 카드 명세서에 보입니다).
+    // 결제 내역에 남는 이름입니다 (결제창과 카드 명세서에 보입니다).
     // ⚠️ 여기에 이름을 직접 적지 마세요 — lib/credit-packs.ts 에서 가져옵니다.
     //    직접 적었더니 "크레딧"에서 "별조각"으로 바꾼 뒤에도 결제창에만
     //    옛 이름이 남았습니다. 카드 명세서에 찍히는 글자라 더 나쁩니다.
-    orderName: nameCredits(pack.credits),
+    orderName,
     clientKey: TOSS_CLIENT_KEY,
     // 토스가 같은 사람의 결제를 묶어 보는 데 씁니다. 이메일 대신 id 를
     // 넘깁니다 — 남에게 넘어가도 그것만으로는 누구인지 알 수 없습니다.

@@ -614,6 +614,18 @@ export default function AskPage() {
             tone="muted"
             className="mt-4"
           />
+
+          {/* 사전 고지 — 묻기 "전에" 알립니다.
+              법이 요구합니다: 생성형 AI 를 쓰는 서비스는 처음 이용하는
+              시점에 그 사실을 알려야 합니다 (components/ai-badge.tsx 머리말).
+              결과에 붙는 표시(AiBadge)와 짝입니다 — 하나는 묻기 전,
+              하나는 답을 받은 뒤.
+
+              ⚠️ 상자로 만들지 않습니다. 물으려는 사람 앞에 상자를 놓으면
+                 그것부터 치워야 합니다. 입력창 아래 한 줄이면 읽힙니다. */}
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+            샨티의 해석은 AI 가 지어낸 글이에요. 재미와 자기성찰로 봐주세요.
+          </p>
         </div>
       </div>
     </div>

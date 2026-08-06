@@ -36,9 +36,14 @@ type Phase =
 
 export function ConfirmView() {
   const params = useSearchParams()
+  // 토스는 결제 열쇠와 금액을 함께 돌려보내고,
+  // 카카오페이는 우리가 붙여둔 주문번호에 pg_token 만 얹어 돌려보냅니다.
+  const provider = params.get("provider")
   const paymentKey = params.get("paymentKey")
   const orderId = params.get("orderId")
   const amount = params.get("amount")
+  const pgToken = params.get("pg_token")
+  const isKakao = provider === "kakaopay"
 
   const [phase, setPhase] = useState<Phase>({ step: "confirming" })
   // ⚠️ 개발 모드에서는 effect 가 두 번 돕니다. 승인을 두 번 청하면 토스가
@@ -49,7 +54,8 @@ export function ConfirmView() {
     if (askedRef.current) return
     askedRef.current = true
 
-    if (!paymentKey || !orderId || !amount) {
+    const missing = isKakao ? !orderId || !pgToken : !paymentKey || !orderId || !amount
+    if (missing) {
       setPhase({ step: "failed", message: "결제 정보가 없어요. 결제를 다시 해주세요." })
       return
     }
@@ -59,7 +65,11 @@ export function ConfirmView() {
         const response = await fetch("/api/payments/confirm", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+          body: JSON.stringify(
+            isKakao
+              ? { provider: "kakaopay", orderId, pgToken }
+              : { paymentKey, orderId, amount: Number(amount) }
+          ),
         })
         const data = (await response.json().catch(() => ({}))) as {
           ok?: boolean
@@ -84,7 +94,11 @@ export function ConfirmView() {
         })
       }
     })()
-  }, [paymentKey, orderId, amount])
+    // ⚠️ 한 판에 한 번만 청합니다 (askedRef). 개발 모드에서 effect 가
+    //    두 번 도는데, 승인을 두 번 청하면 뒤엣것이 거절당해서 성공한
+    //    결제가 실패로 보입니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentKey, orderId, amount, pgToken, isKakao])
 
   const title = "font-myeongjo text-2xl font-bold leading-snug text-foreground"
   const body = "mt-2 text-[15px] leading-relaxed text-muted-foreground"

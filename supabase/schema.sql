@@ -273,7 +273,7 @@ create index if not exists purchases_pending_user_created_idx
   on public.purchases (user_id, created_at desc)
   where status = 'pending';
 
-create or replace function public.finalize_toss_purchase(
+create or replace function public.finalize_purchase(
   p_order_id text,
   p_user_id uuid,
   p_payment_key text,
@@ -334,9 +334,9 @@ $$;
 --    로그인한 사람이 브라우저의 anon 키로 자기 pending 주문에 대고
 --    이 함수를 부르면, 토스에 한 푼도 내지 않고 별조각이 지급되고 주문이
 --    paid 로 바뀝니다. 우리 서버(서비스 키)만 부를 수 있어야 합니다.
-revoke all on function public.finalize_toss_purchase(text, uuid, text, text, timestamptz)
+revoke all on function public.finalize_purchase(text, uuid, text, text, timestamptz)
   from public, anon, authenticated;
-grant execute on function public.finalize_toss_purchase(text, uuid, text, text, timestamptz)
+grant execute on function public.finalize_purchase(text, uuid, text, text, timestamptz)
   to service_role;
 
 -- ── 환불 — 돈을 돌려줄 때 남은 별조각도 함께 거둡니다 ────────────────

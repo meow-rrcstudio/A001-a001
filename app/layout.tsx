@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Nanum_Myeongjo, Shadows_Into_Light } from 'next/font/google'
 import { BASE_URL } from '@/lib/seo'
+import { RUNTIME_DETECT_SCRIPT } from '@/lib/runtime'
 import './globals.css'
 
 const geistMono = Geist_Mono({
@@ -118,6 +119,11 @@ export default function RootLayout({
           {children}
         </div>
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* ⚠️ 광고 스크립트보다 "먼저" 놓습니다. 앱인토스 미니앱 안에서는
+            광고를 띄우지 않는데, 이 판단이 늦으면 그사이 광고가 이미
+            요청됩니다. React 가 붙기 전에 도는 인라인 스크립트라 그렇습니다
+            (lib/runtime.ts 의 RUNTIME_DETECT_SCRIPT). */}
+        <script dangerouslySetInnerHTML={{ __html: RUNTIME_DETECT_SCRIPT }} />
         {/* 구글 애드센스 — 사이트 소유 확인 + 광고 스크립트 (모든 페이지 공통).
             일반 <script> 태그로 써야 서버가 만드는 원본 HTML의 <head>에 바로 실려서
             구글 소유권 검사기가 찾을 수 있습니다 (React가 async 스크립트를 head로 올려줌).

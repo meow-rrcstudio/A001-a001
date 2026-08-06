@@ -249,3 +249,54 @@ export async function fetchPaymentByOrderId(orderId: string): Promise<TossResult
 
   return { ok: true, payment: body }
 }
+
+/**
+ * 결제 취소 — 돈을 돌려줍니다.
+ *
+ * 부분 취소가 됩니다(cancelAmount 를 빼면 전액). 우리 환불정책은 쓴 몫을
+ * 낱개 값으로 쳐서 빼므로 대개 부분 취소입니다.
+ */
+export async function cancelTossPayment(args: {
+  paymentKey: string
+  reason: string
+  amountKrw?: number
+}): Promise<TossResult> {
+  if (!TOSS_SECRET_KEY) {
+    return { ok: false, code: "NOT_CONFIGURED", message: "결제 설정이 아직 없어요." }
+  }
+
+  const auth = Buffer.from(`${TOSS_SECRET_KEY}:`).toString("base64")
+
+  let response: Response
+  try {
+    response = await fetch(`${TOSS_API}/${encodeURIComponent(args.paymentKey)}/cancel`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/json",
+        // 같은 취소가 두 번 가도 한 번만 처리되게
+        "Idempotency-Key": `cancel_${args.paymentKey}_${args.amountKrw ?? "all"}`,
+      },
+      body: JSON.stringify({
+        cancelReason: args.reason.slice(0, 200),
+        ...(args.amountKrw ? { cancelAmount: args.amountKrw } : {}),
+      }),
+    })
+  } catch {
+    return { ok: false, code: "NETWORK", message: "취소 요청이 닿지 않았어요." }
+  }
+
+  const body = (await response.json().catch(() => null)) as
+    | (TossPayment & { code?: string; message?: string })
+    | null
+
+  if (!response.ok || !body) {
+    return {
+      ok: false,
+      code: body?.code ?? "UNKNOWN",
+      message: body?.message ?? "결제를 취소하지 못했어요.",
+    }
+  }
+
+  return { ok: true, payment: body }
+}
