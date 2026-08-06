@@ -348,9 +348,12 @@ export function LoginForm({
       if (notConfirmed) {
         return show({
           kind: "error",
+          // ⚠️ 여기에는 타이머를 걸지 않습니다. 이 화면에 온 사람은 마지막
+          //    발송으로부터 이미 한참 지났을 수 있는데, 들어오자마자 60초를
+          //    세면 누를 수 있는 것을 못 누르게 막는 셈입니다. 눌러보고
+          //    서버가 막으면 그때부터 셉니다 (failure 가 남은 초를 받습니다).
           lines: ["인증이 완료되지 않았어요.", "메일함에서 인증 링크를 먼저 눌러주세요."],
           actions: ["resend"],
-          waitUntil: cooldownUntil(),
           help: true,
         })
       }
