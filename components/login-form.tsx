@@ -62,6 +62,15 @@ type Status = {
   waitUntil?: number
   /** 오류를 알릴 때 붙이는 꼬리표 — 문의할 때 이 값을 불러주면 됩니다 */
   code?: string
+  /**
+   * 물음표(?)를 낼지.
+   *
+   * ⚠️ 모든 케이스에 달지 않습니다. 시안이 그렇습니다 — 물음표는
+   *    "왜 이러는지 설명이 필요한 자리"에만 답니다. 비밀번호가 틀린
+   *    것처럼 뜻이 분명한 자리에까지 달면, 물음표가 그냥 장식이 되어
+   *    정작 필요한 자리에서 눈에 안 들어옵니다.
+   */
+  help?: boolean
 } | null
 
 /**
@@ -73,6 +82,15 @@ type Status = {
  *    다만 서버가 남은 초를 알려줄 때는 그 값을 씁니다.
  */
 const RESEND_COOLDOWN_SEC = 60
+
+/**
+ * 남은시간 숫자의 고정 너비 (시안 실측 42px).
+ *
+ * ⚠️ 고정하지 않으면 "00:9" → "00:10" 처럼 자릿수가 바뀔 때마다 뒤에
+ *    있는 물음표가 좌우로 흔들립니다. 1초마다 움직이는 화면은 읽기
+ *    어렵습니다. tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
+ */
+const TIMER_WIDTH = "42px"
 
 /** 오류가 이어질 때 알릴 곳 (시안 10·11번) */
 const SUPPORT_EMAIL = "hello@soulseoul.xyz"
@@ -328,6 +346,8 @@ export function LoginForm({
           kind: "error",
           lines: ["인증이 완료되지 않았어요.", "메일함에서 인증 링크를 먼저 눌러주세요."],
           actions: ["resend"],
+          waitUntil: cooldownUntil(),
+          help: true,
         })
       }
       return show(failure(signIn.error, ["retryLogin", "reset"]))
@@ -395,14 +415,19 @@ export function LoginForm({
     show({
       kind: "info",
       lines: [
+        // ⚠️ "가입되지 않은 계정"이라고 말할 수 있는 자리는 여기뿐입니다.
+        //    누르기 전에는 계정이 있는지 없는지 알 수 없고, 여기까지
+        //    왔다는 것은 실제로 새 계정이 만들어졌다는 뜻입니다.
+        "가입되지 않은 이메일이라 새로 가입했어요.",
         "입력한 이메일로 인증 메일이 전송되었어요.",
-        // ⚠️ 이메일 오타를 잡을 수 있는 자리는 여기뿐입니다. 주소를
+        // ⚠️ 이메일 오타를 잡을 수 있는 자리도 여기뿐입니다. 주소를
         //    잘못 치면 그 주소로 계정이 만들어지고 메일은 남의 집으로
         //    갑니다 — 화면에는 아무 이상이 없어 보입니다.
         "메일이 오지 않으면 주소를 다시 확인해 주세요.",
       ],
       actions: ["resend"],
       waitUntil: cooldownUntil(),
+      help: true,
     })
   }
 
@@ -447,6 +472,7 @@ export function LoginForm({
       lines: ["비밀번호를 새로 정하는 링크를 메일로 보냈어요."],
       actions: ["reset"],
       waitUntil: cooldownUntil(),
+      help: true,
     })
   }
 
@@ -477,6 +503,7 @@ export function LoginForm({
       lines: ["인증 메일을 다시 보냈어요."],
       actions: ["resend"],
       waitUntil: cooldownUntil(),
+      help: true,
     })
   }
 
@@ -520,6 +547,7 @@ export function LoginForm({
         lines: ["메일을 너무 자주 보냈어요."],
         actions,
         waitUntil: cooldownUntil(wait ?? RESEND_COOLDOWN_SEC),
+        help: true,
       }
     }
 
@@ -530,6 +558,8 @@ export function LoginForm({
       lines: serverSide ? [text, `오류가 계속되면 ${SUPPORT_EMAIL} 로 알려주세요.`] : [text],
       actions,
       code: errorTag(error.code, error.status),
+      // 메일이 안 나가는 것은 설명이 필요한 자리입니다 (우리 쪽 설정 문제).
+      help: /메일/.test(text),
     }
   }
 
@@ -712,7 +742,12 @@ function StatusRow({
   if (!status) return null
 
   const timed = Boolean(status.waitUntil)
-  const link = "whitespace-nowrap text-brand-ink underline underline-offset-4 disabled:opacity-40"
+
+  // 시안 실측: 14px · weight 400 · 밑줄. 오류 빨강은 #EF2B2A 입니다
+  // (디자인 토큰 --product-colors-warning-red-500). Tailwind 의 red-600
+  // 과 미세하게 달라서 값을 그대로 적습니다.
+  const link =
+    "whitespace-nowrap text-sm font-normal text-brand-ink underline underline-offset-4 disabled:opacity-40"
 
   const actions = (status.actions ?? []).map((action) => (
     <button
@@ -728,7 +763,9 @@ function StatusRow({
     </button>
   ))
 
-  const help = (
+  // ⚠️ 물음표는 status.help 가 켜진 케이스에만 냅니다. 다 달면 장식이
+  //    되어 정작 필요한 자리에서 눈에 안 들어옵니다 (시안).
+  const help = status.help ? (
     <button
       type="button"
       onClick={onHelp}
@@ -737,10 +774,10 @@ function StatusRow({
     >
       <QuestionMark />
     </button>
-  )
+  ) : null
 
   const text = (
-    <p className={`text-xs ${status.kind === "error" ? "text-red-600" : "text-brand-ink/80"}`}>
+    <p className={`text-sm font-normal ${status.kind === "error" ? "text-[#EF2B2A]" : "text-brand-ink"}`}>
       {status.lines.map((line, i) => (
         <span key={i} className="block break-keep">
           {line}
@@ -753,12 +790,18 @@ function StatusRow({
   // 타이머가 있는 케이스 — 문구 아래 새 줄, 왼쪽 정렬 (시안 3·4·5·7·8)
   if (timed) {
     return (
-      <div className="mt-2 space-y-1">
+      <div className="mt-2 space-y-2">
         {text}
-        <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
+        <div className="flex flex-wrap items-baseline gap-x-1">
           {actions}
-          <span className="text-brand-ink/40">남은시간 {mmss(waitLeft)}</span>
-          {help}
+          {/* 42px 고정 + tabular-nums — 자릿수가 바뀌어도 뒤가 안 흔들립니다 */}
+          <span
+            className="ml-1 inline-block text-sm text-brand-ink/50 tabular-nums"
+            style={{ minWidth: TIMER_WIDTH }}
+          >
+            남은시간 {mmss(waitLeft)}
+          </span>
+          {help && <span className="ml-3 inline-flex">{help}</span>}
         </div>
       </div>
     )
@@ -766,9 +809,9 @@ function StatusRow({
 
   // 그 밖 — 문구와 같은 줄, 오른쪽 끝. 문구가 길면 알아서 내려갑니다.
   return (
-    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
       {text}
-      <div className="flex shrink-0 items-baseline gap-x-4 text-xs">
+      <div className="flex shrink-0 items-baseline gap-x-3">
         {actions}
         {help}
       </div>
