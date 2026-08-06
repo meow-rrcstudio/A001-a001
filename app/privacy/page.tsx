@@ -160,12 +160,8 @@ export default function PrivacyPage() {
           통계
         </li>
         <li>
-          <Out href="https://openai.com/policies/privacy-policy/">OpenAI</Out> — 타로 해석과 대화
-          생성
-        </li>
-        <li>
-          <Out href="https://policies.google.com/privacy">Google</Out> — 일부 해석·요약 생성(Gemini),
-          광고(AdSense)
+          <Out href="https://policies.google.com/privacy">Google</Out> — 타로 해석과 대화
+          생성(Gemini), 광고(AdSense)
         </li>
         <li>
           <Out href="https://upstash.com/trust/privacy.pdf">Upstash</Out> — 임시 저장(캐시), 요청
@@ -192,7 +188,7 @@ export default function PrivacyPage() {
       <List>
         <li>
           <strong className="text-foreground">이전받는 자</strong> — Supabase Inc., Vercel Inc.,
-          OpenAI, L.L.C., Google LLC, Upstash, Inc.
+          Google LLC, Upstash, Inc.
         </li>
         <li>
           <strong className="text-foreground">이전 국가</strong> — 미국 등 각 사가 운영하는 데이터
