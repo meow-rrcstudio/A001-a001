@@ -9,31 +9,43 @@
 분류한 근거가 "영어"였는데, 제목이 영어로 남아 있으면 그 판단에 그대로
 걸립니다. 받는 사람 눈에 먼저 닿는 것도 제목입니다.
 
-| 대시보드 항목 | 제목(Subject) 에 넣을 말 | 본문에 붙여넣을 파일 |
-| --- | --- | --- |
-| **Confirm sign up** | `[SoulSeoul] 이메일 주소를 확인해 주세요` | `confirm-signup.html` |
-| **Reset password** | `[SoulSeoul] 비밀번호를 새로 정해주세요` | `reset-password.html` |
-| **Password changed** | `[SoulSeoul] 비밀번호가 바뀌었어요` | `password-changed.html` |
-| **Sign-in method linked** | `[SoulSeoul] 로그인 방법이 하나 늘었어요` | `signin-method-linked.html` |
+⚠️ 파일 맨 위의 `<!-- ... -->` 는 우리끼리 보는 메모입니다. **붙여넣지
+마세요.** `<div style=` 부터 끝까지만 복사합니다.
 
-## 나머지 여섯은 그대로 두세요
+대시보드가 한국어로 보이면 이름이 이렇습니다 (영어 표기를 함께 적습니다 —
+언어 설정에 따라 달라집니다).
 
-부르는 코드가 없어서 **나갈 일이 없습니다.** 영어로 남아 있어도 아무도
-받지 않습니다. 손대면 오히려 "고쳤는데 왜 안 바뀌지" 하고 찾게 됩니다.
+### 「입증」 칸
 
-| 항목 | 왜 안 나가는가 |
-| --- | --- |
-| Invite user | 초대로 계정을 만드는 길이 없습니다 |
-| Magic link or OTP | `signInWithOtp` 를 부르는 곳이 없습니다 (비밀번호 로그인입니다) |
-| Change email address | 이메일을 바꾸는 화면이 없습니다 |
-| Reauthentication | `reauthenticate` 를 부르는 곳이 없습니다 |
-| Email address changed | 위와 같음 |
-| Sign-in method removed | 연결을 끊는 화면이 없습니다 |
+| 대시보드 (한/영) | 제목(Subject) | 본문 파일 | 언제 나가는가 |
+| --- | --- | --- | --- |
+| **가입을 확인하세요** · Confirm signup | `[SoulSeoul] 이메일 주소를 확인해 주세요` | `confirm-signup.html` | `components/login-form.tsx` 의 `signUp` · `auth.resend({type:"signup"})` |
+| **비밀번호 재설정** · Reset password | `[SoulSeoul] 비밀번호를 새로 정해주세요` | `reset-password.html` | 같은 파일의 `resetPasswordForEmail` (상태줄의 `비밀번호 찾기`) |
+| 사용자 초대 · Invite user | — | 그대로 두세요 | 초대로 계정을 만드는 길이 없습니다 |
+| 매직 링크 또는 OTP · Magic Link | — | 그대로 두세요 | `signInWithOtp` 를 부르는 곳이 없습니다 (비밀번호 로그인입니다) |
+| 이메일 주소 변경 · Change Email Address | — | 그대로 두세요 | 이메일을 바꾸는 화면이 없습니다 |
+| 재인증 · Reauthentication | — | 그대로 두세요 | `reauthenticate` 를 부르는 곳이 없습니다 |
+
+### 「보안」 칸
+
+여기 넷은 **켜야 나갑니다.** 각 항목의 스위치를 켜두세요 — 알림이
+안 나가면 남이 계정을 가져가도 본인이 알 방법이 없습니다.
+
+| 대시보드 (한/영) | 제목(Subject) | 본문 파일 | 언제 나가는가 |
+| --- | --- | --- | --- |
+| **비밀번호가 변경되었습니다** · Password changed | `[SoulSeoul] 비밀번호가 바뀌었어요` | `password-changed.html` | `app/reset-password/page.tsx` 의 `updateUser({ password })` 성공 뒤 |
+| **로그인 방식이 연결되어 있습니다** · Sign-in method linked | `[SoulSeoul] 로그인 방법이 하나 늘었어요` | `signin-method-linked.html` | 이메일로 가입한 분이 **같은 주소**로 카카오·구글 로그인을 눌러 한 계정으로 묶일 때 |
+| 이메일 주소가 변경되었습니다 · Email address changed | — | 그대로 두세요 | 이메일을 바꾸는 화면이 없습니다 |
+| 로그인 방식이 삭제되었습니다 · Sign-in method removed | — | 그대로 두세요 | 연결을 끊는 화면이 없습니다 |
+
+⚠️ **"그대로 두세요"인 여섯은 나갈 일이 없습니다.** 영어로 남아 있어도
+아무도 받지 않습니다. 손대면 오히려 "고쳤는데 왜 안 바뀌지" 하고 찾게
+됩니다.
 
 ⚠️ **이 중 하나라도 쓰기 시작하면 그때 우리말로 만들어야 합니다.**
-특히 **Magic link or OTP** — 인증을 링크가 아니라 여섯 자리 숫자로 바꾸는
-이야기가 나와 있습니다(`docs/login-flow.md`). 그쪽으로 가면 이 편지가
-가입 확인 편지를 대신하게 되므로 반드시 새로 씁니다.
+특히 **매직 링크 또는 OTP** — 인증을 링크가 아니라 여섯 자리 숫자로
+바꾸는 이야기가 나와 있습니다(`docs/login-flow.md`). 그쪽으로 가면 이
+편지가 가입 확인 편지를 대신하게 되므로 반드시 새로 씁니다.
 
 ## 생김새 — 넷이 한 얼굴이어야 합니다
 
