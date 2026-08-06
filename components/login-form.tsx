@@ -28,7 +28,7 @@ type Mode = "buttons" | "email"
 
 /** 상태줄에 무엇을 띄울지 — 빨간 글씨(잘못됨)와 검은 글씨(알림)를 나눕니다 */
 type Status =
-  | { kind: "error"; text: string; canReset?: boolean }
+  | { kind: "error"; text: string; canReset?: boolean; canResend?: boolean }
   | { kind: "info"; text: string; canResend?: boolean }
   | null
 
@@ -189,9 +189,20 @@ export function LoginForm({
 
     if (!wrongCredentials) {
       setBusy(false)
+
+      // ⚠️ 아직 메일 인증을 안 한 계정입니다. 여기서 사유만 말하고 끝내면
+      //    사람이 갇힙니다 — 메일이 스팸함에 들어갔거나 지워졌으면 다시
+      //    받을 길이 화면에 하나도 없습니다. (가입 직후 한 번은 재전송
+      //    단추가 보이지만, 새로고침하거나 다시 로그인하면 이 갈래로
+      //    빠져서 단추가 사라졌습니다 — 실제로 그렇게 막혔습니다)
+      const notConfirmed =
+        signIn.error.code === "email_not_confirmed" ||
+        /email not confirmed/i.test(signIn.error.message)
+
       return setStatus({
         kind: "error",
         text: translateAuthError(signIn.error.message, signIn.error.code),
+        canResend: notConfirmed,
       })
     }
 
@@ -288,11 +299,22 @@ export function LoginForm({
     )
     setBusy(false)
 
+    // ⚠️ 재전송이 실패해도 단추를 남깁니다. 가장 흔한 실패는 "너무 자주
+    //    보냈어요"(1분에 한 번)인데, 그때 단추가 사라지면 잠시 뒤에 다시
+    //    누를 방법이 없어집니다.
     if (result === "timeout") {
-      return setStatus({ kind: "error", text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요." })
+      return setStatus({
+        kind: "error",
+        text: "응답이 없어요. 잠시 뒤 다시 시도해 주세요.",
+        canResend: true,
+      })
     }
     if (result.error) {
-      return setStatus({ kind: "error", text: translateAuthError(result.error.message, result.error.code) })
+      return setStatus({
+        kind: "error",
+        text: translateAuthError(result.error.message, result.error.code),
+        canResend: true,
+      })
     }
     setStatus({ kind: "info", text: "인증 메일을 다시 보냈어요.", canResend: true })
   }
@@ -368,6 +390,17 @@ export function LoginForm({
             <p className={status.kind === "error" ? "text-red-600" : "text-brand-ink/80"}>
               {status.text}
             </p>
+
+            {status.kind === "error" && status.canResend && (
+              <button
+                type="button"
+                onClick={resendSignup}
+                disabled={busy}
+                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
+              >
+                인증 메일 다시 받기
+              </button>
+            )}
 
             {status.kind === "error" && status.canReset && (
               <button
