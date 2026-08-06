@@ -21,6 +21,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { GoogleMark, KakaoMark } from "@/components/provider-marks"
+import { LoginHelp } from "@/components/login-help"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
 import { lastAuthErrorRaw, translateAuthError } from "@/lib/auth-messages"
 
@@ -441,9 +442,16 @@ export function LoginForm({
           </div>
         )}
 
+        {/* 시안 실측의 80 은 상태줄과 동의 고지 사이입니다. 물음표는 그
+            사이에 끼우지 않고 고지 아래에 답니다 — 로그인하려는 사람의
+            눈길을 가로채지 않으면서, 의심이 생겼을 때는 바로 아래에
+            있습니다. */}
         <div className="mt-20">
           <DebugLine show={debug} />
           <Consent />
+          <div className="mt-3 text-center">
+            <LoginHelp />
+          </div>
         </div>
       </div>
     )
@@ -492,7 +500,12 @@ export function LoginForm({
         </p>
       )}
 
-      <Consent />
+      <div className="space-y-3">
+        <Consent />
+        <p className="text-center">
+          <LoginHelp />
+        </p>
+      </div>
     </div>
   )
 }
