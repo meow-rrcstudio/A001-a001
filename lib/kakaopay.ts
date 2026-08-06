@@ -99,6 +99,22 @@ async function call<T>(path: string, body: Record<string, unknown>): Promise<Kak
 
   if (!response.ok || !raw) {
     const error = raw as KakaoError | null
+
+    // ⚠️ 열쇠를 찍지 않습니다 — 모양만 남깁니다.
+    //
+    // -403 은 "그 열쇠로 그 가맹점 코드를 쓸 권한이 없다"는 뜻이라, 거의
+    // 언제나 엉뚱한 값이 들어가 있는 것입니다. 그런데 값을 볼 수는 없으니
+    // 길이와 앞 세 글자만 남깁니다. 카카오페이 Secret key(dev) 는 DEV 로
+    // 시작하므로, 이 한 줄이면 "다른 값이 들어갔다"를 바로 알 수 있습니다.
+    // (앞 세 글자로는 열쇠를 알아낼 수 없습니다)
+    if (String(error?.error_code) === "-403") {
+      console.error(
+        `[kakaopay] -403 — cid=${CID} · 열쇠 ${SECRET_KEY.length}자 "${SECRET_KEY.slice(0, 3)}…"` +
+          (SECRET_KEY !== SECRET_KEY.trim() ? " ⚠️ 앞뒤에 공백이 있습니다" : "") +
+          (CID_SECRET ? ` · cid_secret ${CID_SECRET.length}자` : ""),
+      )
+    }
+
     return {
       ok: false,
       code: String(error?.error_code ?? "UNKNOWN"),
