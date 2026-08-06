@@ -25,6 +25,17 @@ import { activeProvider, isTestMode } from "@/lib/payments/provider"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * 이 길만 서울에서 돌립니다.
+ *
+ * ⚠️ 카카오페이는 결제 준비를 청한 곳과 결제창을 여는 곳이 크게 다르면
+ *    막을 수 있습니다. Vercel 기본 지역은 미국이라, 미국에서 준비를
+ *    청하고 한국에서 결제창을 열면 "접근금지"가 뜹니다.
+ *    돈이 오가는 길이니 카카오와 가까운 곳에서 부릅니다.
+ */
+export const preferredRegion = "icn1"
+
+
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) {
