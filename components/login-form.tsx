@@ -382,46 +382,41 @@ export function LoginForm({
           </button>
         </form>
 
-        {/* 상태줄 — 왼쪽에 사유, 오른쪽에 할 수 있는 일.
-            자리를 늘 비워두지 않습니다. 빈 줄을 남겨두면 시안의
-            여백 리듬이 깨집니다. */}
+        {/* 상태줄 — 무슨 일이 있었는지, 그리고 무엇을 할 수 있는지.
+            ⚠️ 오류일 때 길을 반드시 함께 냅니다. 예전에는 사유만 말하고
+               끝나는 갈래가 여럿이었습니다 — 인증 전 계정으로 로그인,
+               메일 발송이 너무 잦아 막힌 경우 등. 그때 화면에는 빨간
+               글씨만 남고 누를 것이 하나도 없어서, 사람이 그 자리에
+               갇혔습니다. (실제로 그렇게 막혔습니다)
+
+               그래서 "어떤 오류에는 어떤 단추"를 하나하나 정하지 않고,
+               이메일이 적혀 있으면 두 길을 늘 냅니다. 둘 다 눌러도
+               해롭지 않고, 하나라도 있으면 갇히지 않습니다. */}
         {status && (
-          <div className="flex items-start justify-between gap-3 text-xs">
-            <p className={status.kind === "error" ? "text-red-600" : "text-brand-ink/80"}>
+          <div className="flex flex-col gap-2">
+            <p className={status.kind === "error" ? "text-xs text-red-600" : "text-xs text-brand-ink/80"}>
               {status.text}
             </p>
 
-            {status.kind === "error" && status.canResend && (
-              <button
-                type="button"
-                onClick={resendSignup}
-                disabled={busy}
-                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
-              >
-                인증 메일 다시 받기
-              </button>
-            )}
-
-            {status.kind === "error" && status.canReset && (
-              <button
-                type="button"
-                onClick={sendReset}
-                disabled={busy}
-                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
-              >
-                비밀번호 찾기
-              </button>
-            )}
-
-            {status.kind === "info" && status.canResend && (
-              <button
-                type="button"
-                onClick={resendSignup}
-                disabled={busy}
-                className="shrink-0 whitespace-nowrap text-brand-ink underline underline-offset-4"
-              >
-                재전송
-              </button>
+            {email.trim() && (status.kind === "error" || status.canResend) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <button
+                  type="button"
+                  onClick={resendSignup}
+                  disabled={busy}
+                  className="whitespace-nowrap text-brand-ink underline underline-offset-4 disabled:opacity-50"
+                >
+                  인증 메일 다시 받기
+                </button>
+                <button
+                  type="button"
+                  onClick={sendReset}
+                  disabled={busy}
+                  className="whitespace-nowrap text-brand-ink underline underline-offset-4 disabled:opacity-50"
+                >
+                  비밀번호 찾기
+                </button>
+              </div>
             )}
           </div>
         )}
