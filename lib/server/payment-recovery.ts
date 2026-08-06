@@ -15,9 +15,13 @@
 // │ 있다는 것조차 모릅니다. 웹훅이 있으면 토스가 알려주지만 아직
 // │ 없습니다 — 그전까지 이 파일이 그 자리를 대신합니다.
 // │
-// │ 토스는 주문번호로도 결제를 조회할 수 있어서, 열쇠가 없어도 물어볼
-// │ 수 있습니다. "정말 결제됐고(DONE), 금액도 우리가 적어둔 값과 같다"
-// │ 일 때만 마무리합니다.
+// │ 그래서 결제사에 되묻습니다. "정말 결제됐고, 금액도 우리가 적어둔
+// │ 값과 같다"일 때만 마무리합니다.
+// │
+// │ 묻는 길이 결제사마다 다릅니다.
+// │   · 토스      주문번호로 조회 (열쇠가 없어도 됩니다)
+// │   · 카카오페이 tid 로 조회 — 결제 준비 때 저장해 둔 값입니다
+// │                (/online/v1/payment/order)
 // └──────────────────────────────────────────────────────────────────
 //
 // ⚠️ 여기서 새로 승인하지 않습니다. 조회만 합니다. 돈을 나가게 하는 일은
@@ -26,6 +30,7 @@ import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { fetchPaymentByOrderId, isPaymentSettled } from "@/lib/toss"
+import { fetchOrder, isKakaoOrderPaid } from "@/lib/kakaopay"
 
 /** 한 번에 살펴볼 주문 수. 화면을 여는 김에 도는 일이라 짧게 끊습니다 */
 const MAX_ORDERS = 5
@@ -58,14 +63,9 @@ export async function recoverPendingPurchases(
 
   const { data, error } = await admin
     .from("purchases")
-    .select("order_id, amount_krw")
+    .select("order_id, amount_krw, provider, payment_key")
     .eq("user_id", userId)
     .eq("status", "pending")
-    // ⚠️ 토스 주문만 봅니다. 카카오페이는 "주문 조회" API 가 따로 있어서
-    //    같은 방식으로 물어볼 수 없습니다. 다만 카카오는 승인 자체가
-    //    pg_token 이 있어야만 일어나서, 창을 닫으면 돈이 나가지 않습니다 —
-    //    "돈만 나가고 미지급"이 생길 자리가 토스보다 좁습니다.
-    .eq("provider", "toss")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(MAX_ORDERS)
@@ -77,29 +77,20 @@ export async function recoverPendingPurchases(
   for (const row of data) {
     const orderId = row.order_id as string
     const amountKrw = row.amount_krw as number
+    const provider = (row.provider as string | null) ?? "toss"
+    const tid = row.payment_key as string | null
 
-    const found = await fetchPaymentByOrderId(orderId)
-    // 결제창만 열고 닫은 주문은 토스에도 없습니다 (NOT_FOUND_PAYMENT).
-    // 그건 정상이라 로그도 남기지 않습니다.
-    if (!found.ok) continue
-
-    const payment = found.payment
-    if (!isPaymentSettled(payment)) continue
-
-    if (payment.orderId !== orderId || payment.totalAmount !== amountKrw) {
-      console.error(
-        `[payment-recovery] 조회 결과가 주문과 다릅니다 — 주문 ${orderId}: ` +
-          `${payment.orderId}/${payment.totalAmount} (우리 ${amountKrw})`
-      )
-      continue
-    }
+    // 결제사마다 묻는 길이 다릅니다. 어느 쪽이든 "정말 결제됐고 금액도
+    // 우리가 적어둔 값과 같다"일 때만 다음으로 넘어갑니다.
+    const settled = await lookUp({ provider, orderId, amountKrw, tid })
+    if (!settled) continue
 
     const { data: finalized, error: finalizeError } = await admin.rpc("finalize_purchase", {
       p_order_id: orderId,
       p_user_id: userId,
-      p_payment_key: payment.paymentKey,
-      p_method: payment.method ?? null,
-      p_paid_at: payment.approvedAt ?? new Date().toISOString(),
+      p_payment_key: settled.paymentKey,
+      p_method: settled.method,
+      p_paid_at: settled.paidAt,
     })
 
     const row0 = (Array.isArray(finalized) ? finalized[0] : finalized) as
@@ -121,4 +112,68 @@ export async function recoverPendingPurchases(
   }
 
   return { recovered }
+}
+
+/** 결제사에 되물어, 마무리해도 되는 주문이면 그 값을 돌려줍니다 */
+async function lookUp(args: {
+  provider: string
+  orderId: string
+  amountKrw: number
+  tid: string | null
+}): Promise<{ paymentKey: string; method: string | null; paidAt: string } | null> {
+  const { provider, orderId, amountKrw, tid } = args
+
+  // ── 카카오페이 ────────────────────────────────────────────────────
+  //
+  // ⚠️ 카카오는 주문번호로 못 묻습니다 — tid 로만 묻습니다. 그 tid 는
+  //    결제 준비 때 우리가 purchases.payment_key 에 저장해 둔 값입니다.
+  //    없으면 준비 단계에서 이미 실패한 줄이라 물어볼 것도 없습니다.
+  if (provider === "kakaopay") {
+    if (!tid) return null
+
+    const found = await fetchOrder(tid)
+    // 결제창만 열고 닫은 주문도 조회는 됩니다(QUIT_PAYMENT 등).
+    // isKakaoOrderPaid 가 걸러 줍니다.
+    if (!found.ok) return null
+
+    const order = found.value
+    if (!isKakaoOrderPaid(order)) return null
+
+    if (order.orderId !== orderId || order.totalAmount !== amountKrw) {
+      console.error(
+        `[payment-recovery] 조회 결과가 주문과 다릅니다 — 주문 ${orderId}: ` +
+          `${order.orderId}/${order.totalAmount} (우리 ${amountKrw})`,
+      )
+      return null
+    }
+
+    return {
+      paymentKey: order.tid,
+      method: order.method ?? null,
+      paidAt: order.approvedAt ?? new Date().toISOString(),
+    }
+  }
+
+  // ── 토스 ──────────────────────────────────────────────────────────
+  const found = await fetchPaymentByOrderId(orderId)
+  // 결제창만 열고 닫은 주문은 토스에 아예 없습니다 (NOT_FOUND_PAYMENT).
+  // 그건 정상이라 로그도 남기지 않습니다.
+  if (!found.ok) return null
+
+  const payment = found.payment
+  if (!isPaymentSettled(payment)) return null
+
+  if (payment.orderId !== orderId || payment.totalAmount !== amountKrw) {
+    console.error(
+      `[payment-recovery] 조회 결과가 주문과 다릅니다 — 주문 ${orderId}: ` +
+        `${payment.orderId}/${payment.totalAmount} (우리 ${amountKrw})`,
+    )
+    return null
+  }
+
+  return {
+    paymentKey: payment.paymentKey,
+    method: payment.method ?? null,
+    paidAt: payment.approvedAt ?? new Date().toISOString(),
+  }
 }

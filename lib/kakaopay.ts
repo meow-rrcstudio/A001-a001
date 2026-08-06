@@ -176,6 +176,73 @@ export async function readyPayment(args: {
   }
 }
 
+/** 주문 조회 결과 중 우리가 쓰는 만큼 */
+export interface KakaoOrder {
+  tid: string
+  orderId: string
+  /** SUCCESS_PAYMENT · CANCEL_PAYMENT · QUIT_PAYMENT … */
+  status: string
+  totalAmount: number
+  canceledAmount: number
+  method?: string
+  approvedAt?: string
+}
+
+/**
+ * 주문 하나를 조회합니다 — 돈이 실제로 나갔는지 카카오에 되묻는 길.
+ *
+ * ┌─ 언제 쓰는가 ─────────────────────────────────────────────────────
+ * │ 승인(approve)이 카카오에 닿아 돈은 빠졌는데 우리가 응답을 못 받는
+ * │ 일이 있습니다 — 지하철에서 결제하고 터널에 들어가거나, 그 순간
+ * │ 배포가 돌거나. 그러면 우리 표에는 pending 한 줄만 남고 사람은 돈을
+ * │ 냈는데 별조각이 없습니다.
+ * │
+ * │ 그때 저장해둔 tid 로 물어봅니다. "정말 결제됐다(SUCCESS_PAYMENT)"
+ * │ 일 때만 마무리합니다 (lib/server/payment-recovery.ts).
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 여기서 승인하지 않습니다. 묻기만 합니다. 돈을 나가게 하는 일은
+ *    여전히 사람이 결제창에서 시작한 것뿐입니다.
+ */
+export async function fetchOrder(tid: string): Promise<KakaoResult<KakaoOrder>> {
+  const result = await call<{
+    tid: string
+    status: string
+    partner_order_id: string
+    payment_method_type?: string
+    amount?: { total?: number }
+    canceled_amount?: { total?: number }
+    approved_at?: string
+  }>("/order", { tid })
+
+  if (!result.ok) return result
+
+  return {
+    ok: true,
+    value: {
+      tid: result.value.tid,
+      orderId: result.value.partner_order_id,
+      status: result.value.status,
+      totalAmount: result.value.amount?.total ?? 0,
+      canceledAmount: result.value.canceled_amount?.total ?? 0,
+      method: result.value.payment_method_type,
+      approvedAt: result.value.approved_at,
+    },
+  }
+}
+
+/**
+ * 별조각을 얹어도 되는 상태인가.
+ *
+ * ⚠️ SUCCESS_PAYMENT 하나만 봅니다. 취소된 건(CANCEL_PAYMENT ·
+ *    PART_CANCEL_PAYMENT)은 돈이 돌아간 것이라 지급하면 안 되고,
+ *    결제창을 열었다 닫은 건(QUIT_PAYMENT 등)은 애초에 돈이
+ *    나가지 않았습니다.
+ */
+export function isKakaoOrderPaid(order: KakaoOrder): boolean {
+  return order.status === "SUCCESS_PAYMENT" && order.canceledAmount === 0
+}
+
 export interface KakaoApproveResult {
   aid: string
   tid: string
