@@ -25,9 +25,21 @@ comment on column public.purchases.refund_krw is
   '실제로 돌려준 금액. 쓴 몫을 낱개 값으로 친 뒤의 값 (app/refund 제4조).';
 
 -- 같은 결제 열쇠가 두 줄에 붙지 못하게. (한 번의 결제는 한 주문에만)
-create unique index if not exists purchases_payment_key_unique
-  on public.purchases (payment_key)
-  where payment_key is not null;
+--
+-- ⚠️ 이미 겹치는 줄이 있으면 이 색인은 만들어지지 않습니다. 그때 스크립트
+--    전체가 멈추면 정작 중요한 것(아래 권한 회수)까지 못 들어갑니다.
+--    그래서 실패해도 넘어가고, 대신 무슨 일이 있었는지 알려줍니다.
+--    겹치는 줄을 정리한 뒤 이 파일을 다시 실행하면 그때 만들어집니다.
+do $$
+begin
+  create unique index if not exists purchases_payment_key_unique
+    on public.purchases (payment_key)
+    where payment_key is not null;
+exception when others then
+  raise notice '[003] payment_key 유일 색인을 못 만들었습니다: %', sqlerrm;
+  raise notice '[003] 겹치는 줄을 찾으려면: select payment_key, count(*) from public.purchases where payment_key is not null group by 1 having count(*) > 1;';
+end
+$$;
 
 -- 미확정 주문을 사람이 훑을 때 쓰는 색인
 create index if not exists purchases_pending_user_created_idx
