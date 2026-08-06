@@ -64,7 +64,11 @@ export default async function LoginPage({
           surface="lime": 이 화면은 배경이 이미 라임이라, 연라임 중간색을 뺀
           스크림을 씁니다. 크림용을 그대로 깔면 위쪽에만 연라임 띠가 얹혀
           이상한 그라데이션 자국이 생깁니다. */}
-      <PageHeader backHref="/" surface="lime" centerMark />
+      {/* ⚠️ 뒤로(←)가 아니라 닫기(×)입니다. 로그인은 "왔던 길을 되짚는"
+          자리가 아니라 "이 볼일을 접는" 자리입니다 — 시안이 그렇고,
+          카카오 창을 지나온 뒤 ← 를 누르면 그 창으로 되돌아가는 것처럼
+          읽힙니다. (components/page-header.tsx 의 variant 설명 참고) */}
+      <PageHeader backHref="/" surface="lime" centerMark variant="close" />
 
       <main className={`mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-6 ${HEADER_SPACE}`}>
         <h1 className="sr-only">SoulSeoul 로그인</h1>

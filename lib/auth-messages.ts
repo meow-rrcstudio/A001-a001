@@ -132,6 +132,21 @@ function note(raw: string, code?: string | null, status?: number): void {
   if (typeof console !== "undefined") console.warn("[auth] 옮기지 못한 사유:", lastUntranslated)
 }
 
+/**
+ * "몇 초 뒤에 다시" 를 서버가 알려줄 때 그 숫자.
+ *
+ * Supabase 는 발송 간격에 걸리면 "For security purposes, you can only
+ * request this after 43 seconds" 처럼 남은 초를 붙여 보냅니다. 우리가
+ * 세는 60초보다 이쪽이 정확합니다 — 사람이 다른 창에서 이미 한 번
+ * 보냈을 수도 있으니까요.
+ *
+ * @returns 초. 알 수 없으면 null
+ */
+export function retryAfterSeconds(raw: string): number | null {
+  const m = raw?.match(/after (\d+) seconds?/i)
+  return m ? Number(m[1]) : null
+}
+
 /** 마지막으로 옮기지 못한 사유 (없으면 null) */
 export function lastAuthErrorRaw(): string | null {
   return lastUntranslated

@@ -25,23 +25,39 @@
 //    한쪽만 고치면 방침과 화면이 다른 말을 하게 됩니다.
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import Link from "next/link"
+import { PASSWORD_RULE_TEXT } from "@/lib/password-policy"
 
-export function LoginHelp({ className = "" }: { className?: string }) {
-  const [open, setOpen] = useState(false)
-
+/**
+ * @param withTrigger  "로그인이 왜 이렇게 물어보나요?" 글씨 단추를 함께 낼지.
+ *                     이메일 화면에서는 상태줄의 물음표(?)가 여는 역할을
+ *                     하므로 판만 두고 글씨 단추는 내지 않습니다.
+ */
+export function LoginHelp({
+  open,
+  onOpenChange,
+  withTrigger = false,
+  className = "",
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  withTrigger?: boolean
+  className?: string
+}) {
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`text-xs text-brand-ink/70 underline underline-offset-4 hover:text-brand-ink ${className}`}
-      >
-        로그인이 왜 이렇게 물어보나요?
-      </button>
+      {withTrigger && (
+        <button
+          type="button"
+          onClick={() => onOpenChange(true)}
+          className={`text-xs text-brand-ink/70 underline underline-offset-4 hover:text-brand-ink ${className}`}
+        >
+          로그인이 왜 이렇게 물어보나요?
+        </button>
+      )}
 
-      {open && <HelpSheet onClose={() => setOpen(false)} />}
+      {open && <HelpSheet onClose={() => onOpenChange(false)} />}
     </>
   )
 }
@@ -125,7 +141,7 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
             </Caution>
           </Item>
 
-          <Item q="&ldquo;이메일이나 비밀번호가 맞지 않아요&rdquo; — 둘 중 뭔지 알려주면 안 되나요?">
+          <Item q="가입한 적 있는지 없는지 왜 안 알려주나요?">
             일부러 알려드리지 않습니다. 구분해서 말해 주면 아무 주소나 넣어보며{" "}
             <strong className="font-semibold text-brand-ink">누가 이 사이트에 가입했는지</strong>{" "}
             알아낼 수 있어요. 답답하시겠지만, 그 답답함이 다른 분의 이름을 가려 줍니다.
@@ -136,6 +152,13 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
             를 눌러주세요.
           </Item>
 
+          <Item q="비밀번호를 왜 이렇게 까다롭게 받나요?">
+            여기에는 타로 기록과 별조각이 담깁니다. 짧고 단순한 비밀번호는 다른 사이트에서 새어
+            나온 목록으로 그대로 열립니다 — 그 목록을 넣어보는 일은 사람이 아니라 기계가 합니다.
+            <br />
+            {PASSWORD_RULE_TEXT}
+          </Item>
+
           <Item q="왜 인증 메일을 거치나요?">
             그 메일함이 정말 본인 것인지 확인하는 자리입니다. 이 자리가 없으면 남이 아무 주소로나
             계정을 만들 수 있고, 나중에 비밀번호를 잊었을 때 돌아올 길도 없어집니다.
@@ -143,8 +166,9 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
 
           <Item q="메일이 안 와요">
             스팸함과 프로모션함을 봐주세요. 특히 네이버·다음 메일에서 자주 그리로 갑니다.
-            거기에도 없으면 <strong className="font-semibold text-brand-ink">인증 메일 다시 받기</strong>
-            를 눌러주세요.
+            거기에도 없으면 <strong className="font-semibold text-brand-ink">재전송</strong>을
+            눌러주세요. 그래도 안 오면 이메일 주소에 오타가 없는지 봐주세요 — 주소가 한 글자만
+            달라도 메일은 남의 집으로 갑니다.
           </Item>
 
           <Item q="메일을 너무 자주 보냈대요">
@@ -158,8 +182,8 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
             링크로는 들어올 수 없게 하려는 것이에요.
             <br />
             늘리는 방법은 없고, 필요도 없습니다 —{" "}
-            <strong className="font-semibold text-brand-ink">인증 메일 다시 받기</strong>를 누르면
-            새 링크가 갑니다. 새로 받는 것이 곧 연장입니다.
+            <strong className="font-semibold text-brand-ink">재전송</strong>을 누르면 새 링크가
+            갑니다. 새로 받는 것이 곧 연장입니다.
           </Item>
 
           <Item q="이 과정이 번거로우면">
