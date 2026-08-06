@@ -224,3 +224,57 @@ export async function approvePayment(args: {
 export function isUncertainKakaoError(code: string): boolean {
   return code === "NETWORK" || code === "UNKNOWN"
 }
+
+export interface KakaoCancelResult {
+  tid: string
+  /** 카카오가 말하는 결제 상태 (CANCEL_PAYMENT · PART_CANCEL_PAYMENT …) */
+  status: string
+  /** 이번 요청으로 취소된 금액 */
+  canceledNow: number
+  /** 지금까지 취소된 누계 */
+  canceledTotal: number
+  /** 아직 더 취소할 수 있는 금액 */
+  cancelableLeft: number
+}
+
+/**
+ * 결제 취소 — 돈을 돌려줍니다.
+ *
+ * ⚠️ 부분 취소가 됩니다. 우리 환불정책(app/refund 제4조)은 "쓴 몫은 낱개
+ *    값으로 쳐서 빼고 나머지를 돌려준다"라서, 열 장 사서 넷을 쓴 사람은
+ *    전액이 아니라 그 나머지만 돌아갑니다.
+ *
+ * ⚠️ 비과세(0)는 승인 때와 똑같이 보냅니다. 부가세는 승인 때 안 보냈으니
+ *    취소에서도 안 보냅니다 — 카카오가 같은 방식으로 계산합니다.
+ *    (문서: "승인과 동일하게 요청 시 값을 전달하지 않을 경우 자동계산")
+ */
+export async function cancelPayment(args: {
+  tid: string
+  /** 돌려줄 금액 */
+  amountKrw: number
+}): Promise<KakaoResult<KakaoCancelResult>> {
+  const result = await call<{
+    tid: string
+    status: string
+    approved_cancel_amount?: { total?: number }
+    canceled_amount?: { total?: number }
+    cancel_available_amount?: { total?: number }
+  }>("/cancel", {
+    tid: args.tid,
+    cancel_amount: args.amountKrw,
+    cancel_tax_free_amount: 0,
+  })
+
+  if (!result.ok) return result
+
+  return {
+    ok: true,
+    value: {
+      tid: result.value.tid,
+      status: result.value.status,
+      canceledNow: result.value.approved_cancel_amount?.total ?? 0,
+      canceledTotal: result.value.canceled_amount?.total ?? 0,
+      cancelableLeft: result.value.cancel_available_amount?.total ?? 0,
+    },
+  }
+}
