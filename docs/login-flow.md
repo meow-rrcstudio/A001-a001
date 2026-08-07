@@ -94,6 +94,18 @@ Supabase 는 "비밀번호가 틀렸다"와 "그런 계정이 없다"를 **구�
 | **비밀번호 재설정** (`/reset-password`) | ✅ 봅니다 |
 | 로그인 | ❌ 보지 않습니다 — 옛 계정이 지금 조건을 안 지날 수 있고, 여기서 막으면 자기 계정에 못 들어갑니다 |
 
+### 대시보드 값 (2026-08-07 확인)
+
+Authentication → Providers → Email → Password Requirements
+
+| 항목 | 값 |
+|---|---|
+| Minimum password length | **8** |
+| Password requirements | **Lowercase, uppercase letters, digits and symbols** |
+
+`lib/password-policy.ts` 와 같습니다. **다시 여쭤보지 마세요** — 이 값을
+바꿀 때만 양쪽을 함께 고치면 됩니다.
+
 한때 세 곳이 서로 다른 말을 했습니다 — 정책은 8자인데 재설정 화면은
 "6자 이상"이라 적어두고 6자를 받았고, 서버가 옮긴 오류도 "6자"라고
 했습니다. 화면이 시킨 대로 했는데 Supabase 가 막는 상태였습니다.

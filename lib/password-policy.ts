@@ -7,6 +7,14 @@
 // │     · Minimum length            = MIN_LENGTH (아래 값)
 // │     · Lowercase, uppercase, digits, symbols  ← 켜기
 // │
+// │ ✅ 2026-08-07 아리님이 대시보드를 확인해 주셨습니다. 아래 값과 같습니다:
+// │      Minimum password length = 8
+// │      Password requirements   = Lowercase, uppercase letters,
+// │                               digits and symbols
+// │    **다시 묻지 마세요.** 이 파일을 고칠 때만 대시보드를 함께 보면
+// │    됩니다. (그동안 같은 것을 여러 번 여쭤봤습니다 — 어디에도 적어두지
+// │    않아서 물어본 사실 자체가 남지 않았기 때문입니다)
+// │
 // │ 여기 있는 것은 "누르기 전에 미리 알려주는" 몫입니다. 대시보드를
 // │ 바꾸고 여기를 안 바꾸면, 화면은 통과시켰는데 서버가 막습니다 —
 // │ 사용자에게는 영문 오류가 뜹니다. 반대면 멀쩡한 비밀번호를
