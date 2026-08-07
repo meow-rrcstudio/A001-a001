@@ -635,9 +635,26 @@ export function CardReadingFlow({
         </div>
       )}
 
-      {/* ── 요구사항 반영: 손잡이 배경 알파값 90% (bg-background/90) 적용 ── */}
+      {/* ── 굴리는 손잡이 ────────────────────────────────────────────────
+          ┌─ 시안 실측 (2026-08) ─────────────────────────────────────────
+          │ 바      높이 70 · 흰 바탕 · 윗변에 1px 선
+          │ 선      1px, 좌우 20 씩 띄움
+          │ 동그라미 23 · #000 · drop-shadow(0 4px 8px rgba(0,0,0,0.20))
+          └───────────────────────────────────────────────────────────────
+
+          ⚠️ 동그라미는 23 입니다. 시안 SVG 가 r=11.5 라 지름 23 이고,
+             filter 의 dy=4 · stdDeviation=4 가 곧 0 4px 8px 입니다.
+             20 으로 두었더니 카드 부채에 비해 작아 손잡이로 안 읽혔습니다.
+
+          ⚠️ 그림자는 box-shadow 가 아니라 **drop-shadow** 입니다.
+             range 의 손잡이는 만들어진 모양이라 box-shadow 를 주면
+             네모 그림자가 딸려 나옵니다. drop-shadow 는 실제 그려진
+             동그라미 모양을 따라갑니다.
+
+          ⚠️ 웹킷과 파이어폭스가 손잡이를 부르는 이름이 다릅니다. 한쪽만
+             적으면 다른 쪽에서 기본 손잡이(회색 네모)가 그대로 나옵니다. */}
       {phase === "selecting" && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/90 px-6 py-4 backdrop-blur-[var(--glass-blur)] sm:px-8">
+        <div className="fixed inset-x-0 bottom-0 z-[70] flex h-[70px] items-center border-t border-border bg-card px-5 backdrop-blur-[var(--glass-blur)]">
           <input
             type="range"
             min={0}
@@ -650,10 +667,13 @@ export function CardReadingFlow({
               setFanRoll(next)
             }}
             aria-label="카드 굴리기"
-            /* ── 요구사항 반영: 손잡이 동그라미 크기 20x20으로 변경 ── */
-            className="mx-auto block h-1 w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
-              [&::-webkit-slider-thumb]:h-[20px] [&::-webkit-slider-thumb]:w-[20px] [&::-webkit-slider-thumb]:appearance-none
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
+            className="mx-auto block h-px w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
+              [&::-webkit-slider-thumb]:h-[23px] [&::-webkit-slider-thumb]:w-[23px] [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black
+              [&::-webkit-slider-thumb]:[filter:drop-shadow(0_4px_8px_rgba(0,0,0,0.20))]
+              [&::-moz-range-thumb]:h-[23px] [&::-moz-range-thumb]:w-[23px] [&::-moz-range-thumb]:appearance-none
+              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-black
+              [&::-moz-range-thumb]:[filter:drop-shadow(0_4px_8px_rgba(0,0,0,0.20))]"
           />
         </div>
       )}
