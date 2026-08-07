@@ -1,15 +1,28 @@
 # 앱인토스 미니앱 — 설계 메모
 
-토스 앱 안에서 도는 미니앱을 만들려면 무엇을 새로 만들고 무엇을 그대로
-쓰는지 적어둡니다. **아직 아무것도 만들지 않았습니다** — 이 문서는 결정을
-내리기 위한 것입니다.
+토스 앱 안에서 도는 미니앱. 무엇을 새로 만들고 무엇을 그대로 쓰는지,
+그리고 왜 그렇게 했는지 적어둡니다.
 
-이 문서의 근거는 둘입니다.
+**지금까지 만든 것** (콘솔 없이 할 수 있는 데까지 왔습니다)
+
+| | 어디 |
+|---|---|
+| ✅ 토큰으로 사람 알아보기 | `lib/supabase/server.ts` (§3) |
+| ✅ 미니앱 출처에 CORS 열기 | `lib/server/toss-origin.ts` (§3) |
+| ✅ 토스 로그인 → 우리 세션 | `lib/server/toss-api.ts` · `app/api/auth/toss` (§3) |
+| ✅ 인앱결제 지급·환불 감지 | `lib/server/toss-iap.ts` · `app/api/payments/toss-iap/**` (§4) |
+| ✅ 미니앱 껍데기 | `miniapp/` |
+| ⛔ 타로 화면 옮기기 | 아직 |
+
+**남은 것은 콘솔에서 나오는 값 셋뿐입니다** — `appName` · mTLS 인증서 ·
+상품(SKU) 등록. 코드는 그 값을 기다리는 상태입니다 (§9).
+
+이 문서의 근거는 셋입니다.
 
 - 앱인토스 **서비스 오픈 정책** (아리님이 옮겨 주신 것)
+- 앱인토스 **개발자 문서** (아리님이 찾아 주신 것 — 엔드포인트·CORS·샌드박스)
 - `@apps-in-toss/web-framework@3.0.2` **패키지 안의 타입 정의**
-  (개발자센터 문서 사이트는 이 작업 환경에서 막혀 있어, SDK 를 npm 으로
-  받아 직접 읽었습니다. 추측이 아니라 실제 함수 서명입니다)
+  (npm 으로 받아 직접 읽었습니다. 추측이 아니라 실제 함수 서명입니다)
 
 ---
 
@@ -76,7 +89,7 @@ export default defineConfig({
 | 별조각 원장과 셈 | `credit_entries`, `spend_credit` |
 | 결제 마무리 · 환불 | `finalize_purchase`, `refund_purchase` |
 | 판·대화 저장 | `readings`, `reading_turns` |
-| API 16개 | `app/api/**` |
+| API 18개 | `app/api/**` |
 
 | 새로 만드는 것 | 왜 |
 |---|---|
@@ -234,26 +247,81 @@ const cleanup = IAP.createOneTimePurchaseOrder({
 - `IAP.getCompletedOrRefundedOrders()` — `status: "COMPLETED" | "REFUNDED"`
 - `IAP.completeProductGrant({ params: { orderId } })` — 지급 완료 알림
 
-### 우리 쪽에 붙는 자리
-
-이미 만들어 둔 것이 그대로 맞물립니다.
+### ✅ 우리 쪽에 붙였습니다 (2026-08-07)
 
 | 토스 | 우리 |
 |---|---|
-| `sku` | `lib/credit-packs.ts` 의 `key` (single·three·ten) |
+| `sku` | `lib/credit-packs.ts` 의 `key` — **같은 값**입니다 |
 | `orderId` | `purchases.order_id`, `provider = 'toss-iap'` |
-| `processProductGrant` | `finalize_purchase()` |
-| `getPendingOrders` | `recoverPendingPurchases()` 와 같은 일 |
-| `REFUNDED` 감지 | `refund_purchase()` (별조각 회수) |
+| `processProductGrant` | `POST /api/payments/toss-iap/grant` |
+| `REFUNDED` 감지 | `POST /api/payments/toss-iap/reconcile` |
+
+**sku 를 우리 `key` 와 같은 값으로 둡니다** — `single` · `three` · `ten`.
+콘솔에 상품을 등록할 때 그 이름 그대로 씁니다. 그러면 서버가
+`findPack(sku)` 한 줄로 끝나고, 양쪽을 잇는 표를 두지 않아도 됩니다.
+표를 두면 상품이 늘 때마다 한쪽만 고쳐진 채 남습니다.
+
+⚠️ 앞으로도 **영문 소문자만** 씁니다. `1-credit`·`3pack`·`10개` 처럼 숫자나
+   다른 언어가 섞이면 플랫폼마다 규칙이 달라 언젠가 어긋납니다.
+
+### 순서가 웹과 뒤집힙니다
+
+웹에서는 우리가 주문을 먼저 만듭니다(`checkout` 이 pending 한 줄 → `confirm`
+이 paid 로). 인앱결제는 **토스가 주문을 만들고** 다 끝난 뒤 `orderId` 하나가
+옵니다. 그래서 순서가 이렇습니다.
+
+```
+물어보고(진짜인가) → 그때 주문 줄을 만들고 → 별조각을 얹습니다
+```
+
+⚠️ 미니앱이 보내는 `orderId` 를 믿지 않습니다. 그대로 믿으면 주문번호를
+   지어내서 얼마든지 받아갈 수 있습니다. `get-order-status` 로 다시 물어
+   **그 답만** 씁니다.
+
+⚠️ `processProductGrant` 가 돌려주는 값이 곧 "지급됐는가"입니다. 확실하지
+   않으면 **false** 입니다 — true 로 얼버무리면 돈은 나갔는데 별조각이 없는
+   사람이 생깁니다. false 면 토스가 미지급으로 남겨두고 다시 들고 옵니다.
+
+⚠️ 두 번 눌러도 한 번만 얹히도록 세 겹으로 막았습니다 —
+   `purchases.order_id` unique · `on conflict do nothing` ·
+   `finalize_purchase` 의 `already_paid`(+ `credit_entries.idempotency_key`).
+
+**확인한 것** (`/etc/hosts` 로 토스 주소를 우리 mTLS 서버로 돌려 실제로 불렀습니다):
+
+| 보낸 것 | 결과 |
+|---|---|
+| 진짜 결제된 주문 (`PURCHASED`) | ✅ 지급 |
+| 콘솔에만 있는 모르는 sku | ❌ 409 — 지급 안 함, 서버 기록에 남김 |
+| 아직 결제 안 끝난 주문 | ❌ 409 |
+| 지어낸 주문번호 | ❌ 502 (토스가 모른다고 함) |
+| 로그인 없이 지급 요청 | ❌ 401 |
+| 환불된 주문 훑기 | ✅ 별조각 거둠 |
+
+⚠️ `PURCHASED` 가 **아니면 주지 않는** 쪽으로 기울였습니다. 상태 이름의 전체
+   목록이 문서에 없어서, 모르는 값이 오면 안 줍니다. 잘못 주면 되돌리기
+   어렵지만, 안 주고 뒤늦게 주는 것은 언제든 됩니다.
 
 ⚠️ **환불이 토스 쪽에서 일어납니다.** 웹에서는 우리가 환불을 시작하지만,
 인앱결제는 사용자가 토스에서 환불받습니다. 그러면 우리는 모르는 채로
-별조각만 남습니다 — `getCompletedOrRefundedOrders()` 를 주기적으로 훑어
-`REFUNDED` 를 찾아 거둬야 합니다. 이건 미니앱을 열 때마다 도는 일로 둡니다.
+별조각만 남습니다 — 열 장을 사고 환불받은 뒤에도 열 판을 볼 수 있다는 뜻입니다.
+그래서 미니앱을 열 때마다 `reconcile` 을 부릅니다 (miniapp/src/purchase.ts).
+
+⚠️ 미니앱이 "이거 환불됐어요" 라고 말하는 것을 믿지 않습니다. 그러면 남의
+   주문번호를 보내 남의 별조각을 거둬가게 할 수 있습니다. **우리가 가진
+   주문만** 훑고, 상태는 토스에게 다시 물어봅니다.
+
+⚠️ 한 번에 최근 5건만 봅니다. 미니앱을 열 때마다 도는 일인데 주문 하나에
+   토스 왕복이 한 번씩이고, 요청 한도가 앱당 분당 3,000회입니다 — 사람이
+   몰리는 시간에 이것만으로 한도를 채울 수 있습니다. 환불은 대개 산 지
+   얼마 안 되어 일어납니다.
 
 ⚠️ 가격을 두 곳에서 정하게 됩니다 (우리 `credit-packs` · 토스 콘솔 상품).
-어긋나면 "888원인 줄 알고 눌렀는데 다른 값"이 됩니다. 지급할 때 **금액이
-아니라 sku 로** 판단하고, 값이 다르면 지급을 멈추고 로그를 남깁니다.
+지급할 때 **금액이 아니라 sku 로** 판단합니다 — `get-order-status` 가 금액을
+주지 않기도 하고, sku 는 하나뿐이라 어긋날 자리가 없습니다.
+
+⚠️ 다만 `purchases.amount_krw` 에는 **우리 가격**이 적힙니다. 콘솔 가격이
+   우리와 다르면 그 값이 실제로 낸 돈과 어긋납니다 — 환불 계산이 그 값을
+   쓰므로, 두 곳의 가격을 반드시 같게 두세요.
 
 ---
 

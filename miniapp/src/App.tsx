@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { Environment, SafeArea } from "@apps-in-toss/web-framework"
 import { fetchAccount, type Account, ApiError, API_BASE } from "./api"
 import { getAccessToken, signInWithToss, clearSession } from "./session"
+import { reconcileRefunds } from "./purchase"
 
 type StepState = "waiting" | "ok" | "fail"
 
@@ -24,6 +25,7 @@ const STEP_LABELS = {
   session: "우리 세션",
   api: "우리 서버 (/api/account)",
   login: "토스 로그인",
+  refunds: "환불 훑기",
 } as const
 
 type StepKey = keyof typeof STEP_LABELS
@@ -93,6 +95,18 @@ export function App() {
       const data = await fetchAccount()
       setAccount(data)
       mark("api", { state: "ok", detail: `별조각 ${data.credits}개` })
+
+      // ⚠️ 로그인한 다음마다 한 번 훑습니다. 환불이 토스 쪽에서 일어나서
+      //    우리에게는 아무도 알려주지 않기 때문입니다 — 그냥 두면 돈은
+      //    돌아갔는데 별조각은 남습니다.
+      //
+      // ⚠️ 화면을 막지 않습니다. 뒤에서 맞춰두는 일이지 사용자가 기다려야
+      //    하는 일이 아닙니다. 실패해도 0 을 돌려주고 조용히 넘어갑니다.
+      const revoked = await reconcileRefunds()
+      mark("refunds", {
+        state: "ok",
+        detail: revoked ? `환불 ${revoked}건 반영` : "환불 없음",
+      })
     } catch (error) {
       mark("api", {
         state: "fail",
