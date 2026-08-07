@@ -140,4 +140,15 @@ export const SELF_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "gentle",
   },
+  {
+    slug: "general",
+    label: "그냥 나에 대해 전반적으로 궁금해",
+    resonatesWith: ["moon", "wind"],
+    spreads: ["me-now-1", "me-three-3"],
+    confirms: [
+      { text: "가끔은 특별한 질문 없이 그냥 지금의 나를 바라보는 것도 좋은 시간이 된다냥. 샨티와 함께 지금의 너를 들여다보자냥." },
+      { text: "지금의 나, 아직 발견하지 못한 나, 앞으로의 나. 세 장의 카드로 나를 조금 다른 시선에서 만나보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]

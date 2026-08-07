@@ -151,4 +151,15 @@ export const MONEY_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "focus",
   },
+  {
+    slug: "general",
+    label: "그냥 요즘 재물운 전반이 궁금해",
+    resonatesWith: ["stone", "moon", "wind"],
+    spreads: ["wealth-now-1", "wealth-three-3"],
+    confirms: [
+      { text: "재물운은 단순히 돈의 양이 아니라 내가 가진 가능성과 선택이 만들어가는 흐름이다냥. 샨티와 함께 지금의 재물 흐름을 살펴보자냥." },
+      { text: "돈의 흐름에도 계절이 있다냥. 현재의 상태와 앞으로 열릴 가능성을 함께 바라보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]

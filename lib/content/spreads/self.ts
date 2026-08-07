@@ -689,4 +689,40 @@ export const SELF_SPREADS: Record<SpreadId, Spread> = {
       },
     ],
   },
+  "me-now-1": {
+    emoji: "🪞",
+    name: "지금의 나",
+    layoutKey: "one-card",
+    resonatesWith: ["moon", "wind"],
+    positions: [
+      {
+        label: "지금의 나",
+        short: "한 장으로 지금의 너를 가장 잘 보여주는 모습을 살펴본다냥.",
+        long: "네가 지금 어떤 상태와 에너지를 가지고 있는지 알아본다냥.",
+      },
+    ],
+  },
+  "me-three-3": {
+    emoji: "🌱",
+    name: "나를 이루는 세 가지",
+    layoutKey: "three-row",
+    resonatesWith: ["wind", "moon"],
+    positions: [
+      {
+        label: "지금의 나",
+        short: "지금의 나를 보여주는 카드다냥.",
+        long: "현재 내가 가진 에너지와 모습을 살펴본다냥.",
+      },
+      {
+        label: "숨겨진 나",
+        short: "내 안에 숨겨진 나를 보여주는 카드다냥.",
+        long: "아직 충분히 알아차리지 못한 나의 모습과 가능성을 알아본다냥.",
+      },
+      {
+        label: "드러날 나",
+        short: "앞으로 드러날 나를 보여주는 카드다냥.",
+        long: "앞으로 내가 어떤 모습으로 변화해갈지 살펴본다냥.",
+      },
+    ],
+  },
 }

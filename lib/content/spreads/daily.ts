@@ -345,7 +345,7 @@ export const DAILY_SPREADS: Record<SpreadId, Spread> = {
         long: "필요한 태도와 마음가짐을 살펴본다냥.",
       },
       {
-        label: "한 주의 마지막 메시지",
+        label: "주가 남기는 말",
         short: "이번 주가 남기는 마지막 메시지를 보여주는 카드다냥.",
         long: "한 주의 끝에서 얻게 될 의미를 찾아본다냥.",
       },
@@ -615,6 +615,42 @@ export const DAILY_SPREADS: Record<SpreadId, Spread> = {
         label: "샨티의 메시지",
         short: "샨티가 전하는 기회의 메시지를 담은 카드다냥.",
         long: "지금 너에게 필요한 용기와 태도를 알려준다냥.",
+      },
+    ],
+  },
+  "life-now-1": {
+    emoji: "🌿",
+    name: "오늘의 삶의 흐름",
+    layoutKey: "one-card",
+    resonatesWith: ["wind", "moon"],
+    positions: [
+      {
+        label: "삶의 흐름",
+        short: "한 장으로 지금 너의 일상과 삶의 흐름을 살펴본다냥.",
+        long: "현재 네가 어떤 에너지 속에 머물고 있는지 알아본다냥.",
+      },
+    ],
+  },
+  "life-three-3": {
+    emoji: "🌊",
+    name: "삶의 세 가지 흐름",
+    layoutKey: "three-row",
+    resonatesWith: ["wind", "moon", "flower"],
+    positions: [
+      {
+        label: "지금의 상태",
+        short: "지금 나의 삶의 상태를 보여주는 카드다냥.",
+        long: "현재 일상에서 느끼는 흐름과 에너지를 살펴본다냥.",
+      },
+      {
+        label: "들어오는 변화",
+        short: "내 삶에 들어오고 있는 변화를 보여주는 카드다냥.",
+        long: "앞으로 경험하게 될 새로운 흐름과 가능성을 알아본다냥.",
+      },
+      {
+        label: "필요한 방향",
+        short: "더 좋은 삶을 위해 필요한 방향을 보여주는 카드다냥.",
+        long: "지금 나에게 필요한 선택과 마음가짐을 살펴본다냥.",
       },
     ],
   },

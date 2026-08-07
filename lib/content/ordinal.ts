@@ -35,6 +35,10 @@ export function ordinalOf(index: number): string {
  *    한 번 더 마음을 담습니다.
  */
 export function drawLine(short: string, index: number, total: number): string {
-  const head = index === total - 1 && total > 1 ? "자 마지막이야. " : ""
+  // 한 장짜리에는 번호를 붙이지 않습니다 — 「첫 번째 카드는」이라고 하면
+  // 두 번째가 있는 줄 알게 됩니다. 그 자리의 문구는 혼자 서게 씁니다.
+  if (total === 1) return short
+
+  const head = index === total - 1 ? "자 마지막이야. " : ""
   return `${head}${ordinalOf(index)} 카드는 ${short}`
 }

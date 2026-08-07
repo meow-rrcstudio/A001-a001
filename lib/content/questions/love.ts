@@ -173,4 +173,15 @@ export const LOVE_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "gentle",
   },
+  {
+    slug: "general",
+    label: "그냥 사랑에 대해 전반적으로 궁금해",
+    resonatesWith: ["flower", "moon"],
+    spreads: ["love-now-1", "love-three-3"],
+    confirms: [
+      { text: "사랑은 누군가를 만나는 것뿐 아니라 내가 사랑을 받아들이고 표현하는 방식까지 담고 있다냥. 샨티와 함께 지금의 사랑 흐름을 살펴보자냥." },
+      { text: "사랑의 계절은 각자 다른 속도로 찾아온다냥. 지금의 마음과 앞으로 열릴 가능성을 함께 들여다보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]

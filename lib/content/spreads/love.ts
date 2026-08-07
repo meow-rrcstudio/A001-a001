@@ -896,4 +896,40 @@ export const LOVE_SPREADS: Record<SpreadId, Spread> = {
       },
     ],
   },
+  "love-now-1": {
+    emoji: "💕",
+    name: "사랑의 흐름",
+    layoutKey: "one-card",
+    resonatesWith: ["flower", "moon"],
+    positions: [
+      {
+        label: "사랑의 흐름",
+        short: "한 장으로 지금 너의 사랑과 관계의 흐름을 살펴본다냥.",
+        long: "현재 네가 사랑을 바라보는 마음과 앞으로의 가능성을 알아본다냥.",
+      },
+    ],
+  },
+  "love-three-3": {
+    emoji: "🌹",
+    name: "사랑의 세 가지 이야기",
+    layoutKey: "three-row",
+    resonatesWith: ["flower", "candle"],
+    positions: [
+      {
+        label: "지금의 사랑",
+        short: "지금 나의 사랑 상태를 보여주는 카드다냥.",
+        long: "현재 사랑에 대한 나의 마음과 관계의 에너지를 살펴본다냥.",
+      },
+      {
+        label: "펼쳐질 흐름",
+        short: "앞으로 펼쳐질 사랑의 흐름을 보여주는 카드다냥.",
+        long: "새로운 만남과 관계의 변화를 알아본다냥.",
+      },
+      {
+        label: "필요한 것",
+        short: "행복한 사랑을 위해 필요한 것을 보여주는 카드다냥.",
+        long: "내가 알아두면 좋을 사랑의 방향과 메시지를 살펴본다냥.",
+      },
+    ],
+  },
 }

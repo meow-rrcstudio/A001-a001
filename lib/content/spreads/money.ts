@@ -995,4 +995,40 @@ export const MONEY_SPREADS: Record<SpreadId, Spread> = {
       },
     ],
   },
+  "wealth-now-1": {
+    emoji: "🪙",
+    name: "요즘 재물의 흐름",
+    layoutKey: "one-card",
+    resonatesWith: ["stone", "moon"],
+    positions: [
+      {
+        label: "재물의 흐름",
+        short: "한 장으로 요즘 너의 재물운 전체 흐름을 살펴본다냥.",
+        long: "현재 돈과 관련된 에너지와 앞으로 바라볼 방향을 알아본다냥.",
+      },
+    ],
+  },
+  "wealth-three-3": {
+    emoji: "🌱",
+    name: "재물의 세 가지 흐름",
+    layoutKey: "three-row",
+    resonatesWith: ["stone", "wind", "candle"],
+    positions: [
+      {
+        label: "지금의 상태",
+        short: "현재 나의 재물운 상태를 보여주는 카드다냥.",
+        long: "지금 돈의 흐름과 재정적인 분위기를 살펴본다냥.",
+      },
+      {
+        label: "다가올 변화",
+        short: "앞으로 다가올 재물의 변화를 보여주는 카드다냥.",
+        long: "새로운 기회와 움직임의 가능성을 알아본다냥.",
+      },
+      {
+        label: "필요한 방향",
+        short: "좋은 재물 흐름을 만들기 위해 필요한 방향을 보여주는 카드다냥.",
+        long: "돈과 관련해 내가 기억하면 좋을 메시지를 살펴본다냥.",
+      },
+    ],
+  },
 }

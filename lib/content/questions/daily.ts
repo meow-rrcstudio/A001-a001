@@ -129,4 +129,15 @@ export const DAILY_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "focus",
   },
+  {
+    slug: "general",
+    label: "그냥 일상 삶에 대해 전반적으로 궁금해",
+    resonatesWith: ["wind", "moon", "flower"],
+    spreads: ["life-now-1", "life-three-3"],
+    confirms: [
+      { text: "특별한 고민이 없어도 지금의 삶을 바라보는 시간은 의미가 있다냥. 샨티와 함께 현재의 흐름을 살펴보자냥." },
+      { text: "삶은 작은 변화들이 모여 만들어지는 여행이다냥. 지금의 나와 앞으로의 방향을 함께 들여다보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]
