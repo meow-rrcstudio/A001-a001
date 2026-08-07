@@ -44,7 +44,9 @@ register(
 
 const { SPREADS } = await import("../lib/content/spreads.ts")
 const { PREPARED } = await import("../lib/content/questions.ts")
-const { ENTRY_LINES, TOPIC_LINES, SHUFFLE_URGE } = await import("../lib/content/lines.ts")
+const { ENTRY_LINES, TOPIC_LINES, SHUFFLE_URGE, SHUFFLE_POOL } = await import(
+  "../lib/content/lines.ts"
+)
 const { TRAITS, AXES, COMBOS } = await import("../lib/content/traits.ts")
 const { spreadLayouts } = await import("../lib/spread-layouts.ts")
 
@@ -54,7 +56,7 @@ const fail = (where, what) => problems.push(`✘ ${where}\n    ${what}`)
 const warn = (where, what) => warnings.push(`· ${where}\n    ${what}`)
 
 /** 같은 갈래의 양쪽을 함께 적었는가 ("꽃결이면서 돌결인 사람"은 없습니다) */
-function checkTraits(where, traits) {
+function checkResonance(where, traits) {
   if (!traits) return
   const seen = new Map()
   for (const t of traits) {
@@ -99,7 +101,7 @@ for (const [id, spread] of Object.entries(SPREADS)) {
     )
   }
 
-  checkTraits(where, spread.traits)
+  checkResonance(where, spread.resonatesWith)
 
   spread.positions.forEach((p, i) => {
     for (const field of ["label", "short", "long"]) {
@@ -141,15 +143,34 @@ for (const [topic, questions] of Object.entries(PREPARED)) {
       if (!SPREADS[id]) fail(where, `스프레드 "${id}" 는 lib/content/spreads.ts 에 없습니다`)
     }
 
-    if (!q.confirms?.length) fail(where, "confirms 가 비었습니다")
-    if (!q.shuffles?.length) fail(where, "shuffles 가 비었습니다")
-    for (const [field, lines] of [["confirms", q.confirms], ["shuffles", q.shuffles]]) {
-      ;(lines ?? []).forEach((line, i) => {
-        if (!line?.trim()) fail(where, `${field} 의 ${i + 1}번째가 비었습니다`)
-      })
-    }
+    // 확정 멘트는 질문마다 직접 씁니다 (풀이 없으므로 비면 안 됩니다).
+    if (!q.confirms?.length) fail(where, "confirms 가 비었습니다 — 질문마다 하나 이상 있어야 합니다")
+    ;(q.confirms ?? []).forEach((line, i) => {
+      if (!line?.text?.trim()) fail(where, `confirms 의 ${i + 1}번째 text 가 비었습니다`)
+      checkResonance(`${where} · confirms ${i + 1}번째`, line?.resonatesWith)
+    })
 
-    checkTraits(where, q.traits)
+    // 섞기 멘트는 풀에서 꺼냅니다. 결 이름이 있어야 하고, 그 풀이 있어야 합니다.
+    if (!q.shuffleStyle) {
+      fail(where, `shuffleStyle 이 없습니다 — 쓸 수 있는 것: ${Object.keys(SHUFFLE_POOL).join(" · ")}`)
+    } else if (!SHUFFLE_POOL[q.shuffleStyle]) {
+      fail(
+        where,
+        `shuffleStyle "${q.shuffleStyle}" 에 맞는 풀이 없습니다. ` +
+          `쓸 수 있는 것: ${Object.keys(SHUFFLE_POOL).join(" · ")}`
+      )
+    }
+    // 풀 대신 직접 적은 경우만 봅니다 (대개 비어 있습니다).
+    ;(q.shuffles ?? []).forEach((line, i) => {
+      if (!line?.text?.trim()) fail(where, `shuffles 의 ${i + 1}번째 text 가 비었습니다`)
+      checkResonance(`${where} · shuffles ${i + 1}번째`, line?.resonatesWith)
+    })
+
+    checkResonance(where, q.resonatesWith)
+    // 아무에게도 안 당겨지는 질문 — 언제나 꼴찌라 사실상 안 나옵니다.
+    if (!q.resonatesWith?.length) {
+      warn(where, "resonatesWith 가 비었습니다 — 어느 성향에도 안 당겨져서 거의 안 나옵니다")
+    }
   }
 
   if (!slugs.has("general")) {
@@ -164,9 +185,17 @@ for (const [topic, questions] of Object.entries(PREPARED)) {
 if (ENTRY_LINES.length < 2) fail("ENTRY_LINES", "둘 이상이어야 매번 달라집니다")
 ENTRY_LINES.forEach((l, i) => {
   if (!l.text?.trim()) fail("ENTRY_LINES", `${i + 1}번째가 비었습니다`)
-  checkTraits(`ENTRY_LINES ${i + 1}번째`, l.traits)
+  checkResonance(`ENTRY_LINES ${i + 1}번째`, l.resonatesWith)
 })
 if (!SHUFFLE_URGE.length) fail("SHUFFLE_URGE", "비어 있습니다")
+for (const [style, lines] of Object.entries(SHUFFLE_POOL)) {
+  if (!lines?.length) fail(`SHUFFLE_POOL.${style}`, "비어 있습니다 — 이 결을 쓰는 질문이 멈춥니다")
+  ;(lines ?? []).forEach((l, i) => {
+    if (!l.text?.trim()) fail(`SHUFFLE_POOL.${style}`, `${i + 1}번째가 비었습니다`)
+    checkResonance(`SHUFFLE_POOL.${style} ${i + 1}번째`, l.resonatesWith)
+  })
+  if (lines?.length === 1) warn(`SHUFFLE_POOL.${style}`, "한 줄뿐이라 늘 같은 말이 나옵니다")
+}
 for (const [topic, lines] of Object.entries(TOPIC_LINES)) {
   if (!lines?.length) fail(`TOPIC_LINES.${topic}`, "비어 있습니다")
   ;(lines ?? []).forEach((l, i) => {
@@ -187,7 +216,8 @@ if (problems.length) {
   process.exit(1)
 }
 
+const shufflePoolCount = Object.values(SHUFFLE_POOL).reduce((n, l) => n + l.length, 0)
 console.log(
   `✔ 질문 ${questionCount}개 · 스프레드 ${Object.keys(SPREADS).length}개 · ` +
-    `진입 멘트 ${ENTRY_LINES.length}개 — 모두 제자리입니다.`
+    `진입 멘트 ${ENTRY_LINES.length}개 · 섞기 멘트 ${shufflePoolCount}개 — 모두 제자리입니다.`
 )

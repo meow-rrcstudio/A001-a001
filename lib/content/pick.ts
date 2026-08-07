@@ -37,12 +37,26 @@ import { traitsOf, type TraitCode, type TraitProfile } from "@/lib/content/trait
 /** 고를 수 있는 것은 무엇이든 이 모양이면 됩니다 */
 export interface Weighted {
   /**
-   * 이것과 어울리는 성향. 비워두면 누구에게나 고르게 나옵니다.
+   * 이것이 **누구에게 어울리는가**.
    *
-   * ⚠️ 셋을 다 적을 필요가 없습니다. 「🌸🕯️」처럼 둘만 적어도 되고,
-   *    하나만 적어도 됩니다. 적은 것이 겹칠수록 자주 나옵니다.
+   * ┌─ 사람의 성향과 같은 타입이지만 역할이 반대입니다 ──────────────
+   * │ TraitProfile      "나는 🌸🕯️🍃 인 사람이다"      — 사람의 것
+   * │ resonatesWith     "이건 🌸🕯️ 인 사람에게 맞다"   — 콘텐츠의 것
+   * │
+   * │ 둘 다 TraitCode 를 쓰다 보니 한동안 양쪽을 traits 라고 불렀는데,
+   * │ 그러면 코드에서 "이 traits 가 누구 것인지"를 매번 되짚어야 합니다.
+   * │ 사람 쪽은 traits, 콘텐츠 쪽은 resonatesWith 로 갈라둡니다.
+   * └──────────────────────────────────────────────────────────────
+   *
+   * ⚠️ 세 갈래를 다 적을 필요가 없습니다. 뚜렷하게 기우는 갈래만 적으세요.
+   *    안 기우는 질문에 억지로 한쪽을 적으면, 실제로는 없는 신호를 만들어
+   *    절반의 사람에게 까닭 없는 감점을 주는 셈이 됩니다.
+   *
+   * ⚠️ 비워두면 누구에게나 고르게 나옵니다 — 멘트처럼 성향과 무관한
+   *    자리에서는 그게 맞습니다. 다만 질문을 비워두면 아무에게도 당겨지지
+   *    않으므로, 검사 스크립트가 그건 짚어줍니다.
    */
-  traits?: TraitCode[]
+  resonatesWith?: TraitCode[]
 }
 
 /** 얼마나 세게 맞출 것인가 (위 표 참고) */
@@ -50,9 +64,9 @@ export type PickMode = "best" | "lean" | "even"
 
 /** 이 사람의 성향과 몇 개나 겹치는가 */
 export function matchCount(item: Weighted, profile?: TraitProfile | null): number {
-  if (!profile || !item.traits?.length) return 0
+  if (!profile || !item.resonatesWith?.length) return 0
   const mine = new Set(traitsOf(profile))
-  return item.traits.filter((t) => mine.has(t)).length
+  return item.resonatesWith.filter((t) => mine.has(t)).length
 }
 
 /**
@@ -115,6 +129,8 @@ export const PICK_MODE = {
   question: "best",
   /** 어떤 배열을 깔까 — 맞추되 조금 흔들리게 */
   spread: "lean",
+  /** 질문을 고른 직후의 말 — 여러 개면 성향에 맞는 쪽이 자주 */
+  confirm: "lean",
   /** 인사말·섞기 멘트 — 매번 달라야 하는 자리 */
   line: "even",
 } as const satisfies Record<string, PickMode>

@@ -17,7 +17,7 @@
 // │ layoutKey  카드가 놓이는 자리 모양. lib/spread-layouts.ts 의 15종 중
 // │            하나이고, **그 배열의 장수와 positions 개수가 같아야**
 // │            합니다 (다르면 검사 스크립트가 잡습니다)
-// │ traits   이 스프레드와 어울리는 성향. 안 적어도 됩니다
+// │ resonatesWith  이 배열이 어울리는 사람. 안 적어도 됩니다
 // │ positions  자리마다 셋
 // │            label 자리 이름 — 결과 화면에서 카드 위에 붙습니다
 // │            short 뽑기 **직전**에 건네는 말. 한 문장, 짧게
@@ -47,7 +47,8 @@ export interface Spread {
   emoji: string
   name: string
   layoutKey: LayoutKey
-  traits?: TraitCode[]
+  /** 이 배열이 어울리는 사람 (lib/content/pick.ts 의 Weighted 참고) */
+  resonatesWith?: TraitCode[]
   positions: SpreadPosition[]
 }
 
@@ -67,7 +68,7 @@ export const SPREADS: Record<SpreadId, Spread> = {
     emoji: "🌙",
     name: "마음의 거울",
     layoutKey: "five-tee",
-    traits: ["moon", "root"],
+    resonatesWith: ["moon", "root"],
     positions: [
       {
         label: "지금의 마음",
@@ -104,7 +105,7 @@ export const SPREADS: Record<SpreadId, Spread> = {
     emoji: "🌊",
     name: "감정의 파도",
     layoutKey: "three-inverted",
-    traits: ["flower", "wind"],
+    resonatesWith: ["flower", "wind"],
     positions: [
       {
         label: "지금 이는 파도",
