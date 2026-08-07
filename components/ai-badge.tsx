@@ -39,11 +39,13 @@ export function AiBadge({
   className?: string
 }) {
   return (
-    // ⚠️ 시안 실측: 12px · #666 · 글씨와 AI 표 사이 10.
-    //    line-height 는 normal 입니다 — leading 을 주면 AI 표가 글씨
+    // ⚠️ 시안 실측: 12px · #666 · 글씨와 AI 표 사이 **2**.
+    //    처음에 10 으로 뒀다가 "너무 넓다"고 되돌아왔습니다 — 시안의
+    //    10 은 이 둘 사이가 아니라 다른 자리의 값이었습니다.
+    //    line-height 는 none 입니다 — leading 을 주면 AI 표가 글씨
     //    가운데에서 벗어납니다.
     <p
-      className={`inline-flex items-center gap-2.5 text-[12px] leading-none text-[#666] ${className}`}
+      className={`inline-flex items-center gap-0.5 text-[12px] leading-none text-[#666] ${className}`}
     >
       {label}
       <AiMark />

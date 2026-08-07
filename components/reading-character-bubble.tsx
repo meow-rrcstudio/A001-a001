@@ -101,7 +101,28 @@ export function ReadingCharacterBubble({
   //    이 블록이 없으면 무료 사용자는 아무것도 할 수 없습니다.
   if (placement === "top") {
     return (
-      <div ref={bubbleRef} className="rounded-2xl bg-card px-4 py-3.5 shadow-raised">
+      // ┌─ 시안 실측 (2026-08 · Figma 가 뽑아준 CSS 그대로) ─────────────
+      // │   padding        : 16px 8px
+      // │   border-radius  : 8
+      // │   border         : 1px solid #FFF
+      // │   background     : rgba(255,255,255,0.70)
+      // │   box-shadow     : 0 2px 8px 0 rgba(0,0,0,0.14)
+      // │   backdrop-filter: blur(2px)
+      // └────────────────────────────────────────────────────────────────
+      //
+      // ⚠️ 입력창(0.60 · blur 8)보다 조금 더 진하고 덜 흐립니다. 위쪽은
+      //    라임 헤더가 뒤에 있어 많이 흐리면 색만 탁해지고, 아래쪽은 흰
+      //    칩이 지나가서 더 흐려야 글자가 읽힙니다. 두 값을 맞추지 마세요.
+      <div
+        ref={bubbleRef}
+        className="rounded-[8px] border border-white shadow-[0_2px_8px_0_rgba(0,0,0,0.14)]"
+        style={{
+          padding: "16px 8px",
+          background: "rgba(255, 255, 255, 0.70)",
+          WebkitBackdropFilter: "blur(2px)",
+          backdropFilter: "blur(2px)",
+        }}
+      >
         <div className="flex items-start justify-between gap-2">
           <p className="min-h-[1.5em] flex-1 text-[15px] leading-relaxed text-foreground">
             <TypewriterText text={message} />

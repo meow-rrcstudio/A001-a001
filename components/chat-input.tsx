@@ -104,14 +104,35 @@ export function ChatInput({
   }
 
   return (
+    // ┌─ 시안 실측 (2026-08 · Figma 가 뽑아준 CSS 그대로) ───────────────
+    // │   border-radius : 8
+    // │   border        : 1px solid #FFF
+    // │   background    : rgba(255,255,255,0.60)
+    // │   box-shadow    : 0 2px 6px 0 rgba(0,0,0,0.20)
+    // │   backdrop-filter: blur(8px)
+    // │   padding       : 4 4 4 8   → 보내기 단추(38) + 위아래 4 = 높이 46
+    // └──────────────────────────────────────────────────────────────────
+    //
+    // ⚠️ 반투명 + 뒤흐림입니다. 예전에는 회색으로 눌러 두었는데(bg-muted),
+    //    시안은 **뒤가 비쳐 보이는 유리**입니다 — 뒤에 깔린 칩이 살짝
+    //    들여다보여야 "이 위에 떠 있는 것"으로 읽힙니다.
+    //
+    // ⚠️ backdrop-filter 는 조상에 transform·filter·opacity<1 이 있으면
+    //    통째로 안 먹습니다. 이 입력창을 감싼 쪽은 marginBottom 으로
+    //    키보드를 따라 움직이는데(translate 가 아니라 margin 이라) 괜찮습니다.
+    //    감싸는 방식을 바꿀 일이 생기면 여기 흐림이 먼저 죽습니다.
     <div
-      className={`relative rounded-2xl transition-opacity focus-within:ring-2 focus-within:ring-accent/40 ${
-        // 질문을 고르는 화면은 흰 칩이 잔뜩 깔려 있어서, 입력창까지 희면
-        // 칩 하나가 길게 늘어난 것처럼 보입니다. 거기서는 회색으로 눌러
-        // "이건 다른 것"이라고 알립니다 (시안이 그렇습니다).
-        // 대화 화면은 배경이 비어 있어 흰 상자가 떠 보이는 편이 낫습니다.
-        tone === "muted" ? "bg-muted" : "bg-card shadow-raised"
-      } ${disabled ? "opacity-60" : ""} ${className}`}
+      className={`relative flex flex-col justify-center rounded-[8px] border border-white shadow-[0_2px_6px_0_rgba(0,0,0,0.20)] backdrop-blur-lg transition-opacity focus-within:ring-2 focus-within:ring-accent/40 ${
+        disabled ? "opacity-60" : ""
+      } ${className}`}
+      style={{
+        // Tailwind 의 bg-white/60 로도 되지만, 시안 값을 그대로 읽히게
+        // 적어둡니다 (tone 에 따라 갈리지 않는 하나의 값입니다).
+        background: "rgba(255, 255, 255, 0.60)",
+        WebkitBackdropFilter: "blur(8px)",
+        backdropFilter: "blur(8px)",
+        padding: "4px 4px 4px 8px",
+      }}
     >
       <div
         ref={ref}
@@ -134,8 +155,14 @@ export function ChatInput({
         }}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        // 오른쪽은 보내기 버튼 자리를 비웁니다.
-        className="chat-composer block max-h-[50dvh] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-3.5 pl-5 pr-14 text-reading leading-7 text-foreground outline-none"
+        // ⚠️ 위아래 여백을 상자(padding 4)가 아니라 글자 쪽에서 냅니다.
+        //    상자에 넉넉히 주면 보내기 단추(38)가 상자보다 커져서 삐져
+        //    나옵니다 — 시안은 4 + 38 + 4 = 46 입니다.
+        //    한 줄일 때 글자 28 + 위아래 4 = 36, 여기에 상자 padding 8 과
+        //    테두리 2 를 더해 **46** 입니다 (border-box).
+        //
+        // 오른쪽은 보내기 단추 자리를 비웁니다 (38 + 오른쪽 4 + 사이 4).
+        className="chat-composer block max-h-[50dvh] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-1 pl-0 pr-[46px] text-reading leading-[28px] text-foreground outline-none"
         style={{ maxHeight: LINE_HEIGHT * MAX_LINES + 28 }}
       />
       <button
@@ -143,7 +170,10 @@ export function ChatInput({
         onClick={() => canSend && onSubmit()}
         disabled={!canSend}
         aria-label="보내기"
-        className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+        // 시안: 38×38, 상자 바깥에서 오른쪽 4 · 아래 4.
+        // ⚠️ absolute 의 기준은 테두리 **안쪽**이라, 4 를 주면 바깥에서는
+        //    5 가 됩니다 (테두리 1px 만큼). 그래서 3 입니다.
+        className="absolute bottom-[3px] right-[3px] flex h-[38px] w-[38px] items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
       >
         <ArrowUp className="h-5 w-5" aria-hidden="true" />
       </button>

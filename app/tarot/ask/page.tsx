@@ -563,7 +563,9 @@ export default function AskPage() {
           위층 뒤로 지나가는 칩을 덮습니다. 겹겹이 깔려 경계 없이
           서서히 옅어집니다 (components/blur-veil.tsx). */}
       <BlurVeil side="top" height={HEADER_SPACE_PX + bubbleHeight + 40} />
-      <BlurVeil side="bottom" height={inputHeight + 40} />
+      {/* ⚠️ 아래 장막은 없습니다. 입력창 띠가 자기 흐림(2px)을 들고 있고,
+          여기에 장막(최대 16px)을 겹치면 시안보다 여덟 배 흐려집니다 —
+          뒤에 칩이 비쳐야 한다는 시안 메모와 정반대가 됩니다. */}
 
       {/* ── 위층: 말풍선 ──────────────────────────────────────────────
           ⚠️ 말풍선은 내용이 아닙니다. "지금 무엇을 하는 자리인지" 일러주는
@@ -590,15 +592,41 @@ export default function AskPage() {
           키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
           (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다).
 
-          흐리기는 장막(BlurVeil)이 맡습니다. 여기에는 위로 갈수록 옅어지는
-          바탕만 깔아, 흐려진 칩이 입력창 글자와 겹쳐 읽히지 않게 합니다. */}
+          ┌─ 흐림 영역 — 시안 실측 (2026-08) ────────────────────────────
+          │ background : linear-gradient(180deg,
+          │                rgba(197,195,187,0.00) 0%,
+          │                rgba(197,195,187,0.40) 100%)
+          │ backdrop-filter : blur(2px)
+          └──────────────────────────────────────────────────────────────
+
+          ⚠️ **뒤가 비쳐야 합니다.** 시안 메모가 "살짝 뒤에 뎁스 (칩이나
+             내용들이 보임)" 이라고 적고 있습니다. 예전에는 여기에
+             from-background (완전 불투명)를 깔아서 아래쪽 칩이 통째로
+             사라졌습니다 — 화면이 거기서 끝난 것처럼 보였습니다.
+             제일 진한 곳도 40% 입니다.
+
+          ⚠️ 흐림도 2px 하나뿐입니다. 아래쪽 BlurVeil(최대 16px)을 함께
+             깔면 시안보다 여덟 배 흐려져서, 40% 로 낮춰도 뒤가 안 보입니다.
+             그래서 아래 장막은 걷어냈습니다 (위쪽 헤더 장막은 그대로).
+
+          ⚠️ backdrop-filter 를 쓰면서 marginBottom 으로 움직입니다.
+             transform 으로 바꾸지 마세요 — 조상에 transform 이 생기면
+             backdrop-filter 가 통째로 죽습니다. */}
       <div
         ref={setInputBar}
-        className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/85 to-transparent transition-[margin] duration-150 ${
+        className={`absolute inset-x-0 bottom-0 z-30 transition-[margin] duration-150 ${
           // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
-          keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
+          // 시안: AI 표기 아래 18. 홈 인디케이터가 있는 기기에서는 그
+          // 높이를 씁니다 — 18 로 고정하면 표기가 인디케이터에 깔립니다.
+          keyboardInset > 0 ? "pb-2.5" : "pb-[max(18px,env(safe-area-inset-bottom))]"
         }`}
-        style={{ marginBottom: keyboardInset }}
+        style={{
+          marginBottom: keyboardInset,
+          background:
+            "linear-gradient(180deg, rgba(197,195,187,0.00) 0%, rgba(197,195,187,0.40) 100%)",
+          WebkitBackdropFilter: "blur(2px)",
+          backdropFilter: "blur(2px)",
+        }}
       >
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ChatInput
@@ -630,6 +658,7 @@ export default function AskPage() {
                  예전 문장("재미와 자기성찰로 봐주세요")은 여기서 뺐습니다.
                  물으려는 사람에게 미리 하는 당부라 읽히지 않았고, 같은 말이
                  결과 화면과 이용약관에 이미 있습니다. */}
+          {/* 입력창 아래 8 (시안 실측). 아래 18 은 띠의 padding 이 냅니다 */}
           <div className="mt-2 flex justify-center">
             <AiBadge />
           </div>

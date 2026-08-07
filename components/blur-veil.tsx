@@ -28,18 +28,37 @@ export function BlurVeil({
   side,
   /** 장막 높이(px). 덮을 것(헤더+말풍선 / 입력창)보다 넉넉히 잡으세요 */
   height,
+  /**
+   * 흐림 위에 얹는 옅은 색 (시안 실측).
+   *
+   * ⚠️ 흐리기만 해서는 모자랍니다. 흐려진 칩은 여전히 대비가 남아 있어서
+   *    말풍선 글자와 겹쳐 읽히고, 특히 검정 주제 칩이 뒤로 지나갈 때
+   *    글자가 얼룩덜룩해집니다. 아주 옅은 색을 한 겹 얹으면 그 대비가
+   *    가라앉습니다.
+   *
+   * ⚠️ 제일 진한 곳도 40% 입니다. 그 이상 올리면 "뒤에 뭔가 지나간다"는
+   *    깊이감이 사라지고 그냥 막힌 벽이 됩니다 (시안 메모: "살짝 뒤에
+   *    뎁스 — 칩이나 내용들이 보임").
+   *
+   * ⚠️ 이 색은 **말풍선·입력창보다 뒤**에 깔립니다. 장막은 z-20 이고
+   *    위층은 z-30 이라 그렇습니다. 앞으로 오면 말풍선이 탁해집니다.
+   */
+  tint = true,
 }: {
   side: "top" | "bottom"
   height: number
+  tint?: boolean
 }) {
   // 위 장막은 위가 진하고 아래로 사라지고, 아래 장막은 그 반대입니다.
   const towards = side === "top" ? "to bottom" : "to top"
+  // 색도 같은 방향입니다 — 화면 가장자리 쪽이 진합니다.
+  const tintGradient = `linear-gradient(${towards}, rgba(197,195,187,0.40) 0%, rgba(197,195,187,0.00) 100%)`
 
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 z-20"
-      style={{ [side]: 0, height }}
+      style={{ [side]: 0, height, background: tint ? tintGradient : undefined }}
     >
       {LAYERS.map((layer) => {
         // 절반쯤 지난 뒤부터 사라지기 시작합니다. 처음부터 옅어지게 하면
