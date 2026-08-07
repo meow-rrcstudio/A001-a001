@@ -11,7 +11,16 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+
+    // 공용 자리 — 웹과 같은 이름으로 같은 파일을 봅니다.
+    // 까닭은 vite.config.ts 의 긴 주석에 있습니다.
+    "paths": {
+      "@/*": ["../*"]
+    }
   },
+  // ⚠️ 뿌리의 lib·components 를 include 에 넣지 않습니다. 넣으면 미니앱이
+  //    안 쓰는 파일까지 전부 타입 검사해서, 웹 전용(next·server-only) 파일이
+  //    쏟아집니다. 실제로 import 한 것만 따라가면 됩니다.
   "include": ["src", "vite.config.ts", "apps-in-toss.config.ts"]
 }

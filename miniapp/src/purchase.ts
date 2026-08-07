@@ -10,21 +10,32 @@
 // │    흐름을 미니앱으로 옮기면 안 됩니다 — 반드시 이 길입니다.
 // └──────────────────────────────────────────────────────────────────
 import { IAP } from "@apps-in-toss/web-framework"
+// ⚠️ 웹과 **같은 파일**입니다 (공용 자리 — vite.config.ts 참고).
+//    가격·개수·이름을 미니앱에 다시 적지 않습니다. 다시 적으면 웹에서
+//    값을 바꿨을 때 미니앱만 옛 값으로 남고, 아무도 모릅니다.
+import { CREDIT_PACKS, formatKrw, nameCredits } from "@/lib/credit-packs"
 import { callApi } from "./api"
 
 /**
- * 살 수 있는 묶음의 이름.
+ * 살 수 있는 묶음.
  *
- * ⚠️ 콘솔에 등록하는 상품 식별자(sku)를 우리 `lib/credit-packs.ts` 의
- *    `key` 와 **같은 값**으로 둡니다 — single · three · ten.
- *    그러면 서버가 `findPack(sku)` 한 줄로 끝나고, 양쪽을 잇는 표를
- *    따로 두지 않아도 됩니다. 표를 두면 상품이 늘 때마다 한쪽만 고쳐진
- *    채 남습니다.
+ * ⚠️ 여기에 다시 적지 않고 웹의 CREDIT_PACKS 를 그대로 씁니다. 콘솔에
+ *    등록하는 상품 식별자(sku)도 그 `key` 와 **같은 값**입니다 —
+ *    single · three · ten. 그래서 서버가 `findPack(sku)` 한 줄로 끝나고,
+ *    양쪽을 잇는 표가 아예 없습니다.
  *
  * ⚠️ 영문 소문자만 씁니다. `1-credit`·`3pack`·`10개` 처럼 숫자나 다른
  *    언어가 섞이면 플랫폼마다 규칙이 달라 언젠가 어긋납니다.
  */
-export type PackKey = "single" | "three" | "ten"
+export type PackKey = string
+
+/** 화면에 늘어놓을 묶음들 — 웹의 목록과 언제나 같습니다 */
+export const packs = CREDIT_PACKS.map((pack) => ({
+  sku: pack.key,
+  label: nameCredits(pack.credits),
+  price: formatKrw(pack.priceKrw),
+  featured: pack.featured ?? false,
+}))
 
 export type PurchaseOutcome =
   | { ok: true; credits: number }

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react"
 import { Environment, SafeArea } from "@apps-in-toss/web-framework"
 import { fetchAccount, type Account, ApiError, API_BASE } from "./api"
 import { getAccessToken, signInWithToss, clearSession } from "./session"
-import { reconcileRefunds } from "./purchase"
+import { reconcileRefunds, packs } from "./purchase"
 
 type StepState = "waiting" | "ok" | "fail"
 
@@ -170,6 +170,27 @@ export function App() {
           )
         })}
       </ol>
+
+      {/* ⚠️ 이 목록은 미니앱이 따로 들고 있는 값이 아닙니다. 웹의
+          lib/credit-packs.ts 를 그대로 읽습니다 — 가격을 웹에서 바꾸면
+          여기도 함께 바뀝니다. 공용 자리가 살아 있는지 눈으로 보는
+          자리이기도 합니다. */}
+      <section style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px" }}>
+          파는 묶음 <span style={{ fontWeight: 400, opacity: 0.6 }}>(웹과 같은 값)</span>
+        </h2>
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 4 }}>
+          {packs.map((pack) => (
+            <li key={pack.sku} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>
+                {pack.label}
+                <span style={{ opacity: 0.5 }}> · {pack.sku}</span>
+              </span>
+              <span style={{ fontWeight: 600 }}>{pack.price}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div style={{ marginTop: 24, display: "grid", gap: 8 }}>
         {account?.isLoggedIn ? (
