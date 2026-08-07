@@ -17,6 +17,18 @@ export async function middleware(request: NextRequest) {
   // 아직 연결 전이면 아무것도 하지 않습니다 (사이트는 그대로 돌아갑니다)
   if (!url || !key) return NextResponse.next()
 
+  // ⚠️ 토큰으로 오는 요청에는 할 일이 없습니다 (앱인토스 미니앱).
+  //
+  //    여기가 하는 일은 **쿠키를 새로 심는 것** 하나뿐인데, 미니앱은
+  //    다른 출처라 쿠키를 보내지도 받지도 않습니다. 그냥 두면 요청마다
+  //    Supabase 에 쓸데없이 한 번 더 물어보게 됩니다 — 미니앱은 API 를
+  //    자주 부르므로 그 왕복이 그대로 느려짐이 됩니다.
+  //
+  //    토큰을 여기서 확인하지 않는 것이 맞습니다. 확인은 그 토큰으로
+  //    실제 일을 하는 자리(lib/server/guard.ts → getCurrentUser)에서
+  //    합니다. 두 곳에서 보면 한 곳만 고쳐진 채 남습니다.
+  if (request.headers.get("authorization")) return NextResponse.next()
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(url, key, {
