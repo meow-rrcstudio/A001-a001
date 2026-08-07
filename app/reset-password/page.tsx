@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/page-header"
 import { HEADER_SPACE } from "@/lib/layout"
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/client"
 import { translateAuthError } from "@/lib/auth-messages"
+import { MIN_LENGTH, PASSWORD_RULE_TEXT, passwordMeetsPolicy } from "@/lib/password-policy"
 
 type State = "checking" | "ready" | "expired" | "done"
 
@@ -49,8 +50,13 @@ export default function ResetPasswordPage() {
       setMessage("두 번 적은 비밀번호가 서로 달라요.")
       return
     }
-    if (password.length < 6) {
-      setMessage("비밀번호는 6자 이상이어야 해요.")
+    // ⚠️ 가입과 **같은** 조건을 봅니다 (lib/password-policy).
+    //    여기는 비밀번호를 새로 정하는 자리라 가입과 다를 까닭이 없는데,
+    //    예전에는 이 화면만 "6자 이상"으로 따로 재고 있었습니다. 그래서
+    //    조건을 통과한 줄 알고 눌렀다가 Supabase 가 막고, 사람은 방금
+    //    화면이 시킨 대로 했는데 왜 안 되는지 알 수 없었습니다.
+    if (!passwordMeetsPolicy(password)) {
+      setMessage(PASSWORD_RULE_TEXT)
       return
     }
 
@@ -119,11 +125,11 @@ export default function ResetPasswordPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="새 비밀번호 (6자 이상)"
+                placeholder={`새 비밀번호 (${MIN_LENGTH}자 이상)`}
                 aria-label="새 비밀번호"
                 autoComplete="new-password"
                 required
-                minLength={6}
+                minLength={MIN_LENGTH}
                 className={field}
               />
               <input
@@ -134,7 +140,7 @@ export default function ResetPasswordPage() {
                 aria-label="새 비밀번호 확인"
                 autoComplete="new-password"
                 required
-                minLength={6}
+                minLength={MIN_LENGTH}
                 className={field}
               />
 

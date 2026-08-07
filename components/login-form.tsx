@@ -299,7 +299,12 @@ export function LoginForm({
   async function runEmailFlow() {
     const supabase = getSupabaseBrowser()
     if (!supabase) return show({ kind: "error", lines: ["아직 로그인 설정이 안 되어 있어요."] })
-    if (!email.trim() || !password) return
+    // ⚠️ 조용히 끝내지 않습니다. 이 갈래는 "다시 로그인"을 눌렀는데
+    //    칸을 비워둔 경우인데, 그냥 return 하면 눌러도 화면이 그대로라
+    //    고장난 것처럼 보입니다.
+    if (!email.trim() || !password) {
+      return show({ kind: "error", lines: ["이메일과 비밀번호를 모두 넣어주세요."] })
+    }
 
     setBusy(true)
     show(null)
@@ -376,7 +381,14 @@ export function LoginForm({
     // 그때 막으면 자기 계정에 못 들어갑니다.
     if (!passwordMeetsPolicy(password)) {
       setBusy(false)
-      return show({ kind: "error", lines: [PASSWORD_RULE_TEXT] })
+      // ⚠️ 길을 반드시 함께 냅니다. 예전에는 이 갈래만 문구 한 줄로
+      //    끝났는데, 여기 오는 사람의 절반은 **이미 계정이 있는 사람**
+      //    입니다 — 비밀번호가 틀려서 여기까지 온 것이고, 그 틀린
+      //    비밀번호가 지금 조건에 안 맞으면 이리로 떨어집니다.
+      //    옛 계정은 지금 조건을 지나지 않았을 수 있어서 흔한 일인데,
+      //    화면에는 "이렇게 정해야 한다"는 말만 있고 비밀번호를 되찾을
+      //    길이 없었습니다. 자기 계정 앞에서 갇힙니다.
+      return show({ kind: "error", lines: [PASSWORD_RULE_TEXT], actions: ["reset"] })
     }
 
     const signUp = await withTimeout(
@@ -424,12 +436,13 @@ export function LoginForm({
     show({
       kind: "info",
       lines: [
-        // ⚠️ "가입되지 않은 계정"이라고 말할 수 있는 자리는 여기뿐입니다.
-        //    누르기 전에는 계정이 있는지 없는지 알 수 없고, 여기까지
-        //    왔다는 것은 실제로 새 계정이 만들어졌다는 뜻입니다.
-        "가입되지 않은 이메일이라 새로 가입했어요.",
-        "입력한 이메일로 인증 메일이 전송되었어요.",
-        // ⚠️ 이메일 오타를 잡을 수 있는 자리도 여기뿐입니다. 주소를
+        // ⚠️ 두 줄입니다. 예전에는 "가입되지 않은 이메일이라 새로
+        //    가입했어요"를 앞에 한 줄 더 두었는데, 뒤 두 줄과 겹칩니다 —
+        //    "가입을 위해"가 이미 새 계정이 만들어졌다는 말이라, 앞줄은
+        //    같은 말을 한 번 더 하면서 "가입되지 않은"이라는 부정문으로
+        //    시작해 읽는 사람을 잠깐 멈칫하게 했습니다.
+        "가입을 위해 입력한 이메일로 인증 메일이 전송되었어요.",
+        // ⚠️ 이메일 오타를 잡을 수 있는 자리는 여기뿐입니다. 주소를
         //    잘못 치면 그 주소로 계정이 만들어지고 메일은 남의 집으로
         //    갑니다 — 화면에는 아무 이상이 없어 보입니다.
         "메일이 오지 않으면 주소를 다시 확인해 주세요.",
@@ -449,7 +462,11 @@ export function LoginForm({
    */
   async function sendReset() {
     const supabase = getSupabaseBrowser()
-    if (!supabase || !email.trim()) return
+    // ⚠️ 여기도 조용히 끝내지 않습니다 — 메일을 보낼 주소가 없는데
+    //    단추만 눌리면, 보낸 줄 알고 메일함을 기다리게 됩니다.
+    if (!supabase || !email.trim()) {
+      return show({ kind: "error", lines: ["메일을 보낼 주소를 먼저 넣어주세요."] })
+    }
 
     // ⚠️ 누르는 즉시 말합니다. 메일 보내기는 몇 초 걸릴 수 있는데, 그동안
     //    화면이 그대로면 "눌러도 아무 반응이 없다"가 됩니다 — 실제로
@@ -488,7 +505,11 @@ export function LoginForm({
   /** 인증 메일 다시 보내기 */
   async function resendSignup() {
     const supabase = getSupabaseBrowser()
-    if (!supabase || !email.trim()) return
+    // ⚠️ 여기도 조용히 끝내지 않습니다 — 메일을 보낼 주소가 없는데
+    //    단추만 눌리면, 보낸 줄 알고 메일함을 기다리게 됩니다.
+    if (!supabase || !email.trim()) {
+      return show({ kind: "error", lines: ["메일을 보낼 주소를 먼저 넣어주세요."] })
+    }
 
     show({ kind: "info", lines: ["메일을 보내는 중이에요…"], actions: ["resend"] })
     setBusy(true)
@@ -638,7 +659,11 @@ export function LoginForm({
             autoComplete="current-password"
             enterKeyHint="go"
             required
-            minLength={6}
+            // ⚠️ 길이 제한을 걸지 않습니다. 이 칸은 **로그인** 칸이기도
+            //    합니다. 옛 계정의 비밀번호가 지금 조건보다 짧을 수 있는데,
+            //    여기서 막으면 자기 계정에 못 들어갑니다 — 게다가 브라우저가
+            //    막는 것이라 우리 문구도 못 띄우고 그냥 안 눌립니다.
+            //    조건은 새로 정하는 자리(가입·재설정)에서만 봅니다.
             className={field(invalid)}
           />
 
