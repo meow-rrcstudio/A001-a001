@@ -9,6 +9,7 @@
 //    콘솔에만 남겨 개발자가 찾을 수 있게 합니다.
 //
 // 로그인·가입·비밀번호 재설정이 이 한 곳을 함께 씁니다.
+import { PASSWORD_RULE_TEXT } from "@/lib/password-policy"
 
 /**
  * 에러 코드로 먼저 맞춥니다.
@@ -63,7 +64,10 @@ const MAP: [RegExp, string][] = [
   [/database error/i, "계정을 만들다 막혔어요. 잠시 뒤 다시 시도해 주세요."],
 
   // ── 비밀번호 ─────────────────────────────────────────────────────
-  [/password should be at least|password is too short/i, "비밀번호는 6자 이상이어야 해요."],
+  // ⚠️ 글자 수를 여기에 손으로 적지 않습니다. MIN_LENGTH 가 8 인데 여기만
+  //    "6자"로 남아 있었습니다 — 서버는 8자를 요구하는데 화면은 6자면
+  //    된다고 말했습니다. 조건을 바꿀 자리는 password-policy 한 곳입니다.
+  [/password should be at least|password is too short/i, PASSWORD_RULE_TEXT],
   [/should be different from the old|same as the old/i, "예전 비밀번호와 다른 것으로 정해주세요."],
   [/weak password|password is too weak/i, "비밀번호가 너무 단순해요. 조금 더 복잡하게 정해주세요."],
 

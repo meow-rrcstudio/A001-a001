@@ -23,7 +23,17 @@ const config = [
   {
     // 사람이 쓴 코드만 봅니다. 빌드 산출물·의존성을 넣으면 몇 분씩 걸리고
     // 고칠 수도 없는 경고가 쏟아집니다.
-    ignores: [".next/**", "node_modules/**", "public/**", ".v0/**", "next-env.d.ts"],
+    // ⚠️ miniapp 은 별도 프로젝트입니다 (Vite + 자기 tsconfig·의존성).
+    //    여기서 함께 보면 없는 모듈을 못 찾았다고 쏟아집니다.
+    //    검사는 miniapp 안에서 `pnpm typecheck` 로 합니다.
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "public/**",
+      ".v0/**",
+      "next-env.d.ts",
+      "miniapp/**",
+    ],
   },
   ...coreWebVitals,
   ...typescript,

@@ -80,11 +80,14 @@ export default async function LoginPage({
             그래서 버튼은 늘 화면 아래에 붙고, 키보드가 올라오면 이 칸만
             줄어듭니다 — 시안 2~5번의 움직임이 이것입니다.
 
-            ⚠️ 치수는 시안 실측입니다 — 돌 높이 51px.
-               아래 여백은 20px 이고(이메일 화면 시안), 첫 화면(카카오·구글
-               단추)에서는 폼 쪽에서 20px 을 더해 40px 이 됩니다.
-               가로는 그림 비율(75:51)대로 따라옵니다. 시안의 80 은 돌을
-               감싼 상자 폭이라 그림 자체는 그보다 조금 좁습니다.
+            ⚠️ 치수는 시안 실측입니다 — 돌은 **80×80 상자** 안에 듭니다.
+               시안이 가로 80, 세로 80 을 함께 재고 있고, 그 다음 20 은
+               그림 밑동이 아니라 **상자 밑변**에서 이메일 칸까지입니다.
+               그림 자체는 비율(75:51)대로 폭 80 · 높이 54.4 라 상자
+               안에서 위아래로 12.8 씩 남고, 그만큼 그림이 시안보다 아래로
+               내려가 있었습니다. 상자를 실제로 만들어 가운데 세웁니다.
+               첫 화면(카카오·구글 단추)에서는 폼 쪽에서 20px 을 더해
+               40px 이 됩니다.
 
             ⚠️ 가운데(items-center)가 아니라 아래(items-end)에 붙입니다.
                시안에서 돌은 화면 한가운데가 아니라 버튼 바로 위에 서
@@ -94,7 +97,10 @@ export default async function LoginPage({
                키보드가 올라올 때 줄어드는 자리라(min-h-0 flex-1), 크게
                두면 입력할 때 버튼이 화면 밖으로 밀립니다. */}
         <div className="flex min-h-0 flex-1 items-end justify-center pb-5 pt-4">
-          <BlinkingStone className="h-[51px] w-auto shrink-0 text-brand-ink" />
+          {/* size-20 = 80×80 상자. 그림은 폭 80 으로 그 안에 가운데 섭니다 */}
+          <div className="flex size-20 shrink-0 items-center justify-center">
+            <BlinkingStone className="h-auto w-20 text-brand-ink" />
+          </div>
         </div>
 
         {/* 카카오·구글은 연동, 이메일은 직접 가입입니다.

@@ -44,6 +44,45 @@ const ACTION_LABEL: Record<Action, string> = {
   retryLogin: "다시 로그인",
 }
 
+/**
+ * **이미 한 번 보낸 뒤**에는 이름이 달라집니다.
+ *
+ * ┌─ 왜 두 벌인가 ────────────────────────────────────────────────────
+ * │ 같은 단추가 두 자리에 나옵니다.
+ * │
+ * │   · "비밀번호가 맞지 않아요"      → 아직 아무것도 안 보냈습니다
+ * │   · "링크를 메일로 보냈어요"      → 방금 보냈습니다
+ * │
+ * │ 앞쪽에서 "재전송"이라고 하면 보낸 적 없는 것을 다시 보낸다는 말이 되어
+ * │ 틀립니다. 뒤쪽에서 "비밀번호 찾기"라고만 하면 눌러도 될지 알 수
+ * │ 없습니다 — 방금 보낸 것을 또 보내는 것인지가 안 보입니다.
+ * │
+ * │ 그래서 "보낸 적이 있는가"로 가릅니다. 남은시간을 세고 있다는 것이 곧
+ * │ 방금 보냈다는 뜻이라, 그 하나로 판단합니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ `resend` 는 여기 없습니다. 그쪽은 어느 자리에서든 이미 보낸 뒤입니다 —
+ *    가입할 때 인증 메일이 한 번 나갔기 때문에, 처음 보는 화면에서도
+ *    "재전송"이 맞는 말입니다 (docs/login-flow.md 의 "인증 전 계정" 갈래).
+ */
+const ACTION_LABEL_AFTER_SEND: Partial<Record<Action, string>> = {
+  reset: "비밀번호 찾기 재전송",
+}
+
+/**
+ * 누르면 **메일이 나가는** 길.
+ *
+ * ⚠️ 남은시간을 세는 동안 흐려야 하는 것이 바로 이것들입니다. 메일 발송에는
+ *    간격 제한이 걸려 있어서, 흐리지 않으면 눌러도 서버가 막습니다 —
+ *    화면은 누를 수 있다고 해놓고 아무 일도 안 일어납니다.
+ *
+ * ⚠️ 이름을 하나씩 적어 비교하지 않습니다. 예전에 `action === "resend"` 로만
+ *    적어두었더니, 비밀번호 찾기 쪽은 세는 중에도 또렷하게 남아 있었습니다.
+ *    길이 하나 늘 때마다 이 자리를 고쳐야 한다는 것을 잊게 됩니다.
+ *    "메일을 보내는가"로 물으면 새 길이 생겨도 여기 한 줄만 봅니다.
+ */
+const SENDS_MAIL: ReadonlySet<Action> = new Set<Action>(["resend", "reset"])
+
 /** 상태줄에 무엇을 띄울지 — 빨간 글씨(잘못됨)와 검은 글씨(알림)를 나눕니다 */
 type Status = {
   kind: "error" | "info"
@@ -84,15 +123,17 @@ type Status = {
 const RESEND_COOLDOWN_SEC = 60
 
 /**
- * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px — "00:00" 폭에 좌우 2px).
+ * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px).
+ *
+ * ⚠️ 이 상자와 물음표 사이는 **0** 입니다 (시안). 시안의 12 는 이 상자
+ *    다음에 오는 **물음표 자신의 폭**이지 사이 여백이 아닙니다. 여백으로
+ *    잘못 읽고 12 를 띄우면 물음표가 그만큼 오른쪽으로 밀려납니다.
  *
  * ⚠️ "남은시간 00:00" 전체가 아니라 "00:00" 에만 겁니다. 전체에 걸면
- *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다 (한 번
- *    그렇게 만들었다가 아이콘이 그대로 흔들렸습니다).
+ *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다.
  *
  * ⚠️ 고정하지 않으면 자릿수가 바뀔 때마다 뒤의 물음표가 좌우로
- *    흔들립니다. 1초마다 움직이는 화면은 읽기 어렵습니다.
- *    tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
+ *    흔들립니다. tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
  */
 const TIMER_WIDTH = "42px"
 
@@ -297,7 +338,12 @@ export function LoginForm({
   async function runEmailFlow() {
     const supabase = getSupabaseBrowser()
     if (!supabase) return show({ kind: "error", lines: ["아직 로그인 설정이 안 되어 있어요."] })
-    if (!email.trim() || !password) return
+    // ⚠️ 조용히 끝내지 않습니다. 이 갈래는 "다시 로그인"을 눌렀는데
+    //    칸을 비워둔 경우인데, 그냥 return 하면 눌러도 화면이 그대로라
+    //    고장난 것처럼 보입니다.
+    if (!email.trim() || !password) {
+      return show({ kind: "error", lines: ["이메일과 비밀번호를 모두 넣어주세요."] })
+    }
 
     setBusy(true)
     show(null)
@@ -374,7 +420,14 @@ export function LoginForm({
     // 그때 막으면 자기 계정에 못 들어갑니다.
     if (!passwordMeetsPolicy(password)) {
       setBusy(false)
-      return show({ kind: "error", lines: [PASSWORD_RULE_TEXT] })
+      // ⚠️ 길을 반드시 함께 냅니다. 예전에는 이 갈래만 문구 한 줄로
+      //    끝났는데, 여기 오는 사람의 절반은 **이미 계정이 있는 사람**
+      //    입니다 — 비밀번호가 틀려서 여기까지 온 것이고, 그 틀린
+      //    비밀번호가 지금 조건에 안 맞으면 이리로 떨어집니다.
+      //    옛 계정은 지금 조건을 지나지 않았을 수 있어서 흔한 일인데,
+      //    화면에는 "이렇게 정해야 한다"는 말만 있고 비밀번호를 되찾을
+      //    길이 없었습니다. 자기 계정 앞에서 갇힙니다.
+      return show({ kind: "error", lines: [PASSWORD_RULE_TEXT], actions: ["reset"] })
     }
 
     const signUp = await withTimeout(
@@ -422,12 +475,13 @@ export function LoginForm({
     show({
       kind: "info",
       lines: [
-        // ⚠️ "가입되지 않은 계정"이라고 말할 수 있는 자리는 여기뿐입니다.
-        //    누르기 전에는 계정이 있는지 없는지 알 수 없고, 여기까지
-        //    왔다는 것은 실제로 새 계정이 만들어졌다는 뜻입니다.
-        "가입되지 않은 이메일이라 새로 가입했어요.",
-        "입력한 이메일로 인증 메일이 전송되었어요.",
-        // ⚠️ 이메일 오타를 잡을 수 있는 자리도 여기뿐입니다. 주소를
+        // ⚠️ 두 줄입니다. 예전에는 "가입되지 않은 이메일이라 새로
+        //    가입했어요"를 앞에 한 줄 더 두었는데, 뒤 두 줄과 겹칩니다 —
+        //    "가입을 위해"가 이미 새 계정이 만들어졌다는 말이라, 앞줄은
+        //    같은 말을 한 번 더 하면서 "가입되지 않은"이라는 부정문으로
+        //    시작해 읽는 사람을 잠깐 멈칫하게 했습니다.
+        "가입을 위해 입력한 이메일로 인증 메일이 전송되었어요.",
+        // ⚠️ 이메일 오타를 잡을 수 있는 자리는 여기뿐입니다. 주소를
         //    잘못 치면 그 주소로 계정이 만들어지고 메일은 남의 집으로
         //    갑니다 — 화면에는 아무 이상이 없어 보입니다.
         "메일이 오지 않으면 주소를 다시 확인해 주세요.",
@@ -447,7 +501,11 @@ export function LoginForm({
    */
   async function sendReset() {
     const supabase = getSupabaseBrowser()
-    if (!supabase || !email.trim()) return
+    // ⚠️ 여기도 조용히 끝내지 않습니다 — 메일을 보낼 주소가 없는데
+    //    단추만 눌리면, 보낸 줄 알고 메일함을 기다리게 됩니다.
+    if (!supabase || !email.trim()) {
+      return show({ kind: "error", lines: ["메일을 보낼 주소를 먼저 넣어주세요."] })
+    }
 
     // ⚠️ 누르는 즉시 말합니다. 메일 보내기는 몇 초 걸릴 수 있는데, 그동안
     //    화면이 그대로면 "눌러도 아무 반응이 없다"가 됩니다 — 실제로
@@ -486,7 +544,11 @@ export function LoginForm({
   /** 인증 메일 다시 보내기 */
   async function resendSignup() {
     const supabase = getSupabaseBrowser()
-    if (!supabase || !email.trim()) return
+    // ⚠️ 여기도 조용히 끝내지 않습니다 — 메일을 보낼 주소가 없는데
+    //    단추만 눌리면, 보낸 줄 알고 메일함을 기다리게 됩니다.
+    if (!supabase || !email.trim()) {
+      return show({ kind: "error", lines: ["메일을 보낼 주소를 먼저 넣어주세요."] })
+    }
 
     show({ kind: "info", lines: ["메일을 보내는 중이에요…"], actions: ["resend"] })
     setBusy(true)
@@ -596,15 +658,25 @@ export function LoginForm({
   if (mode === "email") {
     const invalid = status?.kind === "error"
 
-    // 시안 실측 (2026-08): 돌 아래 20 · 칸 사이 8 · 칸 아래 8 ·
-    // 상태줄 아래 80 · 좌우 24 (좌우 여백은 이 화면을 감싸는 쪽에 있습니다)
+    // ┌─ 시안 실측 (2026-08, 5번 화면에서 세로로 훑은 값) ───────────────
+    // │ 돌 상자 80×80 → 20 → [이메일 칸] → 8 → [비밀번호 칸] → 8 → 문구
+    // │ → 8 → 길(재전송…) → 24 → 동의 고지(두 줄 32) → 24 → 화면 아래
+    // │ 좌우는 24 (이 화면을 감싸는 app/login/page.tsx 의 px-6)
+    // │
+    // │ 상태줄 안쪽: 재전송 37 · 4 · 남은시간 49 · 숫자 42 · 12 · 물음표 12
+    // └──────────────────────────────────────────────────────────────────
     return (
       <div>
         {/* ⚠️ 시안에 보내기 버튼이 없습니다 — 키보드 엔터로 보냅니다.
             눈에 보이는 버튼을 넣지 않는 대신, 화면읽개와 키보드만 쓰는
             사람을 위해 sr-only 제출 버튼을 둡니다. 버튼을 다시 세우려면
             아래 sr-only 를 solidBtn 으로 바꾸면 됩니다. */}
-        <form onSubmit={submitEmail} className="space-y-2">
+        {/* ⚠️ space-y-2 가 아니라 flex gap-2 입니다. space-y 는 아래의
+            sr-only 제출 버튼(눈에 안 보이는 것)에까지 8px 을 물려서, 폼
+            상자가 비밀번호 칸보다 8 더 길어져 있었습니다. 그만큼 문구가
+            칸에서 16 떨어져 보였습니다 — 시안은 8 입니다.
+            flex 에서는 자리를 뜬(absolute) 것에 gap 이 걸리지 않습니다. */}
+        <form onSubmit={submitEmail} className="flex flex-col gap-2">
           <input
             type="email"
             value={email}
@@ -626,7 +698,11 @@ export function LoginForm({
             autoComplete="current-password"
             enterKeyHint="go"
             required
-            minLength={6}
+            // ⚠️ 길이 제한을 걸지 않습니다. 이 칸은 **로그인** 칸이기도
+            //    합니다. 옛 계정의 비밀번호가 지금 조건보다 짧을 수 있는데,
+            //    여기서 막으면 자기 계정에 못 들어갑니다 — 게다가 브라우저가
+            //    막는 것이라 우리 문구도 못 띄우고 그냥 안 눌립니다.
+            //    조건은 새로 정하는 자리(가입·재설정)에서만 봅니다.
             className={field(invalid)}
           />
 
@@ -637,11 +713,12 @@ export function LoginForm({
 
         {/* 상태줄 (시안 2026-08 — 케이스 12가지).
 
-            ┌─ 배치 규칙 ─────────────────────────────────────────────
+            ┌─ 배치 규칙 (시안 5·10번) ────────────────────────────────
             │ · 타이머가 있으면  → 문구 아래 새 줄에 왼쪽 정렬
             │                      [재전송] [남은시간 00:59] [?]
-            │ · 타이머가 없으면  → 문구와 같은 줄, 오른쪽 끝에
-            │                      문구가 길면 알아서 아랫줄로 내려갑니다
+            │ · 타이머가 없으면  → 물음표는 문구 **첫 줄** 오른쪽 끝,
+            │                      길(재전송·비밀번호 찾기)은 문구 아래
+            │                      새 줄에 왼쪽 정렬
             └─────────────────────────────────────────────────────────
 
             ⚠️ 오류일 때 길을 반드시 함께 냅니다. 예전에는 사유만 말하고
@@ -659,7 +736,12 @@ export function LoginForm({
           onHelp={() => setHelpOpen(true)}
         />
 
-        <div className="mt-20">
+        {/* ⚠️ 시안 실측 24 입니다 (예전에 80 으로 두었던 자리).
+            시안의 긴 80 은 상태줄에서 키보드 윗변까지 통째로 잰 것이라,
+            그 안이 24(사이) + 32(고지 두 줄) + 24(사이) 로 나뉩니다.
+            80 을 그대로 사이 여백에 쓰면 아래가 세 배로 벌어지고 칸이
+            화면 위로 밀려 올라갑니다. */}
+        <div className="mt-6">
           <DebugLine show={debug} />
           <Consent />
         </div>
@@ -750,6 +832,23 @@ function StatusRow({
 
   const timed = Boolean(status.waitUntil)
 
+  /**
+   * 아직 세고 있는가.
+   *
+   * ┌─ 이 한 줄이 두 가지를 뒤집습니다 (시안) ─────────────────────────
+   * │ 세는 중 (00:59) → 재전송 흐림   · 남은시간·숫자 또렷
+   * │ 다 셌음 (00:00) → 재전송 또렷   · 남은시간·숫자 흐림
+   * └──────────────────────────────────────────────────────────────────
+   *
+   * 흐린 쪽이 늘 "지금 손댈 것이 아닌 쪽"입니다. 기다리는 동안에는
+   * 남은 초가 읽어야 할 값이고, 다 세고 나면 그 숫자는 할 일을 마쳐서
+   * 물러나고 누를 수 있게 된 재전송이 앞으로 나옵니다.
+   *
+   * ⚠️ 둘을 따로 정하지 마세요. 한쪽만 고치면 둘 다 또렷하거나 둘 다
+   *    흐린 순간이 생기고, 그때 화면은 무엇을 하라는 말인지 잃습니다.
+   */
+  const counting = waitLeft > 0
+
   // 시안 실측: 14px · weight 400 · 밑줄. 오류 빨강은 #EF2B2A 입니다
   // (디자인 토큰 --product-colors-warning-red-500). Tailwind 의 red-600
   // 과 미세하게 달라서 값을 그대로 적습니다.
@@ -761,12 +860,13 @@ function StatusRow({
       key={action}
       type="button"
       onClick={() => onAction(action)}
-      // 기다리는 동안 재전송만 흐립니다. 비밀번호 찾기는 다른 메일이라
-      // 같은 시계에 묶지 않습니다.
-      disabled={busy || (action === "resend" && waitLeft > 0)}
+      // 세는 동안 **메일을 보내는 길**을 흐립니다 (다 세면 또렷해집니다).
+      // "다시 로그인"은 메일이 아니라 그대로 둡니다.
+      disabled={busy || (SENDS_MAIL.has(action) && counting)}
       className={link}
     >
-      {ACTION_LABEL[action]}
+      {/* 방금 보낸 뒤라면 "재전송"으로 부릅니다 (ACTION_LABEL_AFTER_SEND) */}
+      {(timed && ACTION_LABEL_AFTER_SEND[action]) || ACTION_LABEL[action]}
     </button>
   ))
 
@@ -799,9 +899,23 @@ function StatusRow({
     return (
       <div className="mt-2 space-y-2">
         {text}
-        <div className="flex flex-wrap items-baseline gap-x-1">
-          {actions}
-          <span className="ml-1 text-sm text-brand-ink/50">
+        {/* ┌─ 이 줄의 가로 치수 (시안) ────────────────────────────────
+            │ [재전송] 4 [남은시간][숫자 42] 0 [물음표 12]
+            │
+            │ ⚠️ 물음표 앞은 **0** 입니다. 통에 gap 을 걸면 여기에도 딸려
+            │    붙으므로, 사이 여백은 gap 이 아니라 남은시간 쪽 ml-1(4)
+            │    하나로만 냅니다.
+            └───────────────────────────────────────────────────────────
+
+            ⚠️ 세로는 items-baseline — 글씨 밑줄에 맞춥니다. 이 줄은 전부
+            한 줄짜리라 items-center 로도 줄은 맞지만, 글씨가 줄상자 안에서
+            위쪽에 치우쳐 그려지기 때문에(밑에 내림폭만큼 빈 자리가
+            있습니다) 상자 가운데에 맞춘 물음표만 숫자보다 1.5 처져
+            보입니다. 밑줄에 맞추면 0.5 안쪽으로 들어옵니다. */}
+        <div className="flex flex-wrap items-baseline">
+          {/* 길이 둘 이상일 때 그 사이는 8 (시안 10번의 버튼1·버튼2) */}
+          <span className="flex items-baseline gap-x-2">{actions}</span>
+          <span className={`ml-1 text-sm ${counting ? "text-brand-ink" : "text-brand-ink/40"}`}>
             남은시간
             {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
             <span
@@ -811,20 +925,52 @@ function StatusRow({
               {mmss(waitLeft)}
             </span>
           </span>
-          {help && <span className="ml-3 inline-flex">{help}</span>}
+          {/* ⚠️ 물음표만 기준선(baseline)에 앉힙니다 — 줄상자 가운데가
+              아닙니다. 글씨는 줄상자 안에서 위쪽에 치우쳐 그려지므로
+              (밑에 내림폭만큼 빈 자리가 있습니다), 상자 가운데로 맞추면
+              아이콘이 숫자보다 1.5px 처져 보입니다. 기준선에 앉히면
+              동그라미 밑변이 숫자 밑변과 같은 선에 놓여 눈에 가운데로
+              읽힙니다. 억지 패딩이 아니라 정렬로만 잡은 것이라, 글씨
+              크기를 바꿔도 따라옵니다.
+
+              오른쪽 2 — 시안. */}
+          {help && <span className="mr-0.5 inline-flex">{help}</span>}
         </div>
       </div>
     )
   }
 
-  // 그 밖 — 문구와 같은 줄, 오른쪽 끝. 문구가 길면 알아서 내려갑니다.
+  // 타이머가 없는 케이스 — 시안 10번의 배치입니다.
+  //
+  //   [비밀번호 칸]
+  //   지금 서버가 답을 못 하고 있어요. 잠시후…      (?)  ← 첫 줄 오른쪽 끝
+  //   해 주세요. 오류가 계속되면 …
+  //   ( 에러코드 )
+  //   재전송  비밀번호 찾기   ← 문구 아래 새 줄(8), 왼쪽 정렬
+  //
+  // ⚠️ 길(재전송·비밀번호 찾기)을 물음표와 한 덩어리로 묶어 오른쪽에
+  //    붙여 두었었습니다. 시안에서 이 둘은 다른 자리에 있습니다 —
+  //    물음표는 첫 줄 오른쪽 끝에 고정이고, 길은 문구가 다 끝난 뒤
+  //    아래 새 줄에 왼쪽부터 섭니다(시안의 버튼1·버튼2).
+  //
+  // ⚠️ 물음표를 감싼 칸에 flex-wrap 을 주지 않습니다. 주면 문구가 길 때
+  //    물음표가 아랫줄로 떨어져서, 케이스마다 물음표를 찾는 자리가
+  //    달라집니다.
   return (
-    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-      {text}
-      <div className="flex shrink-0 items-baseline gap-x-3">
-        {actions}
-        {help}
+    <div className="mt-2">
+      {/* ⚠️ items-baseline 을 쓰면 안 됩니다. 물음표를 감싼 칸의 밑동이
+          글씨 밑줄보다 아래라, 맞추려고 **문구 전체**가 11px 내려갑니다 —
+          칸과 문구 사이가 8 이어야 하는데 19 가 됐습니다.
+          items-start 로 두고, 물음표는 첫 줄 높이(h-5=20)짜리 칸 안에서
+          가운데에 세웁니다. 그러면 문구는 제자리에 있고 물음표만 첫 줄
+          한가운데에 옵니다. */}
+      <div className="flex items-start justify-between gap-x-4">
+        {text}
+        {help && <span className="flex h-5 shrink-0 items-center">{help}</span>}
       </div>
+      {actions.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2">{actions}</div>
+      )}
     </div>
   )
 }
@@ -877,7 +1023,11 @@ function Consent() {
   return (
     // break-keep: 한국어는 단어 중간에서 끊으면 안 됩니다. 이게 없으면
     // "개인정 / 보처리방침"처럼 낱말이 두 줄로 쪼개집니다.
-    <p className="text-center text-xs leading-relaxed break-keep text-brand-ink/70">
+    //
+    // ⚠️ leading-4 (16px) — 시안이 이 고지 두 줄을 32 로 재고 있습니다.
+    //    leading-relaxed 는 19.5px 이라 두 줄이 39 가 되어, 아래 여백 24 가
+    //    맞아도 덩어리가 7 만큼 커집니다.
+    <p className="text-center text-xs leading-4 break-keep text-brand-ink/70">
       계속하시면 Meow RRC Studio의{" "}
       <Link href="/terms" className={link}>
         이용약관
