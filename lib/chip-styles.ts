@@ -48,5 +48,23 @@ export const TOPIC_CHIP = `${CHIP_BASE} ${CHIP_TOUCH} border-chip-line bg-brand-
 /** 질문 칩 — 흰 알약 */
 export const ASK_CHIP = `${CHIP_BASE} ${CHIP_TOUCH} border-chip-line bg-chip text-left text-foreground transition-colors hover:bg-muted`
 
-/** 칩 사이 간격 (시안 실측 10.6px) */
-export const CHIP_GAP = "gap-2.5"
+/**
+ * 칩 사이 간격 — **가로 4 · 세로 8** (시안).
+ *
+ * ┌─ 값이 바뀐 내력 ──────────────────────────────────────────────────
+ * │ 예전에는 가로세로 모두 10.6 이었습니다. 시안 PDF 를 150dpi 로 펴서
+ * │ 세로 피치(100px)를 읽고 칩 높이를 빼서 얻은 값인데, 그 방식은 가로
+ * │ 간격을 따로 재지 못해 세로 값을 그대로 갖다 썼습니다.
+ * │
+ * │ Figma 가 뽑아준 CSS 는 `gap: 8px 4px` 입니다 — 가로와 세로가 다릅니다.
+ * │ 직접 잰 값보다 이쪽이 정확하므로 이걸 씁니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ `gap-1`(가로 4) 이 `gap-2`(세로 8) 보다 작습니다. 뒤집어 적으면
+ *    칩이 가로로 벌어지고 세로로 붙어서, 줄이 몇 개인지 안 보입니다.
+ *
+ * ⚠️ CHIP_TOUCH 가 눌리는 자리를 위아래로 3.5px 씩 넓힙니다. 세로 간격이
+ *    8 이라 옆줄 칩의 판과 1px 만 남습니다 — 세로 간격을 더 줄이면
+ *    겹쳐서 엉뚱한 칩이 눌립니다.
+ */
+export const CHIP_GAP = "gap-x-1 gap-y-2"

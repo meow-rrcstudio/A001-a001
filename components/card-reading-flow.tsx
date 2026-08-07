@@ -635,9 +635,33 @@ export function CardReadingFlow({
         </div>
       )}
 
-      {/* ── 요구사항 반영: 손잡이 배경 알파값 90% (bg-background/90) 적용 ── */}
+      {/* ── 굴리는 손잡이 ────────────────────────────────────────────────
+          ┌─ 시안 실측 (2026-08) ─────────────────────────────────────────
+          │ 바      높이 70 · 흰 바탕 **96%** · 윗변에 1px 선
+          │ 선      1px, 좌우 20 씩 띄움
+          │ 동그라미 23 · #000 · drop-shadow(0 4px 8px rgba(0,0,0,0.20))
+          └───────────────────────────────────────────────────────────────
+
+          ⚠️ 동그라미는 23 입니다. 시안 SVG 가 r=11.5 라 지름 23 이고,
+             filter 의 dy=4 · stdDeviation=4 가 곧 0 4px 8px 입니다.
+             20 으로 두었더니 카드 부채에 비해 작아 손잡이로 안 읽혔습니다.
+
+          ⚠️ 그림자는 box-shadow 가 아니라 **drop-shadow** 입니다.
+             range 의 손잡이는 만들어진 모양이라 box-shadow 를 주면
+             네모 그림자가 딸려 나옵니다. drop-shadow 는 실제 그려진
+             동그라미 모양을 따라갑니다.
+
+          ⚠️ 웹킷과 파이어폭스가 손잡이를 부르는 이름이 다릅니다. 한쪽만
+             적으면 다른 쪽에서 기본 손잡이(회색 네모)가 그대로 나옵니다. */}
       {phase === "selecting" && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-background/90 px-6 py-4 backdrop-blur-[var(--glass-blur)] sm:px-8">
+        // ⚠️ 바탕이 96% 입니다. 100% 로 두면 카드 부채가 바 윗변에서 뚝
+        //    끊겨 화면이 거기서 끝난 것처럼 보입니다. 4% 만 비쳐도 "부채가
+        //    이 아래로 이어진다"가 읽힙니다 — 흐림(backdrop-blur)이 함께
+        //    걸려 있어서 비쳐도 글자를 방해하지 않습니다.
+        <div
+          className="fixed inset-x-0 bottom-0 z-[70] flex h-[70px] items-center border-t border-border px-5 backdrop-blur-[var(--glass-blur)]"
+          style={{ background: "rgba(255, 255, 255, 0.96)" }}
+        >
           <input
             type="range"
             min={0}
@@ -650,22 +674,32 @@ export function CardReadingFlow({
               setFanRoll(next)
             }}
             aria-label="카드 굴리기"
-            /* ── 요구사항 반영: 손잡이 동그라미 크기 20x20으로 변경 ── */
-            className="mx-auto block h-1 w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
-              [&::-webkit-slider-thumb]:h-[20px] [&::-webkit-slider-thumb]:w-[20px] [&::-webkit-slider-thumb]:appearance-none
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground"
+            className="mx-auto block h-px w-full max-w-site cursor-pointer appearance-none rounded-full bg-foreground/20
+              [&::-webkit-slider-thumb]:h-[23px] [&::-webkit-slider-thumb]:w-[23px] [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black
+              [&::-webkit-slider-thumb]:[filter:drop-shadow(0_4px_8px_rgba(0,0,0,0.20))]
+              [&::-moz-range-thumb]:h-[23px] [&::-moz-range-thumb]:w-[23px] [&::-moz-range-thumb]:appearance-none
+              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-black
+              [&::-moz-range-thumb]:[filter:drop-shadow(0_4px_8px_rgba(0,0,0,0.20))]"
           />
         </div>
       )}
 
       {isShuffling && shuffleStep >= 1 && (
-        <button
-          type="button"
-          onClick={handleGoToPick}
-          className="fixed bottom-6 right-6 z-[100] rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:right-8"
-        >
-          고르러 가기
-        </button>
+        // ⚠️ 화면 오른쪽 끝(right-6)에 붙이지 않습니다. 이 사이트는 넓은
+        //    화면에서 내용이 max-w-site 로 가운데 모이는데, 단추만 화면
+        //    끝에 붙어 있으면 레이아웃 밖으로 혼자 빠져나갑니다.
+        //    헤더의 더보기(⋯)와 **같은 통·같은 오른쪽 여백**을 써서 세로로
+        //    맞춥니다 (components/page-header.tsx 의 max-w-site + pr-4).
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] mx-auto flex w-full max-w-site justify-end pr-4">
+          <button
+            type="button"
+            onClick={handleGoToPick}
+            className="pointer-events-auto rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          >
+            고르러 가기
+          </button>
+        </div>
       )}
     </div>
   )

@@ -43,6 +43,7 @@ import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
+import { AiBadge } from "@/components/ai-badge"
 import { ChatErrorBox } from "@/components/chat-error-box"
 import { describeChatError, type ChatErrorInfo } from "@/lib/chat-errors"
 import { canUseInsiteReading } from "@/lib/reading-entitlement"
@@ -562,7 +563,9 @@ export default function AskPage() {
           위층 뒤로 지나가는 칩을 덮습니다. 겹겹이 깔려 경계 없이
           서서히 옅어집니다 (components/blur-veil.tsx). */}
       <BlurVeil side="top" height={HEADER_SPACE_PX + bubbleHeight + 40} />
-      <BlurVeil side="bottom" height={inputHeight + 40} />
+      {/* ⚠️ 아래 장막은 없습니다. 입력창 띠가 자기 흐림(2px)을 들고 있고,
+          여기에 장막(최대 16px)을 겹치면 시안보다 여덟 배 흐려집니다 —
+          뒤에 칩이 비쳐야 한다는 시안 메모와 정반대가 됩니다. */}
 
       {/* ── 위층: 말풍선 ──────────────────────────────────────────────
           ⚠️ 말풍선은 내용이 아닙니다. "지금 무엇을 하는 자리인지" 일러주는
@@ -589,14 +592,19 @@ export default function AskPage() {
           키보드가 올라오면 그 높이만큼 위로 올려 키보드에 딱 붙입니다
           (h-dvh 는 키보드를 계산에 넣지 않아 그대로 두면 가려집니다).
 
-          흐리기는 장막(BlurVeil)이 맡습니다. 여기에는 위로 갈수록 옅어지는
-          바탕만 깔아, 흐려진 칩이 입력창 글자와 겹쳐 읽히지 않게 합니다. */}
+          ⚠️ **흐림 띠는 입력창 아래에만 있습니다.** 이 감싸개에는 흐림도
+             색도 걸지 않습니다. 예전에는 여기에 걸어서 흐림이 입력창
+             **위에서부터** 시작했고, 입력창 위 빈 자리에 가로선이 하나
+             그어진 것처럼 보였습니다 (시안 지적: "텍스트 상자 위에부터
+             블러가 시작되는게 아니라"). 입력창 뒤가 흐린 것은 입력창 자신의
+             backdrop-filter(8px)가 내는 것이고, 그 위는 그대로 또렷합니다.
+
+          ⚠️ backdrop-filter 를 쓰면서 marginBottom 으로 움직입니다.
+             transform 으로 바꾸지 마세요 — 조상에 transform 이 생기면
+             자식(입력창·아래 띠)의 backdrop-filter 가 통째로 죽습니다. */}
       <div
         ref={setInputBar}
-        className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/85 to-transparent transition-[margin] duration-150 ${
-          // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다
-          keyboardInset > 0 ? "pb-2.5" : "pb-[max(2rem,env(safe-area-inset-bottom))]"
-        }`}
+        className="absolute inset-x-0 bottom-0 z-30 transition-[margin] duration-150"
         style={{ marginBottom: keyboardInset }}
       >
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
@@ -614,7 +622,46 @@ export default function AskPage() {
             tone="muted"
             className="mt-4"
           />
+        </div>
 
+        {/* ── 아래 띠 — 흐림은 여기서만 ────────────────────────────────
+            ┌─ 시안 실측 (2026-08) ────────────────────────────────────
+            │ background : linear-gradient(180deg,
+            │                rgba(197,195,187,0.00) 0%,
+            │                rgba(197,195,187,0.40) 100%)
+            │ backdrop-filter : blur(2px)
+            └──────────────────────────────────────────────────────────
+
+            ⚠️ 윗변이 입력창 **아래변에 딱 붙습니다**. 입력창을 감싸지
+               않습니다 — 감싸면 흐림이 입력창 위에서부터 시작해서
+               시안이 X 표시한 모양이 됩니다.
+
+            ⚠️ 화면 폭 전체입니다. 입력창을 담은 칸(max-w-site · px-6)
+               안에 넣으면 좌우 여백이 흐림 밖으로 남아, 띠가 가운데만
+               잘린 조각처럼 보입니다.
+
+            ⚠️ **뒤가 비쳐야 합니다.** 시안 메모: "살짝 뒤에 뎁스 (칩이나
+               내용들이 보임)". 예전에 from-background(불투명)를 깔았더니
+               아래쪽 칩이 통째로 사라져 화면이 거기서 끝난 것처럼
+               보였습니다. 제일 진한 곳도 40% 입니다.
+
+            ⚠️ 흐림도 2px 하나뿐입니다. 아래쪽 BlurVeil(최대 16px)을 함께
+               깔면 시안보다 여덟 배 흐려져서 40% 로 낮춰도 뒤가 안 보입니다.
+               그래서 아래 장막은 걷어냈습니다 (위쪽 헤더 장막은 그대로). */}
+        <div
+          className={`pt-2 ${
+            // 키보드가 올라와 있으면 아래 여백을 10px 로 줄여 바짝 붙입니다.
+            // 시안: AI 표기 아래 18. 홈 인디케이터가 있는 기기에서는 그
+            // 높이를 씁니다 — 18 로 고정하면 표기가 인디케이터에 깔립니다.
+            keyboardInset > 0 ? "pb-2.5" : "pb-[max(18px,env(safe-area-inset-bottom))]"
+          }`}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(197,195,187,0.00) 0%, rgba(197,195,187,0.40) 100%)",
+            WebkitBackdropFilter: "blur(2px)",
+            backdropFilter: "blur(2px)",
+          }}
+        >
           {/* 사전 고지 — 묻기 "전에" 알립니다.
               법이 요구합니다: 생성형 AI 를 쓰는 서비스는 처음 이용하는
               시점에 그 사실을 알려야 합니다 (components/ai-badge.tsx 머리말).
@@ -622,10 +669,17 @@ export default function AskPage() {
               하나는 답을 받은 뒤.
 
               ⚠️ 상자로 만들지 않습니다. 물으려는 사람 앞에 상자를 놓으면
-                 그것부터 치워야 합니다. 입력창 아래 한 줄이면 읽힙니다. */}
-          <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
-            샨티의 해석은 AI 가 지어낸 글이에요. 재미와 자기성찰로 봐주세요.
-          </p>
+                 그것부터 치워야 합니다. 입력창 아래 한 줄이면 읽힙니다.
+
+              ⚠️ 시안(2026-08)대로 한 줄로 줄였습니다 — "샨티의 리딩 [AI]".
+                 입력창 아래 8, 가운데 정렬입니다.
+                 예전 문장("재미와 자기성찰로 봐주세요")은 여기서 뺐습니다.
+                 물으려는 사람에게 미리 하는 당부라 읽히지 않았고, 같은 말이
+                 결과 화면과 이용약관에 이미 있습니다. */}
+          {/* 입력창 아래 8 은 이 띠의 pt-2 가, 아래 18 은 pb 가 냅니다 */}
+          <div className="flex justify-center">
+            <AiBadge />
+          </div>
         </div>
       </div>
     </div>
