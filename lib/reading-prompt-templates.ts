@@ -5,6 +5,7 @@
 // 주제 목록의 단일 진실 소스는 lib/reading-topics.ts 입니다.
 // -----------------------------------------------------------------------------
 import { ACTIVE_CHARACTER } from "@/lib/character"
+import { josaFor } from "@/lib/korean-josa"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
 import { CHAT_INSTRUCTION } from "@/lib/ai/reading-chat"
@@ -23,13 +24,26 @@ import {
 export type ReadingTopicKey = ReadingTopicSlug
 export type { ReadingQuestion, SpreadPosition, TopicContent } from "@/lib/reading-content"
 
+/**
+ * 확인 문구에 질문을 끼워 넣습니다.
+ *
+ * ⚠️ 「"{q}"이라」 의 조사는 앞말의 받침을 따라갑니다. 문장에 "이라"가
+ *    박혀 있어서 「"힘들다"이라...」·「"좋을까?"이라...」 가 그대로 나갔습니다.
+ *    질문 문구는 여기서 정하는 것이 아니라 콘텐츠에서 오므로, 무엇으로
+ *    끝날지 모른 채 셈해서 붙입니다 (lib/korean-josa.ts).
+ */
+function fillQuestion(template: string, questionLabel: string): string {
+  return template
+    .replaceAll(`"{q}"이라`, `"${questionLabel}"${josaFor(questionLabel, "이라라")}`)
+    .replaceAll("{q}", questionLabel)
+}
+
 /** 페이지에서 쓰기 편하도록 confirmTemplate을 함수 형태(confirmLine)로 감싸 돌려줍니다. */
 export function getTopicConfig(topicKey: ReadingTopicKey) {
   const content = topicContent[topicKey]
   return {
     ...content,
-    confirmLine: (questionLabel: string) =>
-      content.confirmTemplate.replaceAll("{q}", questionLabel),
+    confirmLine: (questionLabel: string) => fillQuestion(content.confirmTemplate, questionLabel),
   }
 }
 

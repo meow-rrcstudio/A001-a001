@@ -36,7 +36,7 @@ import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { buildFreeQuestion, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { buildFreeQuestion, freeIntroFor, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { auditFreeQuestion, type QuestionAudit } from "@/lib/question-safety"
 import { QuestionCareNotice } from "@/components/question-care-notice"
 import { useReadingStream } from "@/lib/use-reading-stream"
@@ -68,11 +68,16 @@ type Step = "ask" | "draw" | "result"
  * ⚠️ 예전에는 전부 plan.intro 하나로 갔습니다. 준비된 질문의 확인 문구가
  *    그때 통째로 묻혔습니다 — 주제마다 말투를 달리 써둔 것이 있는데도
  *    무슨 질문이든 같은 말이 나왔습니다.
+ *
+ * ⚠️ 직접 친 물음의 기본 문구는 손으로 쓰지 않습니다(freeIntroFor). 예전에
+ *    여기 「"{q}"이라... 좋은 질문이구먼」이 박혀 있어서, 「힘들다」에도
+ *    「나 암이래 너무 걱정돼」에도 똑같이 좋은 질문이라고 답했습니다.
  */
 function drawIntro(
   asked: { topicSlug: ReadingTopicKey; question: ReadingQuestion } | null,
   typed: string,
-  plan: ReadingPlan | null
+  plan: ReadingPlan | null,
+  audit: QuestionAudit | null
 ): string {
   if (asked && asked.question.slug !== FREE_QUESTION_SLUG) {
     const config = getTopicConfig(asked.topicSlug)
@@ -82,7 +87,7 @@ function drawIntro(
     }
     return config.confirmLine(asked.question.label)
   }
-  return plan?.intro ?? `"${typed}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`
+  return plan?.intro || freeIntroFor(typed, audit)
 }
 
 export default function AskPage() {
@@ -396,7 +401,7 @@ export default function AskPage() {
           <QuestionCareNotice audit={audit} className="mb-3 shrink-0" />
           <CardReadingFlow
             question={asked.question}
-            introMessage={drawIntro(asked, question, plan)}
+            introMessage={drawIntro(asked, question, plan, audit)}
             // 이 판을 시작하는 뽑기에만 넘깁니다 — 면담 중 더 뽑기에는
             // 넘기지 않습니다 (같은 판을 이어가는 것이라 섞이면 안 됩니다)
             //

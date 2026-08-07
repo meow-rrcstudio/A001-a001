@@ -19,7 +19,34 @@
 //    이 파일은 "아는 것만이라도 다시는 놓치지 않기" 위한 자리입니다.
 //
 // 쓰는 법: node --experimental-strip-types scripts/check-question-safety.mjs
-import { auditFreeQuestion } from "../lib/question-safety.ts"
+import { register } from "node:module"
+import { fileURLToPath, pathToFileURL } from "node:url"
+
+// ⚠️ 검사할 파일들이 서로를 "@/lib/…" 로 부릅니다. 그 별칭은 tsconfig 의
+//    것이라 node 는 모릅니다 — 붙여주지 않으면 "@/lib 패키지를 못 찾음"
+//    으로 멈춥니다. 저장소 뿌리로 되돌려 주는 갈고리 하나면 됩니다.
+const ROOT = fileURLToPath(new URL("../", import.meta.url))
+register(
+  "data:text/javascript," +
+    encodeURIComponent(`
+      import { existsSync } from "node:fs"
+      import { pathToFileURL } from "node:url"
+      const ROOT = ${JSON.stringify(ROOT)}
+      export function resolve(spec, ctx, next) {
+        if (!spec.startsWith("@/")) return next(spec, ctx)
+        let p = ROOT + spec.slice(2)
+        if (!existsSync(p)) {
+          for (const ext of [".ts", ".tsx", "/index.ts"]) {
+            if (existsSync(p + ext)) { p += ext; break }
+          }
+        }
+        return next(pathToFileURL(p).href, ctx)
+      }
+    `),
+  pathToFileURL(ROOT)
+)
+
+const { auditFreeQuestion } = await import("../lib/question-safety.ts")
 
 /** 목숨이 걸린 말 — 반드시 위기로 받아야 합니다 */
 const CRISIS = [
@@ -137,7 +164,44 @@ if (!crisisDirective.includes("사람먼저") || !crisisDirective.includes("뽑�
   console.error("✘ 위기 지침에 사람먼저·뽑기금지가 없습니다:\n" + crisisDirective)
 }
 
-const total = CRISIS.length + HARM.length + HEAVY.length + SENSITIVE.length + NORMAL.length + 1
+// ═══════════════════════════════════════════════════════════════════
+// 카드를 섞기 전에 건네는 첫 마디
+//
+// 「"힘들다"이라... 좋은 질문이구먼」이 실제로 나갔습니다. 물음이 아니라
+// 털어놓은 말인데 물음이라 부르고, 무거운 말인데 좋다고 했습니다.
+// ═══════════════════════════════════════════════════════════════════
+const { freeIntroFor } = await import("../lib/free-question.ts")
+
+let introFailed = 0
+function checkIntro(question, expect) {
+  const line = freeIntroFor(question, auditFreeQuestion(question))
+  const bad = expect(line)
+  if (bad) {
+    introFailed += 1
+    console.error(`✘ 첫 마디 — 「${question}」\n    ${bad}\n    받은 것: ${line}`)
+  }
+}
+
+// 어떤 말에도 칭찬을 얹지 않습니다.
+for (const q of ["힘들다", "나 암이래 너무 걱정돼", "죽을래", "이직해도 될까", "못 살겠어"]) {
+  checkIntro(q, (line) => (/좋은 질문|훌륭한|재미있는 질문/.test(line) ? "물음을 칭찬했습니다" : null))
+}
+
+// 조사가 앞말의 받침을 따라갑니다.
+checkIntro("힘들다", (line) => (line.startsWith(`"힘들다"라...`) ? null : `조사가 어긋났습니다`))
+checkIntro("이직", (line) => (line.startsWith(`"이직"이라...`) ? null : `조사가 어긋났습니다`))
+
+// 무거운 말은 무겁게 받습니다.
+checkIntro("나 암이래 너무 걱정돼", (line) =>
+  line.includes("걱정이 크겠구먼") ? null : "몸 이야기를 그냥 지나쳤습니다"
+)
+checkIntro("죽을래", (line) =>
+  line.includes("흘려듣지 않겠다") ? null : "위기인데 평범하게 받았습니다"
+)
+
+failed += introFailed
+
+const total = CRISIS.length + HARM.length + HEAVY.length + SENSITIVE.length + NORMAL.length + 1 + 9
 if (failed > 0) {
   console.error(`\n${total} 개 중 ${failed} 개가 어긋났습니다.`)
   process.exit(1)
