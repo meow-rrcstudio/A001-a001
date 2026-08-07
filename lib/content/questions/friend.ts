@@ -118,4 +118,15 @@ export const FRIEND_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "toward",
   },
+  {
+    slug: "general",
+    label: "그냥 요즘 인간관계가 전반적으로 궁금해",
+    resonatesWith: ["flower", "moon"],
+    spreads: ["bond-now-1", "bond-three-3"],
+    confirms: [
+      { text: "누구 한 사람을 짚지 않아도 마음이 관계 쪽으로 기울 때가 있다냥. 샨티와 함께 요즘 너의 사람들과의 사이를 살펴보자냥." },
+      { text: "지금의 관계, 내가 놓치고 있던 것, 다가올 인연. 세 장으로 너의 인간관계를 조금 넓게 바라보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]

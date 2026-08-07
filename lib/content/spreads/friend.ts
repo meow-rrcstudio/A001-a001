@@ -612,4 +612,40 @@ export const FRIEND_SPREADS: Record<SpreadId, Spread> = {
       },
     ],
   },
+  "bond-now-1": {
+    emoji: "🌸",
+    name: "요즘 관계의 온도",
+    layoutKey: "one-card",
+    resonatesWith: ["flower", "moon"],
+    positions: [
+      {
+        label: "관계의 온도",
+        short: "한 장으로 요즘 너의 인간관계 전체를 살펴본다냥.",
+        long: "지금 사람들과의 사이에 흐르고 있는 기운을 알아본다냥.",
+      },
+    ],
+  },
+  "bond-three-3": {
+    emoji: "🌱",
+    name: "관계의 세 가지 결",
+    layoutKey: "three-row",
+    resonatesWith: ["flower", "wind", "moon"],
+    positions: [
+      {
+        label: "지금의 관계",
+        short: "지금 너의 관계를 보여주는 카드다냥.",
+        long: "요즘 사람들 사이에서 내가 어떤 자리에 있는지 살펴본다냥.",
+      },
+      {
+        label: "내가 놓치고 있던 것",
+        short: "내가 미처 보지 못한 것을 보여주는 카드다냥.",
+        long: "관계 속에서 아직 알아차리지 못한 마음을 알아본다냥.",
+      },
+      {
+        label: "다가올 인연",
+        short: "앞으로 다가올 인연을 보여주는 카드다냥.",
+        long: "앞으로 어떤 만남과 흐름이 이어질지 살펴본다냥.",
+      },
+    ],
+  },
 }

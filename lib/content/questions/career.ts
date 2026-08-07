@@ -151,4 +151,15 @@ export const CAREER_QUESTIONS: PreparedQuestion[] = [
     ],
     shuffleStyle: "toward",
   },
+  {
+    slug: "general",
+    label: "그냥 요즘 내 직업운이 전반적으로 궁금해",
+    resonatesWith: ["root", "moon"],
+    spreads: ["work-now-1", "work-three-3"],
+    confirms: [
+      { text: "딱 짚어 물을 것이 없어도 일의 흐름은 늘 흐르고 있다냥. 샨티와 함께 요즘 너의 일이 어디쯤 와 있는지 살펴보자냥." },
+      { text: "지금의 자리, 조용히 쌓이고 있는 것, 앞으로 열릴 길. 세 장으로 너의 커리어를 조금 넓게 바라보자냥." },
+    ],
+    shuffleStyle: "gentle",
+  },
 ]

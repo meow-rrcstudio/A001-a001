@@ -965,4 +965,40 @@ export const CAREER_SPREADS: Record<SpreadId, Spread> = {
       },
     ],
   },
+  "work-now-1": {
+    emoji: "🪨",
+    name: "요즘 일의 흐름",
+    layoutKey: "one-card",
+    resonatesWith: ["stone", "root"],
+    positions: [
+      {
+        label: "일의 흐름",
+        short: "한 장으로 요즘 너의 일 전체 흐름을 살펴본다냥.",
+        long: "지금 일과 커리어에 흐르고 있는 기운과 바라볼 방향을 알아본다냥.",
+      },
+    ],
+  },
+  "work-three-3": {
+    emoji: "🌱",
+    name: "일의 세 가지 흐름",
+    layoutKey: "three-row",
+    resonatesWith: ["root", "moon"],
+    positions: [
+      {
+        label: "지금의 자리",
+        short: "지금 네가 서 있는 자리를 보여주는 카드다냥.",
+        long: "현재 일 속에서 내가 어떤 상태에 있는지 살펴본다냥.",
+      },
+      {
+        label: "쌓이고 있는 것",
+        short: "지금 조용히 쌓이고 있는 것을 보여주는 카드다냥.",
+        long: "아직 눈에 보이지 않지만 나를 자라게 하고 있는 힘을 알아본다냥.",
+      },
+      {
+        label: "열릴 길",
+        short: "앞으로 열릴 길을 보여주는 카드다냥.",
+        long: "앞으로 커리어가 어떤 방향으로 이어질지 살펴본다냥.",
+      },
+    ],
+  },
 }
