@@ -28,6 +28,7 @@ import {
 import type { ReadingResult } from "@/lib/mock-reading"
 import type { PickedCard } from "@/components/reading-result-view"
 import { describeChatError, type ChatErrorInfo } from "@/lib/chat-errors"
+import type { QuestionAudit } from "@/lib/question-safety"
 
 /**
  * 흐름이 막힌 사정을 담아 던지는 오류.
@@ -132,6 +133,18 @@ export function useReadingChat({
    * 지금은 안 뽑고 싶어서 나온 사람은 그냥 말을 이어가면 됩니다.
    */
   const [drawDeclined, setDrawDeclined] = useState(false)
+  /**
+   * 카드보다 사람의 손이 먼저인 자리 — 서버가 알려준 상담 연락처.
+   *
+   * ⚠️ 화면이 판단하지 않습니다. 서버가 물음과 오간 말을 다시 읽고
+   *    보내줍니다 (app/api/reading/chat/route.ts). 여기서 정규식을 또
+   *    돌리면 서버와 화면의 판단이 갈리는 날이 옵니다.
+   *
+   * ⚠️ 한 번 뜨면 대화가 끝날 때까지 둡니다. 무거운 말을 한 사람이 다음
+   *    마디에서 딴 이야기를 한다고 번호가 사라지면, 정작 필요할 때 다시
+   *    찾아 올라가야 합니다.
+   */
+  const [care, setCare] = useState<QuestionAudit | null>(null)
 
   // 면담 도중 카드가 늘어납니다. 다음 물음에는 늘어난 채로 들려보내야
   // 샨티가 "아까 더 뽑은 그 카드"를 기억합니다.
@@ -264,6 +277,7 @@ export function useReadingChat({
               kind?: unknown
               retryAfterSeconds?: number
               drawnCards?: PickedCard[]
+              care?: QuestionAudit | null
             }
             try {
               payload = JSON.parse(line)
@@ -280,6 +294,9 @@ export function useReadingChat({
                 })
               )
             }
+            // 상담 연락처는 답보다 먼저 옵니다. 모델이 무슨 말을 하든
+            // 화면에는 이미 떠 있어야 하는 것이라, 여기서 바로 세웁니다.
+            if (payload.care) setCare(payload.care)
             if (payload.drawnCards) drawnCards = payload.drawnCards
             if (!payload.partial) continue
 
@@ -430,6 +447,7 @@ export function useReadingChat({
     pendingDraw,
     suggestions,
     drawDeclined,
+    care,
     send,
     retryLast,
     submitDrawnCards,

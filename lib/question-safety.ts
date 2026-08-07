@@ -51,7 +51,8 @@ export type QuestionCategory =
  * 얼마나 조심해서 다뤄야 하는 물음인가.
  *
  * normal    그냥 읽으면 되는 물음
- * sensitive 결과를 맞히듯 말하면 안 되는 물음 (의료·법률·투자·가해)
+ * sensitive 결과를 맞히듯 말하면 안 되는 물음 (의료·법률·투자·가해),
+ *           그리고 위기라 부르기는 이른데 그냥 지나치기도 어려운 물음
  * crisis    카드보다 사람의 손이 먼저 닿아야 하는 물음 (자·타해, 피해)
  */
 export type SafetyLevel = "normal" | "sensitive" | "crisis"
@@ -86,6 +87,17 @@ export interface QuestionAudit {
   suggestion?: string
   /** 위기일 때 화면에 띄울 연락처 */
   resources?: CrisisResource[]
+  /**
+   * 샨티에게 이르는 말 — 이 물음을 어느 쪽으로 안고 갈 것인가.
+   *
+   * ⚠️ 사용자가 친 말은 한 글자도 섞이지 않습니다. 우리가 미리 적어둔
+   *    문장 중 하나를 고른 것입니다 (아래 CARE 참고).
+   *
+   * ⚠️ 예전에는 프롬프트를 지을 때 분류·등급·연락처를 다시 보고 어느
+   *    focus 였는지 되짚었습니다. 되짚기가 한 갈래 틀리면 "위기인데
+   *    투자 지침"이 붙습니다. 고른 자리에서 바로 들고 다니게 했습니다.
+   */
+  focus?: string
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -124,12 +136,116 @@ export function sanitizeForPrompt(raw: string, max = 200): string {
  *    섞여 있었고, 의료가 목록 맨 위였습니다. 그래서 "죽고 싶다"는 물음이
  *    의료로 걸려 "검사와 치료를 지나는 동안의 마음가짐"으로 바뀌었습니다.
  *    가장 급한 사람을 가장 엉뚱한 곳으로 보낸 것입니다.
+ *
+ * ⚠️ 그다음에 걸린 것이 "말버릇"이었습니다. 목록이 "죽고 싶"만 알아서,
+ *    「죽을래」라고 친 사람이 그냥 보통 물음으로 흘렀습니다 — 소드 4 가
+ *    깔리고 "온전한 휴식을 가지라"는 해석이 나갔습니다. 사람이 목숨을
+ *    말할 때 쓰는 말은 한 가지 꼴이 아닙니다. 「죽을래」·「죽을까」·
+ *    「다 끝내고 싶어」·「태어나지 말았어야」 — 다 같은 말입니다.
+ *
+ * ⚠️ 그렇다고 「배고파 죽겠어」까지 잡으면 안 됩니다. 한국말에서 "-어
+ *    죽겠다"는 그냥 정도를 세게 말하는 버릇이라, 맨 「죽겠」은 일부러
+ *    넣지 않았습니다. 아래 IDIOM 이 그 자리를 한 번 더 막습니다.
  */
-const SELF_HARM =
-  /자살|자해|목숨을?\s*끊|죽고\s*싶|죽어\s*버리고\s*싶|살고\s*싶지\s*않|살기\s*싫|사라지고\s*싶|없어지고\s*싶|극단적(인)?\s*선택|유서|손목을?\s*긋/
+const SELF_HARM = new RegExp(
+  [
+    // ── 낱말 그대로 ────────────────────────────────────────────────
+    "자살",
+    "자해",
+    "극단적(인)?\\s*선택",
+    "유서",
+    "투신",
+    // ── 목숨을 끊는다는 말 ─────────────────────────────────────────
+    "목숨을?\\s*(끊|버리)",
+    "생을?\\s*마감",
+    "세상을?\\s*(뜨|떠나)",
+    "삶을?\\s*(끝|접)",
+    // ── 죽음을 나에게 두는 말 ──────────────────────────────────────
+    "죽고\\s*싶",
+    "죽고\\s*파",
+    "죽을\\s*래",
+    "죽을래",
+    "죽을까",
+    "죽을라",
+    "죽어\\s*버리",
+    "죽어야\\s*(하나|할까|겠|지)",
+    "죽는\\s*게\\s*(나|편)",
+    "죽는\\s*편이",
+    "죽으면\\s*(좋|편)",
+    "죽어도\\s*(괜찮|되|좋)",
+    "그냥\\s*죽",
+    "뒤지고\\s*싶",
+    // ── 살고 싶지 않다는 말 ────────────────────────────────────────
+    "살고\\s*싶지\\s*않",
+    "살기\\s*싫",
+    "살\\s*이유(가|를)?\\s*(없|모르)",
+    "살아서\\s*뭐\\s*(하|해)",
+    "사는\\s*게\\s*(의미|무슨\\s*의미)",
+    "태어나지\\s*(말|않)았",
+    // ── 사라지고 싶다는 말 ─────────────────────────────────────────
+    "사라지고\\s*싶",
+    "없어지고\\s*싶",
+    "없어졌으면",
+    "안\\s*깨어났으면",
+    "잠들고\\s*싶",
+    "다\\s*끝내고\\s*싶",
+    "끝내\\s*버리고\\s*싶",
+    // ── 방법을 말하는 자리 — 여기서 놓치면 안 됩니다 ───────────────
+    "뛰어\\s*내리",
+    "목을?\\s*매",
+    "목\\s*맬",
+    "번개탄",
+    // ㅅ 불규칙 — 「긋다」가 「그었어」로 바뀝니다. 「손목을 그었어」가
+    // 이 한 글자 때문에 통째로 빠져 있었습니다.
+    "(손목|팔목|팔)을?\\s*(긋|그어|그었)",
+    "약을\\s*(다|털어|한꺼번에)",
+    "수면제를?\\s*(다|모아|한꺼번에)",
+  ].join("|")
+)
 
-/** 남을 해치려는 마음 */
-const HARM_OTHERS = /죽여\s*버리|죽이고\s*싶|죽여\s*줄|해치고\s*싶|없애\s*버리고\s*싶|칼로\s*(찌|긋)/
+/**
+ * 「-어 죽겠다」꼴 — 정도를 세게 말하는 버릇이지 목숨 이야기가 아닙니다.
+ *
+ * 「배고파 죽겠어」·「좋아 죽겠다」·「귀여워 죽겠어」. 이런 말에 상담전화가
+ * 뜨면 다음부터는 우리 말을 안 믿게 됩니다 — 정작 필요한 날에도.
+ */
+const DEATH_IDIOM =
+  /(아|어|워|해|파|퍼|나|려|겨|와|이)\s*죽겠|(웃겨|좋아|귀여워|배고파|힘들어|졸려|심심해|보고\s*싶어)\s*죽|죽여\s*주(네|는|다)|죽을\s*맛|죽기\s*살기|죽어라\s*(하고|공부|일)/
+
+/**
+ * 걸린 것이 말버릇뿐인가.
+ *
+ * 말버릇을 지워낸 뒤에도 목숨 이야기가 남아 있으면 그건 진짜입니다 —
+ * 「짜증나 죽겠어… 그냥 죽을까」 같은 말을 idiom 하나로 통째로
+ * 넘겨버리지 않으려고 지운 자리로 다시 봅니다.
+ */
+function isDeathIdiomOnly(source: string): boolean {
+  const stripped = source.replace(new RegExp(DEATH_IDIOM.source, "g"), " ")
+  return !SELF_HARM.test(stripped)
+}
+
+/**
+ * 남을 해치려는 마음.
+ *
+ * ⚠️ 자해보다 먼저 봅니다. 「너 죽을래」는 위 SELF_HARM 에도 걸리는데,
+ *    그건 자기 목숨 이야기가 아니라 남에게 던지는 말입니다.
+ */
+const HARM_OTHERS =
+  /죽여\s*버리|죽이고\s*싶|죽여\s*줄|죽여\s*버릴|해치고\s*싶|없애\s*버리고\s*싶|칼로\s*(찌|긋)|(너|니|네|당신|걔|쟤|저놈|이놈|새끼)\s*(죽을래|죽을라|죽고\s*싶)/
+
+/**
+ * 위기라 부르기는 이른데, 그냥 지나치기도 어려운 말.
+ *
+ * 「못 살겠어」·「다 놓고 싶어」는 목숨을 말한 것이 아닙니다. 그래서 위기로
+ * 다루지 않습니다 — 위기 상자는 무겁고, 무거운 상자가 자꾸 뜨면 사람이
+ * 그 상자를 안 읽게 됩니다.
+ *
+ * 대신 등급만 sensitive 로 올려서 두 가지를 합니다.
+ *   · 샨티가 "괜찮아질 거야"로 덮지 않게 이릅니다
+ *   · 상담 번호를 조용히 곁에 둡니다 (권하지는 않고, 있다는 것만)
+ */
+const HEAVY_HEART =
+  /못\s*살겠|버티기(가)?\s*(힘들|벅차|어렵)|버틸\s*(힘|자신)이?\s*없|다\s*놓고\s*싶|다\s*포기(하고\s*싶|할까)|모든\s*걸?\s*그만|아무것도\s*하기\s*싫|무기력|숨이\s*막혀|눈물이\s*(안\s*멈|멈추지)|한계(인\s*것\s*같|에\s*온|이야|다)|더는\s*못\s*(하|버티|견디)|견디기\s*(힘들|벅차)/
 
 /** 범죄를 "하려는" 쪽 */
 const CRIME_DOING =
@@ -308,6 +424,21 @@ const CRISIS_CARE: Care = {
   focus: "죽음·미래를_점치지_말고_오늘_하루를_견디는_힘과_곁의_사람을_읽는다|반드시_도움을_청하라고_다정하게_권한다",
 }
 
+/**
+ * 무거운 마음 — 위기 상자보다 한 뼘 낮은 자리.
+ *
+ * ⚠️ 말투가 다릅니다. 위기는 "지금 사람의 손이 먼저다"라고 데려가는 말이고,
+ *    이쪽은 "곁에 있겠다"고 앉는 말입니다. 여기서 위기의 말투를 쓰면
+ *    「일이 힘들어 못 살겠어」라고 친 사람이 119 안내를 받습니다.
+ */
+const HEAVY_CARE: Care = {
+  notice:
+    "요즘 많이 무거웠구나. 이 몸이 카드를 읽어주겠지만, 혼자 안고 있기에 버거운 날에는 아래에 기대도 좋다냥. 밤에도 받는 곳이다.",
+  suggestion: "지금의 나를 조금이라도 가볍게 해줄 것은 무엇일까?",
+  focus:
+    "벗어날_날짜를_점치지_말고_오늘을_버티는_힘과_기댈_곳을_읽는다|섣불리_괜찮아질_거라_단정하지_않는다|힘을_내라고_다그치지_않는다",
+}
+
 const VICTIM_CARE: Care = {
   notice:
     "무서운 일을 겪고 있구나. 카드보다 먼저 안전한 자리를 찾는 것이 먼저다냥. 아래로 연락해 두렴.",
@@ -326,20 +457,9 @@ export function auditFreeQuestion(rawQuestion: string): QuestionAudit {
   const source = rawQuestion.trim()
 
   // ── 위기가 가장 먼저 ─────────────────────────────────────────────
-  if (SELF_HARM.test(source)) {
-    return {
-      category: "자기성찰",
-      topicKey: "self",
-      level: "crisis",
-      risk: "Critical",
-      question,
-      layoutKey: "three-inverted",
-      notice: CRISIS_CARE.notice,
-      suggestion: CRISIS_CARE.suggestion,
-      resources: CRISIS_RESOURCES,
-    }
-  }
-
+  //
+  // ⚠️ 남을 향한 말이 자해보다 앞입니다. 「너 죽을래」는 두 목록에 다
+  //    걸리는데, 그건 자기 목숨 이야기가 아닙니다.
   if (HARM_OTHERS.test(source)) {
     return {
       category: "범죄",
@@ -351,6 +471,24 @@ export function auditFreeQuestion(rawQuestion: string): QuestionAudit {
       notice: CARE.범죄!.notice,
       suggestion: CARE.범죄!.suggestion,
       resources: CRISIS_RESOURCES,
+      focus: CARE.범죄!.focus,
+    }
+  }
+
+  // 「배고파 죽겠어」는 목숨 이야기가 아닙니다. 말버릇이 걸렸을 뿐이면
+  // 목숨 목록을 통째로 건너뜁니다.
+  if (SELF_HARM.test(source) && !isDeathIdiomOnly(source)) {
+    return {
+      category: "자기성찰",
+      topicKey: "self",
+      level: "crisis",
+      risk: "Critical",
+      question,
+      layoutKey: "three-inverted",
+      notice: CRISIS_CARE.notice,
+      suggestion: CRISIS_CARE.suggestion,
+      resources: CRISIS_RESOURCES,
+      focus: CRISIS_CARE.focus,
     }
   }
 
@@ -367,6 +505,25 @@ export function auditFreeQuestion(rawQuestion: string): QuestionAudit {
       notice: victim ? VICTIM_CARE.notice : CARE.범죄!.notice,
       suggestion: victim ? VICTIM_CARE.suggestion : CARE.범죄!.suggestion,
       resources: victim ? VICTIM_RESOURCES : undefined,
+      focus: victim ? VICTIM_CARE.focus : CARE.범죄!.focus,
+    }
+  }
+
+  // ── 위기는 아닌데 무거운 말 ──────────────────────────────────────
+  // 목숨을 말하지는 않았습니다. 그래서 위기로 데려가지 않고, 등급만
+  // 올려서 번호를 곁에 둡니다.
+  if (HEAVY_HEART.test(source)) {
+    return {
+      category: "자기성찰",
+      topicKey: "self",
+      level: "sensitive",
+      risk: "High",
+      question,
+      layoutKey: LAYOUT_BY_CATEGORY["자기성찰"],
+      notice: HEAVY_CARE.notice,
+      suggestion: HEAVY_CARE.suggestion,
+      resources: CRISIS_RESOURCES,
+      focus: HEAVY_CARE.focus,
     }
   }
 
@@ -384,6 +541,7 @@ export function auditFreeQuestion(rawQuestion: string): QuestionAudit {
     layoutKey: LAYOUT_BY_CATEGORY[category],
     notice: care?.notice,
     suggestion: care?.suggestion,
+    focus: care?.focus,
   }
 }
 
@@ -423,12 +581,9 @@ export const SAFETY_BASELINE = `@safety_baseline{
 export function safetyDirective(audit?: QuestionAudit | null): string {
   if (!needsCare(audit) || !audit) return ""
 
-  const focus =
-    audit.level === "crisis" && audit.category === "자기성찰"
-      ? CRISIS_CARE.focus
-      : audit.resources && audit.category === "범죄" && audit.level === "crisis"
-        ? VICTIM_CARE.focus
-        : (CARE[audit.category]?.focus ?? CRISIS_CARE.focus)
+  // 고를 때 이미 정해서 들고 온 것을 씁니다 (QuestionAudit.focus 주석 참고).
+  // 옛 모양으로 들어온 값이 있을 때만 분류로 되짚습니다.
+  const focus = audit.focus ?? CARE[audit.category]?.focus ?? CRISIS_CARE.focus
 
   const lines = [
     `분류=${audit.category}`,
@@ -442,7 +597,29 @@ export function safetyDirective(audit?: QuestionAudit | null): string {
   if (audit.level === "crisis") {
     lines.push(
       "위기=이_물음은_카드보다_사람이_먼저다|한_문장으로_도움을_청하라고_다정하게_권한다|화면에_이미_연락처가_떠_있으니_번호를_지어내지_않는다",
-      "금지=위험한_방법을_설명하거나_미화하는_말"
+      "금지=위험한_방법을_설명하거나_미화하는_말",
+      // ⚠️ 아래 네 줄은 실제로 나갔던 답을 보고 붙인 것입니다.
+      //    「죽을래」라고 친 사람에게 첫 문장부터 "'소드의 4'는 온전한
+      //    휴식을 가지라고 말했다냥"이 나갔습니다. 규칙을 어긴 답이
+      //    아니었습니다 — 면담 규칙(@rule 의 인용)이 카드 이름을 반드시
+      //    짚으라고 시켰고, 모델은 그걸 지킨 것입니다. 그래서 위기에서만
+      //    그 규칙을 여기서 덮습니다.
+      "사람먼저=첫_문장은_카드가_아니라_묻는_이에게_건네는_말이다|카드_이름·카드_뜻으로_답을_시작하지_않는다",
+      "카드인용=위기에서는_카드를_억지로_짚지_않는다|다른_규칙이_카드를_인용하라고_해도_이_줄이_우선이다",
+      "안부=지금_곁에_사람이_있는지·오늘_안전한지_한_번만_다정하게_묻는다|캐묻지_않는다",
+      // 위기에서 "더 뽑아줄까"는 결제 권유가 됩니다. 이 자리에서 별조각을
+      // 쓰게 만드는 것은 어떤 이유로도 안 됩니다.
+      "뽑기금지=카드를_더_뽑자고_권하지_않는다(draw를_넣지_않는다)|지금은_판을_늘릴_자리가_아니다",
+      "제안=이어_물을_거리를_늘어놓지_않는다|비워도_된다",
+      "말투=단정하지_않는다|괜찮아질_거라고_장담하지_않는다|설교하지_않는다|왜_그러냐고_따지지_않는다"
+    )
+  }
+
+  // 무거운 마음(위기는 아닌 자리) — 덮어버리는 말만 막습니다.
+  if (audit.level === "sensitive" && audit.category === "자기성찰") {
+    lines.push(
+      "덮지않기=힘을_내라고_다그치지_않는다|괜찮아질_거라고_장담하지_않는다|먼저_들은_뒤에_읽는다",
+      "연락처=화면에_조용히_놓여_있다|권하지도_말고_없는_것처럼_굴지도_말_것"
     )
   }
 

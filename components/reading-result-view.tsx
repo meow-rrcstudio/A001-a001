@@ -26,6 +26,7 @@ import { useKeyboardInset } from "@/lib/use-keyboard-inset"
 import { HEADER_SPACE } from "@/lib/layout"
 import { type ReadingResult } from "@/lib/mock-reading"
 import { ChatErrorBox } from "@/components/chat-error-box"
+import { QuestionCareNotice } from "@/components/question-care-notice"
 import { FollowupBanner } from "@/components/followup-banner"
 import type { ChatErrorInfo } from "@/lib/chat-errors"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
@@ -321,6 +322,7 @@ export function ReadingResultView({
     pendingDraw,
     suggestions,
     drawDeclined,
+    care,
     send,
     retryLast,
     submitDrawnCards,
@@ -583,6 +585,13 @@ export function ReadingResultView({
             </div>
           )
         )}
+
+        {/* 카드보다 사람의 손이 먼저인 자리 — 상담 연락처.
+            ⚠️ 서버가 물음과 오간 말을 다시 읽고 보내준 것입니다. 대화 중에
+            무거운 말이 나오면 여기에 뜹니다 — 예전에는 카드를 뽑기 전
+            화면에만 있어서, 정작 사람이 털어놓는 자리에는 없었습니다.
+            마디마다 반복하지 않고 대화 끝에 하나만 둡니다. */}
+        {care && <QuestionCareNotice audit={care} className="mt-6" />}
 
         {/* 지금 흘러들어오는 중인 답 */}
         {streamingText !== null && (

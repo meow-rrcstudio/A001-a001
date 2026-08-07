@@ -16,6 +16,7 @@ import {
   sanitizeForPrompt,
   SAFETY_BASELINE,
   type QuestionAudit,
+  type SafetyLevel,
 } from "@/lib/question-safety"
 
 // 하위 호환: 기존 코드가 쓰던 이름을 유지하되, 실체는 reading-topics의 슬러그 타입입니다.
@@ -210,6 +211,49 @@ export interface ChatContext {
   reserve?: { name: string; orientation: "정방향" | "역방향" }[]
 }
 
+/** 무게 견주기 — 숫자가 클수록 조심해야 하는 자리입니다 */
+const LEVEL_RANK: Record<SafetyLevel, number> = { normal: 0, sensitive: 1, crisis: 2 }
+
+/**
+ * 이 면담을 어느 무게로 안고 갈 것인가.
+ *
+ * ┌─ 왜 이번 물음만 보면 안 되는가 ───────────────────────────────────
+ * │ 무거운 말은 한 번 나오고 지나갑니다. 「죽을래」로 판을 열었어도 다음
+ * │ 물음은 「죽는다는데 왜 타로를 봐줘」이고, 그 문장만 보면 아무 낱말도
+ * │ 걸리지 않습니다. 그러면 바로 그 마디에서 지침이 통째로 빠지고, 가장
+ * │ 조심해야 할 순간에 가장 평범한 답이 나갑니다 — 실제로 그렇게 나갔던
+ * │ 자리입니다.
+ * │
+ * │ 그래서 셋을 함께 봅니다. 이번 물음 · 최근에 묻는 이가 한 말 · 판을
+ * │ 열었던 처음 물음. 이 중 가장 무거운 것이 이깁니다. 한 번 무거워진
+ * │ 대화는 가벼워지지 않습니다 — 사람이 그렇습니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 화면이 보낸 audit 을 그대로 믿지 않습니다. 서버가 처음 물음을 다시
+ *    읽습니다 (app/api/reading/chat/route.ts). 요청을 손으로 만들면
+ *    audit 자리에 "normal" 을 적어 지침만 빼낼 수 있기 때문입니다.
+ */
+export function resolveChatAudit(
+  context: Pick<ChatContext, "question" | "message" | "turns" | "audit">
+): QuestionAudit {
+  const own = auditFreeQuestion(context.message)
+
+  // 최근 것부터 봅니다. 무게가 같으면 최근 것이 이깁니다 (아래 reduce 는
+  // 더 무거울 때만 갈아끼웁니다).
+  const spoken = (context.turns ?? [])
+    .filter((t) => t.role === "user")
+    .slice(-6)
+    .reverse()
+    .map((t) => auditFreeQuestion(t.text))
+
+  const opening = context.audit ?? auditFreeQuestion(context.question ?? "")
+
+  return [own, ...spoken, opening].reduce(
+    (heaviest, one) => (LEVEL_RANK[one.level] > LEVEL_RANK[heaviest.level] ? one : heaviest),
+    own
+  )
+}
+
 function describeCards(cards: ChatContext["cards"]): string {
   if (cards.length === 0) return "(없음)"
   return cards
@@ -228,11 +272,7 @@ export function buildChatMessages(
   character = ACTIVE_CHARACTER
 ): { system: string; user: string } {
   const { memories, question, cards, reading, digest, turns, message, reserve, drawTally } = context
-  // 이번 물음을 먼저 봅니다. 대화 도중에 무거운 이야기가 나오는 일이
-  // 흔해서입니다 — 처음 물음이 멀쩡했다고 이어지는 말까지 멀쩡하지는
-  // 않습니다. 이번 물음이 보통이면 처음 물음의 분류를 물려받습니다.
-  const own = auditFreeQuestion(message)
-  const audit = needsCare(own) ? own : (context.audit ?? own)
+  const audit = resolveChatAudit(context)
 
   const parts: string[] = []
 
