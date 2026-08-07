@@ -14,3 +14,9 @@ node_modules
 tsconfig.tsbuildinfo
 # Next.js가 dev/build 때 자동 생성하는 파일
 next-env.d.ts
+
+# 미니앱 (별도 프로젝트)
+miniapp/node_modules
+miniapp/dist
+# ait build 결과물 — 콘솔에 올리는 번들입니다 (저장소에 두지 않습니다)
+miniapp/*.ait

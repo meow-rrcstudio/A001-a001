@@ -392,11 +392,16 @@ POST https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss/order/get-orde
    이게 없으면 미니앱을 만들어도 API 를 하나도 못 부릅니다.
    · 토큰(`Authorization`)으로 사람 알아보기 (§3)
    · 미니앱 출처에 CORS 열기 (§3) — `TOSS_APP_NAME` 만 넣으면 켜집니다
+0-1. ✅ **미니앱 껍데기** — `miniapp/` (Vite + React + SDK 3.0.2).
+   빌드가 실제로 도는 것까지 확인했습니다 (`vite build && ait build` →
+   `soulseoul.ait`). 콘솔 계정 없이도 번들이 만들어집니다.
+   화면은 "길이 뚫렸는가"를 보는 한 장뿐입니다 — 타로 화면은 아직입니다.
 1. 8/21 — 웹 오픈 (카카오페이)
 2. 콘솔에서 앱 등록 → `appName` 확정, 상품(SKU) 3개 등록, mTLS 인증서 발급
    → Vercel 환경변수에 `TOSS_APP_NAME` 넣기 (그 순간 CORS 가 열립니다)
-3. 미니앱 프런트 껍데기(SDK 3.x) + 토스 로그인 → 우리 세션 잇기
-   → 샌드박스 앱에서 `intoss://<appName>` 로 확인
+   → `TOSS_CLIENT_CERT`·`TOSS_CLIENT_KEY` 넣기 (`/api/auth/toss` 가 살아납니다)
+3. 샌드박스 앱에서 `intoss://<appName>` 로 껍데기를 열어 **로그인 → 우리
+   API** 까지 실제로 닿는지 확인 (그 화면이 그걸 보려고 있는 것입니다)
 4. 타로 흐름 이식 (화면만 새로, API 는 그대로)
 5. 인앱결제 + 환불 감지
 6. 앱인토스 광고
