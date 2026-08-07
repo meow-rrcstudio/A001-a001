@@ -30,6 +30,7 @@ import { streamErrorPayload, streamFreeReadingWithGemini } from "@/lib/ai/gemini
 import { FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
+import { resolveQuestion } from "@/lib/content/resolve"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -38,6 +39,8 @@ interface FreeReadingBody {
   topicKey?: string
   questionSlug?: string
   questionLabel?: string
+  /** 화면이 이미 고른 배열의 id (lib/content/resolve.ts) */
+  spreadId?: string
   // ⚠️ plan(샨티가 고른 배열)은 여기 오지 않습니다. 그건 직접 친 물음에만
   //    딸리는 것이고, 이 라우트는 준비된 질문만 받습니다 (아래 참고).
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
@@ -95,7 +98,11 @@ export async function POST(request: Request) {
     )
   }
 
-  const question = topic.questions.find((q) => q.slug === body.questionSlug)
+  // ⚠️ 배열은 여기서 다시 고르지 않습니다. 화면이 이미 고른 것을 spreadId 로
+  //    받아 그대로 찾습니다 — 양쪽이 따로 굴리면 사람은 「마음의 거울」을
+  //    보는데 샨티는 「감정의 파도」를 읽습니다 (lib/content/resolve.ts).
+  //    남의 배열 id 를 밀어 넣으면 무시하고 이 질문의 것으로 되돌립니다.
+  const question = resolveQuestion(topicKey, body.questionSlug ?? "", body.spreadId)
   if (!question) {
     return NextResponse.json(
       { error: `질문 "${body.questionSlug}" 를 찾을 수 없습니다.` },

@@ -11,7 +11,15 @@ import type { ReadingTopicSlug } from "@/lib/reading-topics"
 
 export interface SpreadPosition {
   label: string
+  /** 뽑기 직전에 들려주는 말 */
   guide: string
+  /**
+   * 이 자리가 무엇인지 — 해석에 실립니다.
+   *
+   * 새 콘텐츠(lib/content/spreads/*.ts)에서 옵니다. 직접 친 물음처럼
+   * 그때그때 만들어지는 배열에는 없습니다.
+   */
+  long?: string
 }
 
 export interface ReadingQuestion {
@@ -19,6 +27,8 @@ export interface ReadingQuestion {
   label: string
   positions: SpreadPosition[]
   layoutKey: LayoutKey
+  /** 「마음의 거울」 — 손으로 설계한 배열의 이름 (lib/content/spreads/*.ts) */
+  spreadName?: string
   // 해석 스타일. 대부분 질문은 비워두면 기본(샨티 심리 리딩)으로 나갑니다.
   // 특별한 질문만 표시하면 그 질문에서만 전용 프롬프트가 나갑니다.
   //  · "variety_show" : 카드를 연애 프로그램·캐릭터·방송 서사로 캐스팅하는 재미 리딩

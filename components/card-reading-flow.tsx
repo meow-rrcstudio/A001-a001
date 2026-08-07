@@ -18,6 +18,7 @@ import { CardBack } from "@/components/card-back"
 import { getReadingDeck, getScatteredLayout } from "@/lib/reading-session"
 import type { ReadingQuestion } from "@/lib/reading-prompt-templates"
 import { spreadLayouts } from "@/lib/spread-layouts"
+import { SHUFFLE_POOL, SHUFFLE_URGE } from "@/lib/content/lines"
 import type { DrawTracker } from "@/lib/draw-signals"
 
 type Phase = "shuffling" | "selecting" | "revealing"
@@ -33,17 +34,11 @@ const SHUFFLE_TARGET_DISTANCE = 2400
 const SHUFFLE_STEPS = 4 // 최대 4번 섞으면 자동으로 다음 화면으로
 const MIN_STEPS_FOR_QUICK_DRAW = 1 // 1번만 섞어도 "고르러 가기" 가능
 
-const genericShuffleMessages = [
-  "숨을 한 번 크게 고르고, 계속 섞어보라냥",
-  "지금 떠오르는 마음이 있다면 그대로 흘려보내며 섞어보라냥",
-  "손끝에 마음을 실어서, 조금 더 섞어보라냥",
-]
-
-const shufflePersuasionMessages = [
-  "더 좋은 리딩을 보려면, 마음을 담아 조금 더 섞어야 한다냥.",
-  "성급하구먼... 타로엔 뽑는 이의 기운이 담겨야 하는 법이야. 한 번만 더 섞어보라냥.",
-  "이 몸이 삼천 번의 계절을 지켜봤는데, 서두른 패는 늘 흐릿하더군. 조금만 더 섞어보라냥.",
-]
+// 섞는 동안 · 덜 섞고 넘어가려 할 때 — 문구는 콘텐츠에 있습니다
+// (lib/content/lines.ts). 준비된 질문은 자기 결(gentle·focus·toward)에
+// 맞는 말을 들고 오고, 여기 것은 그게 없을 때의 바탕입니다.
+const genericShuffleMessages = SHUFFLE_POOL.gentle.map((l) => l.text)
+const shufflePersuasionMessages = SHUFFLE_URGE.map((l) => l.text)
 
 function useIsTouchDevice() {
   const [isTouch, setIsTouch] = useState(true)
@@ -86,6 +81,7 @@ function seededOrder(length: number, seed: number) {
 export function CardReadingFlow({
   question,
   introMessage,
+  shuffleLines,
   excludeNames,
   skipShuffle = false,
   signals,
@@ -93,6 +89,14 @@ export function CardReadingFlow({
 }: {
   question: ReadingQuestion
   introMessage: string
+  /**
+   * 섞을 때마다 한 줄씩 넘어가는 말.
+   *
+   * 준비된 질문은 자기 결(gentle·focus·toward)에 맞는 풀을 들고 옵니다 —
+   * 선택을 묻는 질문에 「그 사람의 얼굴을 떠올리며」가 나오지 않게요.
+   * 안 넘기면 바탕(gentle)을 씁니다.
+   */
+  shuffleLines?: string[]
   /**
    * 부채에서 빼놓을 카드 이름(nameKo).
    *
@@ -219,7 +223,10 @@ export function CardReadingFlow({
     [shuffledDeck.length, shuffleStep]
   )
 
-  const shuffleMessages = useMemo(() => [introMessage, ...genericShuffleMessages], [introMessage])
+  const shuffleMessages = useMemo(
+    () => [introMessage, ...(shuffleLines?.length ? shuffleLines : genericShuffleMessages)],
+    [introMessage, shuffleLines]
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => setEntered(true), 300)

@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server"
 import { CREDIT_UNIT, withJosa } from "@/lib/credit-packs"
 import { topicContent } from "@/lib/reading-content"
+import { resolveQuestion } from "@/lib/content/resolve"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { streamErrorPayload, streamReadingWithGemini } from "@/lib/ai/gemini"
 import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
@@ -30,6 +31,8 @@ interface ReadingRequestBody {
   questionSlug?: string
   /** 자유 질문일 때 사용자가 직접 친 문구 */
   questionLabel?: string
+  /** 준비된 질문일 때 화면이 이미 고른 배열의 id (lib/content/resolve.ts) */
+  spreadId?: string
   /** 샨티가 고른 배열 — 뽑을 때 쓴 것과 같아야 해석의 자리 이름이 맞습니다 */
   plan?: { layoutKey: string; positions: { label: string; guide: string }[] }
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
@@ -81,7 +84,9 @@ export async function POST(request: Request) {
     // 프롬프트에 그대로 들어가므로 길이를 제한합니다.
     question = buildFreeQuestion(label.slice(0, 200), body.plan ?? null)
   } else {
-    question = topic.questions.find((q) => q.slug === body.questionSlug)
+    // ⚠️ 배열은 다시 고르지 않습니다 — 화면이 고른 것을 spreadId 로 받습니다
+    //    (lib/content/resolve.ts 머리말 참고).
+    question = resolveQuestion(topicKey, body.questionSlug ?? "", body.spreadId)
     if (!question) {
       return NextResponse.json(
         { error: `질문 "${body.questionSlug}" 를 찾을 수 없습니다.` },

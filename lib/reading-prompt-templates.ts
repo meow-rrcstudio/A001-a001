@@ -83,15 +83,29 @@ export function buildReadingLayer({
 }): string {
   const positionLabels = question.positions.map((p) => p.label)
   const inputLines = cards
-    .map(
-      (c, i) => `card${i + 1}=${c.name}\norientation${i + 1}=${c.orientation}\nposition${i + 1}=${positionLabels[i]}`
-    )
+    .map((c, i) => {
+      // 자리 설명(long)은 손으로 설계한 배열에만 있습니다. 자리 이름만으로는
+      // 「숨겨진 나」가 무엇을 보는 자리인지 모델이 짐작해야 하는데, 한 줄
+      // 붙여주면 우리가 뜻한 대로 읽습니다.
+      const meaning = question.positions[i]?.long
+      return [
+        `card${i + 1}=${c.name}`,
+        `orientation${i + 1}=${c.orientation}`,
+        `position${i + 1}=${positionLabels[i]}`,
+        meaning ? `meaning${i + 1}=${sanitizeForPrompt(meaning)}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    })
     .join("\n")
+
+  // 배열 이름 — 「마음의 거울」처럼 이름이 있으면 해석의 결이 잡힙니다
+  const spread = question.spreadName ? `,spread_name=${sanitizeForPrompt(question.spreadName)}` : ""
 
   // ⚠️ 물음은 씻어내서 싣습니다. 자유 질문은 사용자가 친 글이 그대로
   //    들어오는 유일한 자리라, @block{} 문법이 섞이면 모델이 그것을 규칙으로
   //    읽습니다 (sanitizeForPrompt 참고). 뜻은 바뀌지 않습니다.
-  return `@reading{spread=${cards.length}_card,positions=${positionLabels.join("|")},focus_question=${sanitizeForPrompt(question.label)},priority=core_message>keyword>flow>guidance}
+  return `@reading{spread=${cards.length}_card${spread},positions=${positionLabels.join("|")},focus_question=${sanitizeForPrompt(question.label)},priority=core_message>keyword>flow>guidance}
 
 ### INPUT
 ${inputLines}`

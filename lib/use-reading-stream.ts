@@ -50,6 +50,7 @@ export function useReadingStream() {
       topicKey,
       questionSlug,
       questionLabel,
+      spreadId,
       plan,
       cards,
       readingId,
@@ -60,6 +61,14 @@ export function useReadingStream() {
       questionSlug: string
       /** 자유 질문일 때 사용자가 친 문구 */
       questionLabel?: string
+      /**
+       * 준비된 질문일 때 **화면이 이미 고른** 배열의 id.
+       *
+       * ⚠️ 한 질문이 배열을 여럿 들고 있어서, 서버가 다시 고르면 사람은
+       *    「마음의 거울」을 보는데 샨티는 「감정의 파도」를 읽습니다.
+       *    골라둔 것을 들고 갑니다 (lib/content/resolve.ts).
+       */
+      spreadId?: string
       /** 샨티가 고른 배열 (자유 질문일 때) */
       plan?: { layoutKey: string; positions: { label: string; guide: string }[] } | null
       cards: PickedCard[]
@@ -94,6 +103,7 @@ export function useReadingStream() {
             topicKey,
             questionSlug,
             questionLabel,
+            spreadId,
             plan,
             readingId,
             signals,
