@@ -84,15 +84,17 @@ type Status = {
 const RESEND_COOLDOWN_SEC = 60
 
 /**
- * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px — "00:00" 폭에 좌우 2px).
+ * 남은시간 **숫자만**의 고정 너비 (시안 실측 42px).
+ *
+ * ⚠️ 이 상자와 물음표 사이는 **0** 입니다 (시안). 시안의 12 는 이 상자
+ *    다음에 오는 **물음표 자신의 폭**이지 사이 여백이 아닙니다. 여백으로
+ *    잘못 읽고 12 를 띄우면 물음표가 그만큼 오른쪽으로 밀려납니다.
  *
  * ⚠️ "남은시간 00:00" 전체가 아니라 "00:00" 에만 겁니다. 전체에 걸면
- *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다 (한 번
- *    그렇게 만들었다가 아이콘이 그대로 흔들렸습니다).
+ *    글씨가 이미 그보다 넓어서 아무 일도 일어나지 않습니다.
  *
  * ⚠️ 고정하지 않으면 자릿수가 바뀔 때마다 뒤의 물음표가 좌우로
- *    흔들립니다. 1초마다 움직이는 화면은 읽기 어렵습니다.
- *    tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
+ *    흔들립니다. tabular-nums 는 숫자 폭을 서로 같게 맞춥니다.
  */
 const TIMER_WIDTH = "42px"
 
@@ -766,6 +768,23 @@ function StatusRow({
 
   const timed = Boolean(status.waitUntil)
 
+  /**
+   * 아직 세고 있는가.
+   *
+   * ┌─ 이 한 줄이 두 가지를 뒤집습니다 (시안) ─────────────────────────
+   * │ 세는 중 (00:59) → 재전송 흐림   · 남은시간·숫자 또렷
+   * │ 다 셌음 (00:00) → 재전송 또렷   · 남은시간·숫자 흐림
+   * └──────────────────────────────────────────────────────────────────
+   *
+   * 흐린 쪽이 늘 "지금 손댈 것이 아닌 쪽"입니다. 기다리는 동안에는
+   * 남은 초가 읽어야 할 값이고, 다 세고 나면 그 숫자는 할 일을 마쳐서
+   * 물러나고 누를 수 있게 된 재전송이 앞으로 나옵니다.
+   *
+   * ⚠️ 둘을 따로 정하지 마세요. 한쪽만 고치면 둘 다 또렷하거나 둘 다
+   *    흐린 순간이 생기고, 그때 화면은 무엇을 하라는 말인지 잃습니다.
+   */
+  const counting = waitLeft > 0
+
   // 시안 실측: 14px · weight 400 · 밑줄. 오류 빨강은 #EF2B2A 입니다
   // (디자인 토큰 --product-colors-warning-red-500). Tailwind 의 red-600
   // 과 미세하게 달라서 값을 그대로 적습니다.
@@ -777,9 +796,9 @@ function StatusRow({
       key={action}
       type="button"
       onClick={() => onAction(action)}
-      // 기다리는 동안 재전송만 흐립니다. 비밀번호 찾기는 다른 메일이라
-      // 같은 시계에 묶지 않습니다.
-      disabled={busy || (action === "resend" && waitLeft > 0)}
+      // 세는 동안 재전송만 흐립니다(다 세면 또렷해집니다 — counting 참고).
+      // 비밀번호 찾기는 다른 메일이라 같은 시계에 묶지 않습니다.
+      disabled={busy || (action === "resend" && counting)}
       className={link}
     >
       {ACTION_LABEL[action]}
@@ -815,15 +834,22 @@ function StatusRow({
     return (
       <div className="mt-2 space-y-2">
         {text}
-        {/* 재전송 ↔ 남은시간 사이는 4 입니다 (시안). gap-x-1 하나로 끝내고
-            남은시간 쪽에 ml 을 또 주지 않습니다 — 둘이 겹쳐 8 이 됐습니다. */}
-        {/* ⚠️ items-baseline 이 아니라 items-center 입니다. 물음표(12px svg)를
-            글씨와 밑줄 기준으로 맞추면, 아이콘이 자기 줄상자 밑동에 앉아
-            있어서 옆 글씨가 통째로 아래로 밀립니다. 여기 있는 것들은
-            높이가 다 같은 한 줄짜리라 가운데로 맞추는 편이 맞습니다. */}
-        <div className="flex flex-wrap items-center gap-x-1">
-          {actions}
-          <span className="text-sm text-brand-ink/50">
+        {/* ┌─ 이 줄의 가로 치수 (시안) ────────────────────────────────
+            │ [재전송] 4 [남은시간][숫자 42] 0 [물음표 12]
+            │
+            │ ⚠️ 물음표 앞은 **0** 입니다. 통에 gap 을 걸면 여기에도 딸려
+            │    붙으므로, 사이 여백은 gap 이 아니라 남은시간 쪽 ml-1(4)
+            │    하나로만 냅니다.
+            └───────────────────────────────────────────────────────────
+
+            ⚠️ items-baseline 이 아니라 items-center 입니다. 물음표(12px svg)를
+            글씨 밑줄에 맞추면 아이콘이 자기 줄상자 밑동에 앉아 있어서
+            옆 글씨가 통째로 아래로 밀립니다. 여기 있는 것들은 높이가 다
+            같은 한 줄짜리라 가운데로 맞추는 편이 맞습니다. */}
+        <div className="flex flex-wrap items-center">
+          {/* 길이 둘 이상일 때 그 사이는 8 (시안 10번의 버튼1·버튼2) */}
+          <span className="flex items-center gap-x-2">{actions}</span>
+          <span className={`ml-1 text-sm ${counting ? "text-brand-ink" : "text-brand-ink/40"}`}>
             남은시간
             {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
             <span
@@ -833,9 +859,7 @@ function StatusRow({
               {mmss(waitLeft)}
             </span>
           </span>
-          {/* 숫자 → 물음표 12 (시안). 칸 사이 gap-x-1(4) 이 이미 붙으므로
-              여기서는 8 만 더합니다 — ml-3 을 주면 합쳐서 16 이 됐습니다. */}
-          {help && <span className="ml-2 inline-flex">{help}</span>}
+          {help && <span className="inline-flex">{help}</span>}
         </div>
       </div>
     )
