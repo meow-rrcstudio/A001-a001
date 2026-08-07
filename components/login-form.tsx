@@ -596,15 +596,25 @@ export function LoginForm({
   if (mode === "email") {
     const invalid = status?.kind === "error"
 
-    // 시안 실측 (2026-08): 돌 아래 20 · 칸 사이 8 · 칸 아래 8 ·
-    // 상태줄 아래 80 · 좌우 24 (좌우 여백은 이 화면을 감싸는 쪽에 있습니다)
+    // ┌─ 시안 실측 (2026-08, 5번 화면에서 세로로 훑은 값) ───────────────
+    // │ 돌 상자 80×80 → 20 → [이메일 칸] → 8 → [비밀번호 칸] → 8 → 문구
+    // │ → 8 → 길(재전송…) → 24 → 동의 고지(두 줄 32) → 24 → 화면 아래
+    // │ 좌우는 24 (이 화면을 감싸는 app/login/page.tsx 의 px-6)
+    // │
+    // │ 상태줄 안쪽: 재전송 37 · 4 · 남은시간 49 · 숫자 42 · 12 · 물음표 12
+    // └──────────────────────────────────────────────────────────────────
     return (
       <div>
         {/* ⚠️ 시안에 보내기 버튼이 없습니다 — 키보드 엔터로 보냅니다.
             눈에 보이는 버튼을 넣지 않는 대신, 화면읽개와 키보드만 쓰는
             사람을 위해 sr-only 제출 버튼을 둡니다. 버튼을 다시 세우려면
             아래 sr-only 를 solidBtn 으로 바꾸면 됩니다. */}
-        <form onSubmit={submitEmail} className="space-y-2">
+        {/* ⚠️ space-y-2 가 아니라 flex gap-2 입니다. space-y 는 아래의
+            sr-only 제출 버튼(눈에 안 보이는 것)에까지 8px 을 물려서, 폼
+            상자가 비밀번호 칸보다 8 더 길어져 있었습니다. 그만큼 문구가
+            칸에서 16 떨어져 보였습니다 — 시안은 8 입니다.
+            flex 에서는 자리를 뜬(absolute) 것에 gap 이 걸리지 않습니다. */}
+        <form onSubmit={submitEmail} className="flex flex-col gap-2">
           <input
             type="email"
             value={email}
@@ -640,7 +650,7 @@ export function LoginForm({
             ┌─ 배치 규칙 (시안 5·10번) ────────────────────────────────
             │ · 타이머가 있으면  → 문구 아래 새 줄에 왼쪽 정렬
             │                      [재전송] [남은시간 00:59] [?]
-            │ · 타이머가 없으면  → 물음표는 칸 바로 아래 오른쪽 끝,
+            │ · 타이머가 없으면  → 물음표는 문구 **첫 줄** 오른쪽 끝,
             │                      길(재전송·비밀번호 찾기)은 문구 아래
             │                      새 줄에 왼쪽 정렬
             └─────────────────────────────────────────────────────────
@@ -660,7 +670,12 @@ export function LoginForm({
           onHelp={() => setHelpOpen(true)}
         />
 
-        <div className="mt-20">
+        {/* ⚠️ 시안 실측 24 입니다 (예전에 80 으로 두었던 자리).
+            시안의 긴 80 은 상태줄에서 키보드 윗변까지 통째로 잰 것이라,
+            그 안이 24(사이) + 32(고지 두 줄) + 24(사이) 로 나뉩니다.
+            80 을 그대로 사이 여백에 쓰면 아래가 세 배로 벌어지고 칸이
+            화면 위로 밀려 올라갑니다. */}
+        <div className="mt-6">
           <DebugLine show={debug} />
           <Consent />
         </div>
@@ -800,9 +815,15 @@ function StatusRow({
     return (
       <div className="mt-2 space-y-2">
         {text}
-        <div className="flex flex-wrap items-baseline gap-x-1">
+        {/* 재전송 ↔ 남은시간 사이는 4 입니다 (시안). gap-x-1 하나로 끝내고
+            남은시간 쪽에 ml 을 또 주지 않습니다 — 둘이 겹쳐 8 이 됐습니다. */}
+        {/* ⚠️ items-baseline 이 아니라 items-center 입니다. 물음표(12px svg)를
+            글씨와 밑줄 기준으로 맞추면, 아이콘이 자기 줄상자 밑동에 앉아
+            있어서 옆 글씨가 통째로 아래로 밀립니다. 여기 있는 것들은
+            높이가 다 같은 한 줄짜리라 가운데로 맞추는 편이 맞습니다. */}
+        <div className="flex flex-wrap items-center gap-x-1">
           {actions}
-          <span className="ml-1 text-sm text-brand-ink/50">
+          <span className="text-sm text-brand-ink/50">
             남은시간
             {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
             <span
@@ -812,7 +833,9 @@ function StatusRow({
               {mmss(waitLeft)}
             </span>
           </span>
-          {help && <span className="ml-3 inline-flex">{help}</span>}
+          {/* 숫자 → 물음표 12 (시안). 칸 사이 gap-x-1(4) 이 이미 붙으므로
+              여기서는 8 만 더합니다 — ml-3 을 주면 합쳐서 16 이 됐습니다. */}
+          {help && <span className="ml-2 inline-flex">{help}</span>}
         </div>
       </div>
     )
@@ -821,23 +844,31 @@ function StatusRow({
   // 타이머가 없는 케이스 — 시안 10번의 배치입니다.
   //
   //   [비밀번호 칸]
-  //                    (?)   ← 칸 바로 아래 8, 오른쪽 끝
-  //   지금 서버가 답을 못 하고 있어요…
-  //   재전송  비밀번호 찾기   ← 문구 아래 새 줄, 왼쪽 정렬
+  //   지금 서버가 답을 못 하고 있어요. 잠시후…      (?)  ← 첫 줄 오른쪽 끝
+  //   해 주세요. 오류가 계속되면 …
+  //   ( 에러코드 )
+  //   재전송  비밀번호 찾기   ← 문구 아래 새 줄(8), 왼쪽 정렬
   //
-  // ⚠️ 예전에는 문구와 같은 줄 오른쪽 끝에 [재전송 (?)] 를 함께 두었습니다.
-  //    그러면 물음표가 문구 첫 줄 옆에 붙어서, 시안이 칸 밑에 띄워 둔
-  //    자리보다 한참 아래로 내려옵니다. 문구가 두 줄이 되면 더 내려가서
-  //    케이스마다 물음표 높이가 달라졌습니다 — 시안에서 물음표는 문구
-  //    길이와 상관없이 늘 칸 바로 밑 같은 자리에 있습니다.
+  // ⚠️ 길(재전송·비밀번호 찾기)을 물음표와 한 덩어리로 묶어 오른쪽에
+  //    붙여 두었었습니다. 시안에서 이 둘은 다른 자리에 있습니다 —
+  //    물음표는 첫 줄 오른쪽 끝에 고정이고, 길은 문구가 다 끝난 뒤
+  //    아래 새 줄에 왼쪽부터 섭니다(시안의 버튼1·버튼2).
   //
-  // ⚠️ 물음표를 DOM 에서는 문구 **뒤**에 두고 order-first 로 올려 그립니다.
-  //    화면읽개는 "왜 이렇게 물어보나요?" 단추보다 무슨 일이 났는지를
-  //    먼저 읽어야 합니다.
+  // ⚠️ 물음표를 감싼 칸에 flex-wrap 을 주지 않습니다. 주면 문구가 길 때
+  //    물음표가 아랫줄로 떨어져서, 케이스마다 물음표를 찾는 자리가
+  //    달라집니다.
   return (
-    <div className="mt-2 flex flex-col">
-      {text}
-      {help && <div className="order-first mb-2 flex justify-end">{help}</div>}
+    <div className="mt-2">
+      {/* ⚠️ items-baseline 을 쓰면 안 됩니다. 물음표를 감싼 칸의 밑동이
+          글씨 밑줄보다 아래라, 맞추려고 **문구 전체**가 11px 내려갑니다 —
+          칸과 문구 사이가 8 이어야 하는데 19 가 됐습니다.
+          items-start 로 두고, 물음표는 첫 줄 높이(h-5=20)짜리 칸 안에서
+          가운데에 세웁니다. 그러면 문구는 제자리에 있고 물음표만 첫 줄
+          한가운데에 옵니다. */}
+      <div className="flex items-start justify-between gap-x-4">
+        {text}
+        {help && <span className="flex h-5 shrink-0 items-center">{help}</span>}
+      </div>
       {actions.length > 0 && (
         <div className="mt-2 flex flex-wrap items-baseline gap-x-2">{actions}</div>
       )}
@@ -893,7 +924,11 @@ function Consent() {
   return (
     // break-keep: 한국어는 단어 중간에서 끊으면 안 됩니다. 이게 없으면
     // "개인정 / 보처리방침"처럼 낱말이 두 줄로 쪼개집니다.
-    <p className="text-center text-xs leading-relaxed break-keep text-brand-ink/70">
+    //
+    // ⚠️ leading-4 (16px) — 시안이 이 고지 두 줄을 32 로 재고 있습니다.
+    //    leading-relaxed 는 19.5px 이라 두 줄이 39 가 되어, 아래 여백 24 가
+    //    맞아도 덩어리가 7 만큼 커집니다.
+    <p className="text-center text-xs leading-4 break-keep text-brand-ink/70">
       계속하시면 Meow RRC Studio의{" "}
       <Link href="/terms" className={link}>
         이용약관
