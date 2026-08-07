@@ -42,7 +42,7 @@ register(
   pathToFileURL(ROOT)
 )
 
-const { SPREADS } = await import("../lib/content/spreads.ts")
+const { SPREADS, SPREADS_BY_TOPIC } = await import("../lib/content/spreads.ts")
 const { PREPARED } = await import("../lib/content/questions.ts")
 const { ENTRY_LINES, TOPIC_LINES, SHUFFLE_URGE, SHUFFLE_POOL } = await import(
   "../lib/content/lines.ts"
@@ -86,6 +86,21 @@ for (const grain of AXES.grain.pair) {
   }
 }
 
+// ── 주제를 넘어 겹치는 스프레드 열쇠 ────────────────────────────────
+// ⚠️ 겹치면 뒤엣것이 앞엣것을 덮어써서, 덮인 쪽 질문이 남의 자리 이름을
+//    쓰게 됩니다. 화면은 멀쩡히 뜨고 글만 엉뚱해서 알아채기 어렵습니다.
+{
+  const owner = new Map()
+  for (const [topic, group] of Object.entries(SPREADS_BY_TOPIC)) {
+    for (const id of Object.keys(group)) {
+      if (owner.has(id)) {
+        fail("스프레드 열쇠", `"${id}" 가 ${owner.get(id)} 와 ${topic} 에서 겹칩니다`)
+      }
+      owner.set(id, topic)
+    }
+  }
+}
+
 // ── 스프레드 ─────────────────────────────────────────────────────────
 for (const [id, spread] of Object.entries(SPREADS)) {
   const where = `스프레드 "${id}" (${spread.name})`
@@ -109,8 +124,17 @@ for (const [id, spread] of Object.entries(SPREADS)) {
     }
   })
 
+  // 번호는 화면이 붙입니다 (lib/content/ordinal.ts). 문구에 박으면 자리를
+  // 늘리거나 순서를 바꿀 때 조용히 틀립니다.
+  const ORDINAL = /(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*번째/
+  spread.positions.forEach((p, i) => {
+    if (ORDINAL.test(p.short) || ORDINAL.test(p.long)) {
+      fail(where, `${i + 1}번 자리 문구에 「N번째」가 박혀 있습니다 — 번호는 화면이 붙입니다`)
+    }
+  })
+
   // 결과를 맞히는 자리는 두지 않기로 했습니다 (자유 질문 규칙과 같은 잣대).
-  const FORTUNE = /합격|불합격|당첨|승소|패소|검사\s*결과|진단\s*결과|주가|시세|성별|수명/
+  const FORTUNE = /합격|불합격|당첨|승소|패소|검사\s*결과|진단\s*결과|주가\\s*(방향|전망|예측)|시세\\s*(방향|전망)|성별|수명/
   spread.positions.forEach((p, i) => {
     if (FORTUNE.test(p.label)) {
       fail(where, `${i + 1}번 자리 이름 "${p.label}" 은 결과를 맞히는 자리입니다`)

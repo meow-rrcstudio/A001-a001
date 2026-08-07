@@ -1,127 +1,43 @@
 // lib/content/spreads.ts
-// [콘텐츠] 스프레드 사전 — 이름 있는 배열들.
+// 주제별 스프레드를 한자리에 모읍니다. 여기에는 내용이 없습니다.
 //
-// ┌─ 왜 질문에서 떼어냈는가 ──────────────────────────────────────────
-// │ 예전에는 질문 안에 자리 문구가 박혀 있었습니다. 그러면 「마음의
-// │ 거울」을 열 개 질문에서 쓸 때 같은 글을 열 번 적게 되고, 한 줄
-// │ 고칠 때 열 군데를 고쳐야 합니다. 아홉 개만 고치면 나머지 하나는
-// │ 옛 글로 남는데, 그건 아무도 모릅니다.
+// ┌─ 열쇠(id)와 layoutKey 는 다릅니다 ────────────────────────────────
+// │ id        이 스프레드만의 이름 — "mirror-now-5"
+// │ layoutKey 카드가 놓이는 좌표 — "five-grid" (15종, 여럿이 나눠 씀)
 // │
-// │ 이제 스프레드는 여기 한 번만 적고, 질문은 id 로 가리킵니다.
+// │ 한동안 둘을 같은 것으로 쓰려던 안이 있었는데, 그러면 five-grid 를
+// │ 쓰는 스프레드가 사이트 전체에 하나뿐이게 됩니다. 이름 붙인 배열은
+// │ 계속 늘어나는데 좌표는 열다섯 개뿐입니다.
 // └──────────────────────────────────────────────────────────────────
 //
-// ┌─ 채우는 법 ───────────────────────────────────────────────────────
-// │ id       영문 소문자와 하이픈. 뒤에 장수를 붙입니다 (mirror-5)
-// │ emoji    이름 앞에 붙는 그림 하나
-// │ name     사람이 부르는 이름 ("마음의 거울")
-// │ layoutKey  카드가 놓이는 자리 모양. lib/spread-layouts.ts 의 15종 중
-// │            하나이고, **그 배열의 장수와 positions 개수가 같아야**
-// │            합니다 (다르면 검사 스크립트가 잡습니다)
-// │ resonatesWith  이 배열이 어울리는 사람. 안 적어도 됩니다
-// │ positions  자리마다 셋
-// │            label 자리 이름 — 결과 화면에서 카드 위에 붙습니다
-// │            short 뽑기 **직전**에 건네는 말. 한 문장, 짧게
-// │            long  결과 화면에서 이 자리가 무엇인지. 한두 문장
-// └──────────────────────────────────────────────────────────────────
-//
-// ⚠️ short 와 long 을 나눈 까닭: 5장짜리에서 자리마다 두 문장을 뽑기
-//    직전에 다 읽히면, 카드를 고르는 내내 열 문장을 읽어야 합니다.
-//    뽑을 때는 짧게 한 마디, 긴 설명은 결과에서 봅니다.
-//
-// ⚠️ 결과를 맞히는 자리를 만들지 마세요 — "합격 여부"·"검사 결과"·
-//    "승소 가능성"·"주가 방향". 대신 "지금 마음"·"놓치고 있는 것"·
-//    "준비할 것"처럼 묻는 이가 할 수 있는 것으로 둡니다.
-//    (자유 질문 쪽에는 이미 금지되어 있는데 준비된 질문만 빠져 있었습니다)
-import type { LayoutKey } from "@/lib/spread-layouts"
-import type { TraitCode } from "@/lib/content/traits"
+// ⚠️ id 가 주제를 넘어 겹치면 뒤엣것이 앞엣것을 덮어씁니다. 검사
+//    스크립트가 그걸 잡습니다 (scripts/check-content.mjs).
+import type { Spread, SpreadId } from "@/lib/content/spread-type"
+import { SELF_SPREADS } from "@/lib/content/spreads/self"
+import { LOVE_SPREADS } from "@/lib/content/spreads/love"
+import { CAREER_SPREADS } from "@/lib/content/spreads/career"
+import { MONEY_SPREADS } from "@/lib/content/spreads/money"
+import { DAILY_SPREADS } from "@/lib/content/spreads/daily"
+import { FRIEND_SPREADS } from "@/lib/content/spreads/friend"
 
-export interface SpreadPosition {
-  label: string
-  /** 뽑기 직전 — 한 문장 */
-  short: string
-  /** 결과 화면 — 이 자리가 무엇인지 */
-  long: string
-}
+export type { Spread, SpreadPosition, SpreadId } from "@/lib/content/spread-type"
 
-export interface Spread {
-  emoji: string
-  name: string
-  layoutKey: LayoutKey
-  /** 이 배열이 어울리는 사람 (lib/content/pick.ts 의 Weighted 참고) */
-  resonatesWith?: TraitCode[]
-  positions: SpreadPosition[]
-}
-
-export type SpreadId = string
-
+/** 주제별로 나눠 적었지만, 쓸 때는 한 사전입니다 (질문이 id 로만 가리킵니다) */
 export const SPREADS: Record<SpreadId, Spread> = {
-  // ─────────────────────────────────────────────────────────────────
-  // 🌙 마음의 거울 (5장)
-  //
-  // ⚠️ layoutKey 는 아직 정하지 않았습니다. 5장 좌표가 셋 있습니다 —
-  //    five-tee(중심 + 네 갈래) · five-grid(고르게 다섯) ·
-  //    five-two-three(두 축을 견줌). "거울"이라는 이름에는 마주 보는
-  //    모양이 어울리는데, 지금 셋 중에는 딱 맞는 것이 없습니다.
-  //    새 좌표를 하나 만들지, 셋 중 하나로 갈지 정해야 합니다.
-  // ─────────────────────────────────────────────────────────────────
-  "mirror-5": {
-    emoji: "🌙",
-    name: "마음의 거울",
-    layoutKey: "five-tee",
-    resonatesWith: ["moon", "root"],
-    positions: [
-      {
-        label: "지금의 마음",
-        short: "지금 네 마음을 떠올리며 골라보라냥",
-        long: "겉으로 드러난 감정과 지금 네 안에 머물고 있는 마음의 풍경을 보여준다냥.",
-      },
-      {
-        label: "숨어 있는 이야기",
-        short: "아직 말하지 못한 것을 떠올리며 골라보라냥",
-        long: "아직 알아차리지 못했거나 조용히 간직하고 있던 감정을 살펴본다냥.",
-      },
-      {
-        label: "마음이 찾아온 까닭",
-        short: "이 마음이 어디서 왔는지 떠올리며 골라보라냥",
-        long: "너의 마음을 움직인 경험과 기억, 감정의 뿌리를 찾아본다냥.",
-      },
-      {
-        label: "마음이 보내는 신호",
-        short: "네게 지금 필요한 것을 떠올리며 골라보라냥",
-        long: "지금 너에게 필요한 위로와 돌봄이 무엇인지 알려준다냥.",
-      },
-      {
-        label: "샨티의 안내",
-        short: "자 마지막이야. 마음을 비우고 골라보라냥",
-        long: "지금의 너를 어떻게 바라보고 앞으로 어떤 방향으로 나아가면 좋을지 이야기해준다냥.",
-      },
-    ],
-  },
+  ...SELF_SPREADS,
+  ...LOVE_SPREADS,
+  ...CAREER_SPREADS,
+  ...MONEY_SPREADS,
+  ...DAILY_SPREADS,
+  ...FRIEND_SPREADS,
+}
 
-  // ─────────────────────────────────────────────────────────────────
-  // 🌊 감정의 파도 (3장)
-  // ─────────────────────────────────────────────────────────────────
-  "wave-3": {
-    emoji: "🌊",
-    name: "감정의 파도",
-    layoutKey: "three-inverted",
-    resonatesWith: ["flower", "wind"],
-    positions: [
-      {
-        label: "지금 이는 파도",
-        short: "지금 마음의 날씨를 떠올리며 골라보라냥",
-        long: "현재 네 감정의 흐름과 마음의 날씨를 살펴본다냥.",
-      },
-      {
-        label: "깊은 곳의 물결",
-        short: "말로 못 한 마음을 떠올리며 골라보라냥",
-        long: "겉의 파도 아래, 깊은 곳에서 움직이고 있는 마음의 물결을 본다냥.",
-      },
-      {
-        label: "향하고 싶은 곳",
-        short: "자 마지막이야. 네가 가고 싶은 쪽을 떠올리며 골라보라냥",
-        long: "너의 마음이 향하고 싶어 하는 방향을 보여준다냥.",
-      },
-    ],
-  },
+/** 주제마다 몇 개씩인지 — 겹친 id 를 세어보려고 따로 둡니다 */
+export const SPREADS_BY_TOPIC = {
+  self: SELF_SPREADS,
+  love: LOVE_SPREADS,
+  career: CAREER_SPREADS,
+  money: MONEY_SPREADS,
+  daily: DAILY_SPREADS,
+  friend: FRIEND_SPREADS,
 }
