@@ -43,6 +43,7 @@ import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { ChatInput } from "@/components/chat-input"
+import { AiBadge } from "@/components/ai-badge"
 import { ChatErrorBox } from "@/components/chat-error-box"
 import { describeChatError, type ChatErrorInfo } from "@/lib/chat-errors"
 import { canUseInsiteReading } from "@/lib/reading-entitlement"
@@ -622,10 +623,16 @@ export default function AskPage() {
               하나는 답을 받은 뒤.
 
               ⚠️ 상자로 만들지 않습니다. 물으려는 사람 앞에 상자를 놓으면
-                 그것부터 치워야 합니다. 입력창 아래 한 줄이면 읽힙니다. */}
-          <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
-            샨티의 해석은 AI 가 지어낸 글이에요. 재미와 자기성찰로 봐주세요.
-          </p>
+                 그것부터 치워야 합니다. 입력창 아래 한 줄이면 읽힙니다.
+
+              ⚠️ 시안(2026-08)대로 한 줄로 줄였습니다 — "샨티의 리딩 [AI]".
+                 입력창 아래 8, 가운데 정렬입니다.
+                 예전 문장("재미와 자기성찰로 봐주세요")은 여기서 뺐습니다.
+                 물으려는 사람에게 미리 하는 당부라 읽히지 않았고, 같은 말이
+                 결과 화면과 이용약관에 이미 있습니다. */}
+          <div className="mt-2 flex justify-center">
+            <AiBadge />
+          </div>
         </div>
       </div>
     </div>

@@ -11,16 +11,42 @@
 // │ 읽는 사람이 그 자리에서 알아볼 수 있어야 합니다.
 // └──────────────────────────────────────────────────────────────────
 //
-// ⚠️ 샨티의 분위기를 깨지 않게 작게 둡니다. 이 표시가 커지면 "3천 년을 산
-//    사막의 고양이"가 갑자기 챗봇이 됩니다. 눈에 띄되 방해하지 않는
-//    크기로 — 읽는 글의 위쪽 귀퉁이에 한 줄입니다.
-export function AiBadge({ className = "" }: { className?: string }) {
+// ┌─ 시안(2026-08)에서 단촐해졌습니다 ────────────────────────────────
+// │ 예전에는 테두리를 두른 알약에 "샨티의 해석은 AI 가 지어낸 글이에요"
+// │ 한 문장이 들어 있었습니다. 시안은 이렇습니다.
+// │
+// │     샨티의 리딩 [AI]
+// │
+// │ 글씨는 12px · #666 이고, 뒤에 파란 AI 표가 붙습니다. 테두리도
+// │ 배경도 없습니다.
+// │
+// │ ⚠️ 작아졌지만 **표시를 뺀 것이 아닙니다.** 라벨(글씨)과 배지(AI 표)를
+// │    함께 두는 것이 법이 말하는 "즉시 알아볼 수 있는 방식"입니다.
+// │    이 둘 중 하나라도 지우면 안 됩니다 — 특히 AI 표만 남기고 글씨를
+// │    지우면, 파란 네모가 무엇인지 아는 사람에게만 표시한 셈이 됩니다.
+// │
+// │ ⚠️ 묻기 **전에** 알리는 한 줄은 그대로 둡니다 (app/tarot/ask).
+// │    법은 "결과에 표시"와 "이용 전 고지"를 따로 봅니다.
+// └──────────────────────────────────────────────────────────────────
+import { AiMark } from "@/components/ai-mark"
+
+export function AiBadge({
+  /** 앞에 붙는 말. 자리에 따라 "샨티의 리딩"·"샨티의 해석" 처럼 다릅니다 */
+  label = "샨티의 리딩",
+  className = "",
+}: {
+  label?: string
+  className?: string
+}) {
   return (
+    // ⚠️ 시안 실측: 12px · #666 · 글씨와 AI 표 사이 10.
+    //    line-height 는 normal 입니다 — leading 을 주면 AI 표가 글씨
+    //    가운데에서 벗어납니다.
     <p
-      className={`inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] leading-none text-muted-foreground ${className}`}
+      className={`inline-flex items-center gap-2.5 text-[12px] leading-none text-[#666] ${className}`}
     >
-      <span aria-hidden="true">✦</span>
-      샨티의 해석은 AI 가 지어낸 글이에요
+      {label}
+      <AiMark />
     </p>
   )
 }
