@@ -842,13 +842,14 @@ function StatusRow({
             │    하나로만 냅니다.
             └───────────────────────────────────────────────────────────
 
-            ⚠️ items-baseline 이 아니라 items-center 입니다. 물음표(12px svg)를
-            글씨 밑줄에 맞추면 아이콘이 자기 줄상자 밑동에 앉아 있어서
-            옆 글씨가 통째로 아래로 밀립니다. 여기 있는 것들은 높이가 다
-            같은 한 줄짜리라 가운데로 맞추는 편이 맞습니다. */}
-        <div className="flex flex-wrap items-center">
+            ⚠️ 세로는 items-baseline — 글씨 밑줄에 맞춥니다. 이 줄은 전부
+            한 줄짜리라 items-center 로도 줄은 맞지만, 글씨가 줄상자 안에서
+            위쪽에 치우쳐 그려지기 때문에(밑에 내림폭만큼 빈 자리가
+            있습니다) 상자 가운데에 맞춘 물음표만 숫자보다 1.5 처져
+            보입니다. 밑줄에 맞추면 0.5 안쪽으로 들어옵니다. */}
+        <div className="flex flex-wrap items-baseline">
           {/* 길이 둘 이상일 때 그 사이는 8 (시안 10번의 버튼1·버튼2) */}
-          <span className="flex items-center gap-x-2">{actions}</span>
+          <span className="flex items-baseline gap-x-2">{actions}</span>
           <span className={`ml-1 text-sm ${counting ? "text-brand-ink" : "text-brand-ink/40"}`}>
             남은시간
             {/* 숫자에만 42px 고정 + tabular-nums — 뒤의 물음표가 안 흔들립니다 */}
@@ -859,7 +860,16 @@ function StatusRow({
               {mmss(waitLeft)}
             </span>
           </span>
-          {help && <span className="inline-flex">{help}</span>}
+          {/* ⚠️ 물음표만 기준선(baseline)에 앉힙니다 — 줄상자 가운데가
+              아닙니다. 글씨는 줄상자 안에서 위쪽에 치우쳐 그려지므로
+              (밑에 내림폭만큼 빈 자리가 있습니다), 상자 가운데로 맞추면
+              아이콘이 숫자보다 1.5px 처져 보입니다. 기준선에 앉히면
+              동그라미 밑변이 숫자 밑변과 같은 선에 놓여 눈에 가운데로
+              읽힙니다. 억지 패딩이 아니라 정렬로만 잡은 것이라, 글씨
+              크기를 바꿔도 따라옵니다.
+
+              오른쪽 2 — 시안. */}
+          {help && <span className="mr-0.5 inline-flex">{help}</span>}
         </div>
       </div>
     )
