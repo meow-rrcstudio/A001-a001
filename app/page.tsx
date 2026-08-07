@@ -62,7 +62,7 @@ export default function HomePage() {
         <h1 className="sr-only">소울서울 SoulSeoul — 타로 아카이브</h1>
 
         <div className="mt-3 px-6">
-          <p className="max-w-[19rem] text-pretty text-sm leading-relaxed text-black">
+          <p className="flex min-w-0 text-pretty text-sm leading-relaxed text-black "whitespace-pre-line">
             {SITE.tagline}
           </p>
         </div>
