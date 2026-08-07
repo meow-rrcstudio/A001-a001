@@ -1,5 +1,7 @@
 // middleware.ts
-// 로그인 세션을 살려 두는 일만 합니다.
+// 지나가는 요청에 두 가지를 합니다.
+//   1) 앱인토스 미니앱이 우리 API 를 부를 수 있게 문을 열어줍니다 (CORS)
+//   2) 로그인 세션(쿠키)을 살려 둡니다
 //
 // 세션 토큰은 한 시간쯤 뒤에 만료됩니다. 브라우저는 스스로 갱신하지만,
 // 서버(app/api/**)가 보는 쿠키는 누군가 새로 써 주지 않으면 옛것 그대로라
@@ -7,15 +9,46 @@
 // 요청이 지나갈 때마다 여기서 한 번씩 갱신해 둡니다.
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { isAllowedTossOrigin, tossCorsHeaders } from "@/lib/server/toss-origin"
 
 export async function middleware(request: NextRequest) {
+  // ── 앱인토스 미니앱에서 오는 요청 ────────────────────────────────
+  //
+  // ⚠️ 무엇보다 **먼저** 봅니다. 사전 확인(OPTIONS)은 브라우저가 스스로
+  //    보내는 것이라 쿠키도 토큰도 실려 있지 않습니다. 아래 세션 코드로
+  //    흘려보내면 답만 늦어지고 얻는 것이 없습니다.
+  //
+  // ⚠️ /api 밖에는 걸지 않습니다. 미니앱이 부르는 것은 API 뿐이고,
+  //    화면(HTML)까지 열어줄 까닭이 없습니다.
+  const origin = request.headers.get("origin")
+  const isApi = request.nextUrl.pathname.startsWith("/api/")
+  const allowed = isApi && isAllowedTossOrigin(origin)
+
+  if (request.method === "OPTIONS") {
+    // 허락하지 않는 출처의 사전 확인에는 아무 머리말도 주지 않습니다.
+    // 브라우저가 알아서 막습니다 — 우리가 사유를 설명해 줄 이유가 없습니다.
+    return new NextResponse(null, {
+      status: 204,
+      headers: allowed ? tossCorsHeaders(origin as string) : undefined,
+    })
+  }
+
+  /** 미니앱에서 온 것이면 응답에 문을 열어주는 머리말을 붙입니다 */
+  const withCors = (response: NextResponse) => {
+    if (!allowed) return response
+    for (const [k, v] of Object.entries(tossCorsHeaders(origin as string))) {
+      response.headers.set(k, v)
+    }
+    return response
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // 아직 연결 전이면 아무것도 하지 않습니다 (사이트는 그대로 돌아갑니다)
-  if (!url || !key) return NextResponse.next()
+  if (!url || !key) return withCors(NextResponse.next())
 
   // ⚠️ 토큰으로 오는 요청에는 할 일이 없습니다 (앱인토스 미니앱).
   //
@@ -27,7 +60,7 @@ export async function middleware(request: NextRequest) {
   //    토큰을 여기서 확인하지 않는 것이 맞습니다. 확인은 그 토큰으로
   //    실제 일을 하는 자리(lib/server/guard.ts → getCurrentUser)에서
   //    합니다. 두 곳에서 보면 한 곳만 고쳐진 채 남습니다.
-  if (request.headers.get("authorization")) return NextResponse.next()
+  if (request.headers.get("authorization")) return withCors(NextResponse.next())
 
   let response = NextResponse.next({ request })
 
@@ -45,7 +78,7 @@ export async function middleware(request: NextRequest) {
   // 이 한 줄이 토큰을 갱신하고 위의 setAll 로 쿠키를 다시 심습니다.
   await supabase.auth.getUser()
 
-  return response
+  return withCors(response)
 }
 
 export const config = {
