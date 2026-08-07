@@ -25,6 +25,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { QuestionPicker } from "@/components/question-picker"
 import { FreeReadingResult } from "@/components/free-reading-result"
@@ -88,6 +89,52 @@ function drawIntro(
     return config.confirmLine(asked.question.label)
   }
   return plan?.intro || freeIntroFor(typed, audit)
+}
+
+/**
+ * 별조각이 없을 때 입력창 자리에 놓이는 잠긴 띠.
+ *
+ * ┌─ 왜 잠그는가 ─────────────────────────────────────────────────────
+ * │ 직접 친 물음은 서버가 배열을 골라줘야 제 값을 합니다
+ * │ (/api/reading/plan). 그 호출은 별조각을 낸 사람만 지나므로, 그
+ * │ 앞에서 친 물음은 범용 여섯 장으로 떨어지고 물음을 읽어보는 자리를
+ * │ 하나도 안 거칩니다. 자유도만 있고 품질이 없는 길이었습니다.
+ * │
+ * │ 준비된 51개는 질문·배열·자리 이름·뽑을 때 문구까지 사람이 손으로
+ * │ 설계해 둔 것입니다. 고르는 자유는 줄지만 받는 것은 오히려 낫습니다.
+ * │
+ * │ 그리고 이렇게 두면 "직접 친 물음은 언제나 서버를 지난다"가 예외
+ * │ 없는 규칙이 됩니다 — 앞으로 물음을 읽어보는 장치를 붙일 때 빠지는
+ * │ 경로가 없습니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 진짜 자물쇠는 여기가 아니라 서버입니다 (app/api/reading/free/route.ts).
+ *    이 띠는 사람에게 사정을 알리고 다음 걸음을 내미는 자리입니다.
+ *
+ * ⚠️ 로그인 여부로 갈리는 것은 "가는 곳"뿐이고 말은 하나입니다. 지금
+ *    이 자리에 서는 두 부류(로그인 전 · 선물 별조각을 다 쓴 사람)는
+ *    화면 어디서나 이미 한 덩어리로 다뤄집니다(canUseInsiteReading).
+ */
+function LockedAsk({ loggedIn }: { loggedIn: boolean }) {
+  return (
+    <Link
+      href={loggedIn ? "/my/credits/buy" : "/login?next=/tarot/ask"}
+      className="mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-white px-3 py-2.5 shadow-[0_2px_6px_0_rgba(0,0,0,0.20)] backdrop-blur-lg"
+      style={{
+        // 입력창과 같은 유리 (components/chat-input.tsx 의 시안 실측값)
+        background: "rgba(255, 255, 255, 0.60)",
+        WebkitBackdropFilter: "blur(8px)",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <span className="text-sm leading-snug text-muted-foreground">
+        직접 물어보기는 <span className="text-foreground">별조각</span>이 있으면 열려요
+      </span>
+      <span className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+        {loggedIn ? "받으러 가기" : "가입하고 받기"}
+      </span>
+    </Link>
+  )
 }
 
 export default function AskPage() {
@@ -225,6 +272,17 @@ export default function AskPage() {
   async function submit(text: string, prepared?: ReadingQuestion, topicSlug?: ReadingTopicSlug) {
     const q = text.trim()
     if (!q || planning) return
+
+    // ── 직접 친 물음은 별조각이 있어야 합니다 ────────────────────────
+    // 화면에서는 입력창 자리에 잠긴 띠가 서 있어서 여기까지 오지 않습니다.
+    // 그래도 막아둡니다 — 이 함수를 부르는 길이 늘어나면(칩·추천·딥링크)
+    // 그때 빠뜨리기 쉬운 자리이고, 빠뜨리면 카드를 다 뽑은 뒤에야
+    // 서버가 402 로 막아 한 판을 통째로 헛수고시킵니다.
+    // (진짜 자물쇠는 app/api/reading/free/route.ts 입니다)
+    if (!paid && !prepared) {
+      router.push(account.isLoggedIn ? "/my/credits/buy" : "/login?next=/tarot/ask")
+      return
+    }
     // 직접 친 물음만 읽어봅니다 (칩 질문은 사람이 설계한 것이라 그대로).
     // 물음은 친 그대로 두고, 조심할 물음이면 배열과 안내만 달라집니다.
     const typedAudit = prepared ? null : auditFreeQuestion(q)
@@ -586,7 +644,11 @@ export default function AskPage() {
             message={
               topic
                 ? topicContent[topic].reactionLine
-                : "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 궁금한 것이 있으면 이 몸에게 물어보게냥."
+                : paid
+                  ? "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 궁금한 것이 있으면 이 몸에게 물어보게냥."
+                  : // ⚠️ 직접 물어보라는 말을 하지 않습니다 — 아래 입력창이 잠겨
+                    // 있어서, 물어보라고 해놓고 물을 자리를 안 주는 꼴이 됩니다.
+                    "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 아래에서 마음에 걸리는 것을 하나 골라보게냥."
             }
             onHeightChange={setBubbleHeight}
           />
@@ -613,20 +675,24 @@ export default function AskPage() {
         style={{ marginBottom: keyboardInset }}
       >
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
-          <ChatInput
-            value={question}
-            onChange={(next) => {
-              trackerRef.current.typing(next.length)
-              setQuestion(next)
-            }}
-            onSubmit={() => submit(question)}
-            disabled={planning}
-            placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
-            ariaLabel="질문 입력"
-            // 흰 질문 칩이 깔린 화면이라 입력창은 회색으로 눌러둡니다
-            tone="muted"
-            className="mt-4"
-          />
+          {paid ? (
+            <ChatInput
+              value={question}
+              onChange={(next) => {
+                trackerRef.current.typing(next.length)
+                setQuestion(next)
+              }}
+              onSubmit={() => submit(question)}
+              disabled={planning}
+              placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
+              ariaLabel="질문 입력"
+              // 흰 질문 칩이 깔린 화면이라 입력창은 회색으로 눌러둡니다
+              tone="muted"
+              className="mt-4"
+            />
+          ) : (
+            <LockedAsk loggedIn={account.isLoggedIn} />
+          )}
         </div>
 
         {/* ── 아래 띠 — 흐림은 여기서만 ────────────────────────────────
