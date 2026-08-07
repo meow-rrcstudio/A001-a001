@@ -12,7 +12,7 @@
 // 이어묻기 횟수도 여기서 셉니다 — 화면에서만 세면 그 셈을 건너뛸 수 있습니다.
 import { NextResponse } from "next/server"
 import { allTarotCards } from "@/lib/tarot-cards"
-import { buildChatMessages, type ChatContext } from "@/lib/reading-prompt-templates"
+import { buildChatMessages, resolveChatAudit, type ChatContext } from "@/lib/reading-prompt-templates"
 import { streamErrorPayload, streamGeminiJson } from "@/lib/ai/gemini"
 import { CHAT_DIGEST_MAX_CHARS, CHAT_DRAW_MAX, CHAT_JSON_SCHEMA } from "@/lib/ai/reading-chat"
 import { requireOwnedReading, requireUser } from "@/lib/server/guard"
@@ -225,6 +225,27 @@ export async function POST(request: Request) {
 
   const { system, user } = buildChatMessages(context)
 
+  // ── 카드보다 사람의 손이 먼저인 자리인가 ────────────────────────────
+  //
+  // ⚠️ body.audit 은 쓰지 않습니다 (위 context 에도 안 담았습니다). 화면이
+  //    보낸 등급을 믿으면 요청을 손으로 만들어 "normal" 이라 적는 것으로
+  //    지침과 연락처를 통째로 빼낼 수 있습니다. 서버가 물음을 다시 읽습니다.
+  //
+  // ⚠️ 카드를 뽑기 전 화면(app/tarot/ask)에는 이 상자가 이미 있었습니다.
+  //    없던 곳이 대화였습니다 — 무거운 말이 대화 도중에 나오면 지침만
+  //    붙고 번호는 아무 데도 뜨지 않았습니다. 정작 사람이 털어놓는 자리가
+  //    거기입니다.
+  const care = resolveChatAudit(context)
+  const careForScreen =
+    care.resources && care.resources.length > 0
+      ? {
+          level: care.level,
+          notice: care.notice,
+          suggestion: care.suggestion,
+          resources: care.resources,
+        }
+      : null
+
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
@@ -232,6 +253,10 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(JSON.stringify(payload) + "\n"))
 
       try {
+        // 답보다 먼저 보냅니다. 모델이 무슨 말을 하든, 번호는 이미 화면에
+        // 떠 있어야 합니다 (components/question-care-notice.tsx 주석 참고).
+        if (careForScreen) send({ care: careForScreen })
+
         let last = ""
         for await (const accumulated of streamGeminiJson({
           system,
