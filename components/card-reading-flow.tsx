@@ -637,7 +637,7 @@ export function CardReadingFlow({
 
       {/* ── 굴리는 손잡이 ────────────────────────────────────────────────
           ┌─ 시안 실측 (2026-08) ─────────────────────────────────────────
-          │ 바      높이 70 · 흰 바탕 · 윗변에 1px 선
+          │ 바      높이 70 · 흰 바탕 **96%** · 윗변에 1px 선
           │ 선      1px, 좌우 20 씩 띄움
           │ 동그라미 23 · #000 · drop-shadow(0 4px 8px rgba(0,0,0,0.20))
           └───────────────────────────────────────────────────────────────
@@ -654,7 +654,14 @@ export function CardReadingFlow({
           ⚠️ 웹킷과 파이어폭스가 손잡이를 부르는 이름이 다릅니다. 한쪽만
              적으면 다른 쪽에서 기본 손잡이(회색 네모)가 그대로 나옵니다. */}
       {phase === "selecting" && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] flex h-[70px] items-center border-t border-border bg-card px-5 backdrop-blur-[var(--glass-blur)]">
+        // ⚠️ 바탕이 96% 입니다. 100% 로 두면 카드 부채가 바 윗변에서 뚝
+        //    끊겨 화면이 거기서 끝난 것처럼 보입니다. 4% 만 비쳐도 "부채가
+        //    이 아래로 이어진다"가 읽힙니다 — 흐림(backdrop-blur)이 함께
+        //    걸려 있어서 비쳐도 글자를 방해하지 않습니다.
+        <div
+          className="fixed inset-x-0 bottom-0 z-[70] flex h-[70px] items-center border-t border-border px-5 backdrop-blur-[var(--glass-blur)]"
+          style={{ background: "rgba(255, 255, 255, 0.96)" }}
+        >
           <input
             type="range"
             min={0}
@@ -679,13 +686,20 @@ export function CardReadingFlow({
       )}
 
       {isShuffling && shuffleStep >= 1 && (
-        <button
-          type="button"
-          onClick={handleGoToPick}
-          className="fixed bottom-6 right-6 z-[100] rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:right-8"
-        >
-          고르러 가기
-        </button>
+        // ⚠️ 화면 오른쪽 끝(right-6)에 붙이지 않습니다. 이 사이트는 넓은
+        //    화면에서 내용이 max-w-site 로 가운데 모이는데, 단추만 화면
+        //    끝에 붙어 있으면 레이아웃 밖으로 혼자 빠져나갑니다.
+        //    헤더의 더보기(⋯)와 **같은 통·같은 오른쪽 여백**을 써서 세로로
+        //    맞춥니다 (components/page-header.tsx 의 max-w-site + pr-4).
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] mx-auto flex w-full max-w-site justify-end pr-4">
+          <button
+            type="button"
+            onClick={handleGoToPick}
+            className="pointer-events-auto rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          >
+            고르러 가기
+          </button>
+        </div>
       )}
     </div>
   )
