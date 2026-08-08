@@ -2,19 +2,11 @@
 // [단일 진실 소스] 샨티를 깨우는 첫 화면 — 무엇을 묻고, 답을 무엇으로 옮기는가.
 //
 // ┌─ 세 번 묻습니다 ──────────────────────────────────────────────────
-// │ 1  마음이 머무는 키워드 3~5개   (끌림)   → 별자리의 "수식어"가 됩니다
+// │ 1  마음이 머무는 키워드 3~5개    (끌림)   → 세 갈래에 표를 던집니다
 // │ 2  마음이 움츠러드는 키워드 3~5개 (두려움) → 화면에 안 나옵니다. 대하는 법으로만
-// │ 3  메이저 아르카나 22장 중 한 장 (끌림)   → 별자리의 "이름"이 됩니다
-// └──────────────────────────────────────────────────────────────────
-//
-// ┌─ 왜 이름을 "수식어 + 명사"로 쪼갰는가 ────────────────────────────
-// │ 결과 이름을 통째로 쓰면(유형 20개짜리 표) 조합이 늘 때마다 이름을
-// │ 새로 지어야 합니다. 무드 8개 × 카드 22장 = 176가지를 30줄만 적고
-// │ 얻습니다.
+// │ 3  메이저 아르카나 22장 중 한 장  (끌림)   → 같은 갈래에 두 표
 // │
-// │ 그리고 이렇게 하면 **고른 것이 눈에 보입니다**. 카드를 바꾸면 이름의
-// │ 뒷말이 바뀌고, 키워드를 바꾸면 앞말이 바뀝니다. 고른 것이 결과에
-// │ 안 비치면 사람은 다음부터 아무거나 누릅니다.
+// │ 표를 세면 결 · 빛 · 때 가 정해지고, 그 셋이 여덟 사람 중 하나가 됩니다.
 // └──────────────────────────────────────────────────────────────────
 //
 // ⚠️ 두려움으로 고른 것은 화면에 절대 되돌려 보여주지 않습니다.
@@ -25,67 +17,57 @@
 // ⚠️ 두려움 목록에 죽음·자해 계열을 넣지 마세요. 민감한 물음은 들어왔을
 //    때 받아주는 것이지(lib/question-safety.ts), 우리가 먼저 차려 놓고
 //    고르라고 할 것이 아닙니다.
+//
+// 표를 고치면 검사를 돌리세요:
+//   node --experimental-strip-types scripts/check-onboarding.mjs
 
 import { allTarotCards, type TarotCardInfo } from "@/lib/tarot-cards"
 import type { ChatMemo } from "@/lib/ai/reading-chat"
+import {
+  AXES,
+  TRAITS,
+  comboOf,
+  type AxisKey,
+  type Combo,
+  type TraitCode,
+  type TraitProfile,
+} from "@/lib/content/traits"
 
 // ═══════════════════════════════════════════════════════════════════
-// 1. 무드 — 모든 계산이 이 여덟 개로 모입니다
+// 1. 무엇으로 나누는가 — lib/content/traits.ts 가 정합니다
 // ═══════════════════════════════════════════════════════════════════
+//
+// ┌─ 왜 여기서 갈래를 새로 만들지 않는가 ─────────────────────────────
+// │ 준비된 질문 80개와 스프레드 158개에 이미 성향 표가 붙어 있습니다
+// │ (resonatesWith). 그 표가 쓰는 말이 flower·stone·candle·moon·root·
+// │ wind 여섯입니다.
+// │
+// │ 온보딩이 다른 말로 사람을 나누면 그 158개는 영영 안 깨어납니다.
+// │ 여기는 "무엇으로 나누는가"를 정하는 자리가 아니라, 저쪽이 정해둔
+// │ 갈래로 **사람을 나누는 문답**을 놓는 자리입니다.
+// └──────────────────────────────────────────────────────────────────
+//
+// ⚠️ 별자리 이름도 여기서 짓지 않습니다. 여덟 이름은 traits.ts 의 COMBOS
+//    에 손으로 적혀 있습니다 ("혼자 피는 밤꽃" 이 그중 하나입니다).
+//    셈해서 지은 이름은 어색하다는 것이 그쪽의 결론이고, 그 결론을 여기서
+//    뒤집으면 같은 사람이 화면마다 다른 이름으로 불립니다.
 
 /**
- * 결과에 쓰이는 무드 여덟 갈래.
- *
- * 늘리기 전에 한 번 더 생각해 주세요. 하나 늘 때마다 수식어를 하나 더
- * 지어야 하고, 키워드 스물몇 개의 표를 다시 훑어 균형을 맞춰야 합니다.
- * 여덟이면 화면에 태그 세 개를 뽑았을 때 사람마다 다르게 나옵니다.
- */
-export const MOOD_TAGS = [
-  "고요함",
-  "다정함",
-  "자유로움",
-  "단단함",
-  "섬세함",
-  "탐색",
-  "직관",
-  "성실함",
-] as const
-
-export type MoodTag = (typeof MOOD_TAGS)[number]
-
-/**
- * 무드마다의 수식어 — 별자리 이름의 앞말.
- *
- * ⚠️ "~한"으로 끝내지 않았습니다. "고요한 밤꽃"은 형용사가 명사에 붙은
- *    설명이고, "혼자 피는 밤꽃"은 장면입니다. 뒤에 오는 명사가 무엇이든
- *    말이 되도록 서술형으로 적습니다.
- */
-const MOOD_EPITHET: Record<MoodTag, string> = {
-  고요함: "혼자 피는",
-  다정함: "곁을 데우는",
-  자유로움: "매이지 않는",
-  단단함: "쉬 흔들리지 않는",
-  섬세함: "결을 읽는",
-  탐색: "길을 내는",
-  직관: "먼저 알아채는",
-  성실함: "끝까지 남는",
-}
-
-/**
- * 무드마다의 성향 한 줄 — 프롬프트의 trait 로 들어갑니다.
+ * 성향 한 조각마다의 한 줄 — 프롬프트의 trait 로 들어갑니다.
  *
  * "이 사람은 ~" 으로 시작합니다. lib/server/user-memory.ts 에 쌓이는
- * 다른 줄들과 같은 모양이어야, 프롬프트에서 한 덩어리로 읽힙니다.
+ * 다른 줄들과 같은 모양이어야 프롬프트에서 한 덩어리로 읽힙니다.
+ *
+ * ⚠️ 조합 이름("혼자 피는 밤꽃")은 넣지 않습니다 — 아래 answersToMemos
+ *    주석 참고. 넣으면 샨티가 사람을 규정하게 됩니다.
  */
-const MOOD_TRAIT: Record<MoodTag, string> = {
-  고요함: "이 사람은 조용한 시간에 마음이 머문다",
-  다정함: "이 사람은 사람 사이의 온기를 먼저 본다",
-  자유로움: "이 사람은 매이는 것을 답답해한다",
-  단단함: "이 사람은 쉽게 흔들리지 않는 편이다",
-  섬세함: "이 사람은 작은 결까지 알아채는 편이다",
-  탐색: "이 사람은 새로운 길을 궁금해한다",
-  직관: "이 사람은 따져보기 전에 먼저 느끼는 편이다",
-  성실함: "이 사람은 시작한 것을 끝까지 붙드는 편이다",
+const TRAIT_SENTENCE: Record<TraitCode, string> = {
+  flower: "이 사람은 따져보기 전에 마음이 먼저 움직이는 편이다",
+  stone: "이 사람은 마음보다 까닭을 먼저 짚는 편이다",
+  candle: "이 사람은 사람의 기척 속에서 편안해진다",
+  moon: "이 사람은 혼자 있는 시간에 마음이 개는 편이다",
+  root: "이 사람은 지나온 것을 오래 품고 되짚는 편이다",
+  wind: "이 사람은 아직 오지 않은 것 쪽으로 마음이 기운다",
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -95,8 +77,14 @@ const MOOD_TRAIT: Record<MoodTag, string> = {
 export interface DrawnKeyword {
   /** 화면에 보이는 말. 두세 글자로 맞춥니다 — 칩 그리드가 들쭉날쭉해집니다 */
   label: string
-  /** 이 말이 기우는 무드. 하나 또는 둘 */
-  tags: readonly MoodTag[]
+  /**
+   * 이 말이 기우는 쪽. 하나 또는 둘.
+   *
+   * ⚠️ 같은 갈래의 양쪽을 함께 적지 마세요 (flower 와 stone 을 같이).
+   *    서로 상쇄되어 그 낱말은 아무 말도 안 한 것이 됩니다.
+   *    scripts/check-onboarding.mjs 가 잡습니다.
+   */
+  traits: readonly TraitCode[]
 }
 
 /**
@@ -105,54 +93,61 @@ export interface DrawnKeyword {
  * ┌─ 고를 때의 기준 ──────────────────────────────────────────────────
  * │ · 두세 글자 (네 글자까지). 길면 칩이 두 줄로 접히고 그리드가 깨집니다
  * │ · 좋고 나쁨이 없는 말. "성공"처럼 누구나 고를 말은 변별력이 0입니다
- * │ · 무드마다 넷~여섯. 한 무드에 말이 몰리면 그 무드만 계속 1등이 됩니다
+ * │ · 여섯 쪽이 고르게. 한쪽에 말이 몰리면 모두가 그쪽으로 쏠립니다
+ * │ · 같은 갈래의 양쪽을 한 낱말에 함께 달지 않습니다 — 서로 지웁니다
  * └──────────────────────────────────────────────────────────────────
+ *
+ * 아래 묶음 주석은 "그 낱말이 가장 세게 기우는 쪽"으로 나눈 것입니다.
+ * 낱말마다 둘째 표가 따로 있으니 묶음이 곧 전부는 아닙니다.
  */
 export const DRAWN_KEYWORDS: readonly DrawnKeyword[] = [
-  // 고요함
-  { label: "새벽", tags: ["고요함", "직관"] },
-  { label: "빗소리", tags: ["고요함", "섬세함"] },
-  { label: "혼자", tags: ["고요함", "자유로움"] },
-  { label: "촛불", tags: ["고요함", "다정함"] },
-  { label: "첫눈", tags: ["고요함", "섬세함"] },
-  { label: "낮잠", tags: ["고요함", "자유로움"] },
-  // 다정함
-  { label: "온기", tags: ["다정함"] },
-  { label: "손편지", tags: ["다정함", "성실함"] },
-  { label: "마중", tags: ["다정함"] },
-  { label: "포옹", tags: ["다정함", "섬세함"] },
-  { label: "웃음", tags: ["다정함", "자유로움"] },
-  { label: "밥상", tags: ["다정함", "성실함"] },
-  // 자유로움
-  { label: "바람", tags: ["자유로움"] },
-  { label: "여행", tags: ["자유로움", "탐색"] },
-  { label: "맨발", tags: ["자유로움", "섬세함"] },
-  { label: "첫차", tags: ["자유로움", "탐색"] },
-  { label: "들판", tags: ["자유로움"] },
-  { label: "파도", tags: ["자유로움", "직관"] },
-  // 단단함
-  { label: "바위", tags: ["단단함"] },
-  { label: "뿌리", tags: ["단단함", "성실함"] },
-  { label: "약속", tags: ["단단함", "성실함"] },
-  { label: "버팀", tags: ["단단함"] },
-  { label: "손때", tags: ["단단함", "성실함"] },
-  // 섬세함
-  { label: "결", tags: ["섬세함"] },
-  { label: "향", tags: ["섬세함", "직관"] },
-  { label: "목소리", tags: ["섬세함", "다정함"] },
-  { label: "빛깔", tags: ["섬세함"] },
-  // 탐색
-  { label: "지도", tags: ["탐색"] },
-  { label: "골목", tags: ["탐색", "자유로움"] },
-  { label: "질문", tags: ["탐색", "직관"] },
-  { label: "문", tags: ["탐색", "직관"] },
-  // 직관
-  { label: "예감", tags: ["직관"] },
-  { label: "꿈", tags: ["직관", "섬세함"] },
-  { label: "안개", tags: ["직관", "고요함"] },
-  // 성실함
-  { label: "기록", tags: ["성실함", "섬세함"] },
-  { label: "매일", tags: ["성실함"] },
+  // ── 결 🌸 꽃결 (마음이 먼저) ──────────────────────────────────────
+  { label: "온기", traits: ["flower", "candle"] },
+  { label: "포옹", traits: ["flower", "candle"] },
+  { label: "웃음", traits: ["flower", "candle"] },
+  { label: "눈물", traits: ["flower", "moon"] },
+  { label: "예감", traits: ["flower", "wind"] },
+  { label: "떨림", traits: ["flower", "wind"] },
+  { label: "노래", traits: ["flower", "candle"] },
+  { label: "꿈", traits: ["flower", "moon"] },
+
+  // ── 결 🪨 돌결 (까닭이 먼저) ──────────────────────────────────────
+  { label: "지도", traits: ["stone", "wind"] },
+  { label: "저울", traits: ["stone", "candle"] },
+  { label: "기록", traits: ["stone", "root"] },
+  { label: "약속", traits: ["stone", "root"] },
+  { label: "설계", traits: ["stone", "wind"] },
+  { label: "정리", traits: ["stone", "root"] },
+  { label: "규칙", traits: ["stone", "candle"] },
+  { label: "연장", traits: ["stone", "root"] },
+
+  // ── 빛 🕯️ 불빛 (기척 속에서) ──────────────────────────────────────
+  { label: "잔치", traits: ["candle", "wind"] },
+  { label: "밥상", traits: ["candle", "root"] },
+  { label: "마중", traits: ["candle", "flower"] },
+  { label: "장터", traits: ["candle", "wind"] },
+  { label: "손편지", traits: ["candle", "root"] },
+  { label: "모닥불", traits: ["candle", "root"] },
+
+  // ── 빛 🌙 달빛 (혼자일 때) ────────────────────────────────────────
+  { label: "새벽", traits: ["moon", "wind"] },
+  { label: "빗소리", traits: ["moon", "flower"] },
+  { label: "혼자", traits: ["moon", "stone"] },
+  { label: "안개", traits: ["moon", "flower"] },
+  { label: "헌책", traits: ["moon", "root"] },
+  { label: "낮잠", traits: ["moon", "root"] },
+
+  // ── 때 🌳 뿌리 (지나온 것) ────────────────────────────────────────
+  { label: "손때", traits: ["root", "stone"] },
+  { label: "고향", traits: ["root", "flower"] },
+  { label: "나이테", traits: ["root", "stone"] },
+  { label: "옛사진", traits: ["root", "moon"] },
+
+  // ── 때 🍃 바람 (아직 안 온 것) ────────────────────────────────────
+  { label: "첫차", traits: ["wind", "stone"] },
+  { label: "여행", traits: ["wind", "flower"] },
+  { label: "문", traits: ["wind", "moon"] },
+  { label: "처음", traits: ["wind", "candle"] },
 ] as const
 
 // ═══════════════════════════════════════════════════════════════════
@@ -221,8 +216,8 @@ export const FEAR_KEYWORDS: readonly FearKeyword[] = [
  * │ 달라서 "끌리는 것"이 실제로 갈립니다.
  * │
  * │ 무작위로 추리지 않습니다 — 매번 다른 22장이면 같은 사람이 다시 해도
- * │ 다른 결과가 나오고, 아래 이름표(MAJOR_NOUN)를 22개만 적어두면 되는
- * │ 이점도 사라집니다.
+ * │ 다른 결과가 나오고, 아래 성향표를 22장에만 적어두면 되는 이점도
+ * │ 사라집니다.
  * └──────────────────────────────────────────────────────────────────
  *
  * ⚠️ 앞면을 보여줍니다. 뒷면을 고르게 하면 그건 정보가 없는 제비뽑기이고,
@@ -234,39 +229,49 @@ export const ONBOARDING_CARDS: readonly TarotCardInfo[] = allTarotCards.filter(
 )
 
 /**
- * 카드마다의 이름표 — 별자리 이름의 뒷말.
+ * 카드마다 기우는 쪽.
  *
- * ⚠️ 카드 이름을 그대로 쓰지 않습니다. "혼자 피는 죽음"은 읽는 사람을
- *    덜컥하게 만들고, "혼자 피는 매달린 사람"은 말이 안 됩니다. 카드가
- *    품은 그림을 사물 하나로 옮겨 적습니다.
+ * ┌─ 왜 카드에도 성향을 붙이는가 ─────────────────────────────────────
+ * │ 안 붙이면 카드 고르기가 결과에 아무 영향이 없습니다. 사람은 한 판만
+ * │ 해보면 그걸 알아채고, 다음부터 아무 카드나 누릅니다.
+ * │
+ * │ 그리고 여기가 갈래를 가르는 마지막 손입니다 — 키워드에서 5:5 로
+ * │ 갈린 갈래를 카드 한 장이 기울입니다.
+ * └──────────────────────────────────────────────────────────────────
  *
  * 열쇠는 카드 번호(0~21)입니다 — 슬러그(universal-major-00)가 바뀌어도
  * 번호는 그대로라, 이 표가 조용히 어긋나지 않습니다.
+ *
+ * ⚠️ 카드의 "정통 해석"을 옮긴 것이 아닙니다. 그림을 보고 마음이 기우는
+ *    쪽입니다 — 여기서 묻는 것은 점이 아니라 취향이기 때문입니다.
  */
-const MAJOR_NOUN: Record<number, string> = {
-  0: "첫 걸음",
-  1: "불씨",
-  2: "물그림자",
-  3: "들꽃",
-  4: "바위산",
-  5: "오래된 종",
-  6: "두 그림자",
-  7: "바람길",
-  8: "온기",
-  9: "등불",
-  10: "물레",
-  11: "저울추",
-  12: "거꾸로 선 나무",
-  13: "겨울눈",
-  14: "샘물",
-  15: "그늘",
-  16: "벼랑",
-  17: "밤별",
-  18: "밤꽃",
-  19: "한낮",
-  20: "새벽종",
-  21: "둥근 길",
+const MAJOR_TRAITS: Record<number, readonly TraitCode[]> = {
+  0: ["wind", "flower"],    // 바보 — 첫 걸음
+  1: ["wind", "candle"],    // 마법사
+  2: ["moon", "stone"],     // 여사제
+  3: ["flower", "candle"],  // 여황제
+  4: ["stone", "root"],     // 황제
+  5: ["root", "candle"],    // 교황
+  6: ["flower", "candle"],  // 연인
+  7: ["wind", "stone"],     // 전차
+  8: ["flower", "root"],    // 힘
+  9: ["moon", "root"],      // 은둔자
+  10: ["wind", "moon"],     // 운명의 수레바퀴
+  11: ["stone", "candle"],  // 정의
+  12: ["moon", "flower"],   // 매달린 사람
+  13: ["wind", "stone"],    // 죽음 — 지나간 자리를 비우는 쪽
+  14: ["root", "flower"],   // 절제
+  15: ["root", "stone"],    // 악마
+  16: ["wind", "moon"],     // 탑
+  17: ["moon", "wind"],     // 별
+  18: ["moon", "flower"],   // 달
+  19: ["candle", "flower"], // 태양
+  20: ["root", "candle"],   // 심판
+  21: ["root", "stone"],    // 세계
 }
+
+/** 카드 한 장이 갖는 무게. 키워드 한 개보다 조금 셉니다 */
+const CARD_WEIGHT = 2
 
 // ═══════════════════════════════════════════════════════════════════
 // 5. 답 → 결과
@@ -289,59 +294,111 @@ export interface OnboardingAnswers {
 export const EMPTY_ANSWERS: OnboardingAnswers = { drawn: [], fears: [], cardSlug: null }
 
 export interface OnboardingResult {
-  /** 별자리 이름 — "혼자 피는 밤꽃" */
-  name: string
-  /** 화면에 보이는 태그 세 개 */
-  tags: MoodTag[]
+  /** 나뉜 성향. 아직 다 안 골랐으면 null */
+  profile: TraitProfile | null
+  /** 별자리 이름과 친구 — traits.ts 의 COMBOS 에서 옵니다 */
+  combo: Combo | null
+  /** 화면에 보이는 태그 셋 — "🌸 꽃결" 처럼 */
+  tags: { code: TraitCode; emoji: string; name: string }[]
   /** 이름 아래 두 줄 */
   lines: string[]
-  /** 이름의 뒷말이 어느 카드에서 왔는지 (결과 화면이 카드를 함께 보여줄 때) */
+  /** 고른 카드 (결과 화면이 그림을 함께 보여줄 때) */
   card: TarotCardInfo | null
 }
 
+/** 어느 쪽이 몇 표인가 */
+type Tally = Record<TraitCode, number>
+
+const EMPTY_TALLY = (): Tally => ({
+  flower: 0,
+  stone: 0,
+  candle: 0,
+  moon: 0,
+  root: 0,
+  wind: 0,
+})
+
 /**
- * 고른 키워드에서 무드 점수를 셉니다.
- *
- * ⚠️ 동점일 때 MOOD_TAGS 의 차례를 따릅니다. 이걸 정해두지 않으면
- *    같은 답에서 새로고침할 때마다 다른 이름이 나옵니다 — 객체 열쇠
- *    차례는 믿을 것이 못 됩니다.
+ * 고른 것에서 표를 셉니다 — 키워드 한 표, 카드 두 표.
  */
-function scoreMoods(drawn: string[]): MoodTag[] {
-  const score = new Map<MoodTag, number>()
-  for (const label of drawn) {
+function tally(answers: OnboardingAnswers): Tally {
+  const score = EMPTY_TALLY()
+
+  for (const label of answers.drawn) {
     const keyword = DRAWN_KEYWORDS.find((k) => k.label === label)
     if (!keyword) continue
-    for (const tag of keyword.tags) score.set(tag, (score.get(tag) ?? 0) + 1)
+    for (const code of keyword.traits) score[code] += 1
   }
 
-  return [...MOOD_TAGS]
-    .filter((tag) => (score.get(tag) ?? 0) > 0)
-    .sort((a, b) => {
-      const diff = (score.get(b) ?? 0) - (score.get(a) ?? 0)
-      if (diff !== 0) return diff
-      return MOOD_TAGS.indexOf(a) - MOOD_TAGS.indexOf(b)
-    })
+  const card = answers.cardSlug
+    ? ONBOARDING_CARDS.find((c) => c.slug === answers.cardSlug)
+    : undefined
+  if (card) {
+    for (const code of MAJOR_TRAITS[card.number] ?? []) score[code] += CARD_WEIGHT
+  }
+
+  return score
 }
 
 /**
- * 답을 별자리로 옮깁니다.
+ * 표를 세 갈래의 승자로 옮깁니다.
  *
- * 답이 모자라도(아직 고르는 중) 터지지 않고 만들 수 있는 데까지 만듭니다 —
- * 결과 화면을 미리 그려보는 자리(app/design-1859)에서 쓰려면 그래야 합니다.
+ * ⚠️ 동점이면 AXES 에 먼저 적힌 쪽입니다. 정해두지 않으면 같은 답으로
+ *    새로고침할 때마다 다른 사람이 됩니다 — 이 값은 프롬프트에까지
+ *    실리므로 흔들리면 안 됩니다.
+ *
+ * ⚠️ 양쪽 다 0 표여도(아무것도 안 고른 갈래) 한쪽을 고릅니다. 갈래를
+ *    비워두면 TraitProfile 이 성립하지 않고, 콘텐츠 쪽은 셋이 다 있는
+ *    것을 전제로 짜여 있습니다.
+ */
+function decide(score: Tally): TraitProfile {
+  const win = (axis: AxisKey): TraitCode => {
+    const [a, b] = AXES[axis].pair
+    return score[b] > score[a] ? b : a
+  }
+  return {
+    grain: win("grain") as TraitProfile["grain"],
+    light: win("light") as TraitProfile["light"],
+    time: win("time") as TraitProfile["time"],
+  }
+}
+
+/** 고른 답에서 성향을 얻습니다. 아직 덜 골랐으면 null */
+export function profileOf(answers: OnboardingAnswers): TraitProfile | null {
+  if (!isComplete(answers)) return null
+  return decide(tally(answers))
+}
+
+/**
+ * 답을 결과로 옮깁니다.
+ *
+ * 답이 모자라도(아직 고르는 중) 터지지 않습니다 — 결과 화면을 미리
+ * 그려보는 자리(app/design-1859)에서 쓰려면 그래야 합니다.
  */
 export function buildResult(answers: OnboardingAnswers): OnboardingResult {
-  const ranked = scoreMoods(answers.drawn)
-  const top = ranked[0] ?? "고요함"
+  const profile = profileOf(answers)
   const card = answers.cardSlug
     ? (ONBOARDING_CARDS.find((c) => c.slug === answers.cardSlug) ?? null)
     : null
 
-  const noun = card ? (MAJOR_NOUN[card.number] ?? card.nameKo) : "별조각"
+  if (!profile) {
+    return { profile: null, combo: null, tags: [], lines: [], card }
+  }
+
+  const codes = [profile.grain, profile.light, profile.time]
 
   return {
-    name: `${MOOD_EPITHET[top]} ${noun}`,
-    tags: ranked.slice(0, 3),
-    lines: ranked.slice(0, 2).map((tag) => MOOD_TRAIT[tag].replace(/^이 사람은 /, "")),
+    profile,
+    combo: comboOf(profile),
+    tags: codes.map((code) => ({
+      code,
+      emoji: TRAITS[code].emoji,
+      name: TRAITS[code].name,
+    })),
+    // 결 · 빛 두 줄만 냅니다. 셋을 다 늘어놓으면 카드가 설명문이 됩니다.
+    lines: [profile.grain, profile.light].map((code) =>
+      TRAIT_SENTENCE[code].replace(/^이 사람은 /, "")
+    ),
     card,
   }
 }
@@ -363,17 +420,18 @@ export function buildResult(answers: OnboardingAnswers): OnboardingResult {
  * │ 입니다. 재료만 넘기면 규정하지 않으면서도 그 결에 맞게 말합니다.
  * └──────────────────────────────────────────────────────────────────
  *
- * ⚠️ trait 는 위쪽 무드 둘까지만 넣습니다. 여덟 줄을 다 넣으면 서로
- *    부딪히는 말이 섞이고("조용한 시간에 머문다" + "새로운 길을
- *    궁금해한다"), 무엇보다 프롬프트에 실리는 열다섯 줄
- *    (USER_MEMORY_PROMPT_MAX)을 온보딩 혼자 차지해서 정작 대화에서
- *    알게 된 것이 밀려납니다.
+ * ⚠️ trait 는 결·빛 둘까지만 넣습니다. 셋을 다 넣으면 프롬프트에 실리는
+ *    열다섯 줄(USER_MEMORY_PROMPT_MAX)을 온보딩이 너무 많이 차지해서,
+ *    정작 대화에서 알게 된 것이 밀려납니다.
  */
 export function answersToMemos(answers: OnboardingAnswers): ChatMemo[] {
   const memos: ChatMemo[] = []
 
-  for (const tag of scoreMoods(answers.drawn).slice(0, 2)) {
-    memos.push({ kind: "trait", fact: MOOD_TRAIT[tag] })
+  const profile = profileOf(answers)
+  if (profile) {
+    for (const code of [profile.grain, profile.light]) {
+      memos.push({ kind: "trait", fact: TRAIT_SENTENCE[code] })
+    }
   }
 
   // 두려움은 고른 만큼 다 넣지 않습니다. care 는 말투를 고르는 손잡이라

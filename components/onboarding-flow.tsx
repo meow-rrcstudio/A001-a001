@@ -300,7 +300,7 @@ export function OnboardingFlow() {
   // 세 화면이 같은 그림으로 뭉개지지 않습니다.
   const bubble =
     step === 4
-      ? `누가 나를 깨운거냥.. 오호라, ${result.name}의 기운을 가진 자로구냥.`
+      ? `누가 나를 깨운거냥.. 오호라, ${result.combo?.name ?? "별조각"}의 기운을 가진 자로구냥.`
       : step === 0 || picked.length + (answers.cardSlug && step === 3 ? 1 : 0) === 0
         ? "…"
         : step === 1
@@ -432,7 +432,7 @@ export function OnboardingFlow() {
             <div className="rounded-2xl bg-card px-6 py-10 text-center shadow-raised">
               <p className="text-xs text-muted-foreground">오늘 당신의 마음 별조각은</p>
               <p className="mt-3 text-[26px] font-bold leading-tight text-foreground">
-                {result.name}
+                {result.combo?.name}
               </p>
               {result.lines.length > 0 && (
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -446,10 +446,10 @@ export function OnboardingFlow() {
               <div className="mt-6 flex flex-wrap justify-center gap-1.5">
                 {result.tags.map((tag) => (
                   <span
-                    key={tag}
+                    key={tag.code}
                     className="rounded-full bg-brand-ink px-4 py-1.5 text-[13px] font-medium text-white"
                   >
-                    {tag}
+                    {tag.emoji} {tag.name}
                   </span>
                 ))}
               </div>
