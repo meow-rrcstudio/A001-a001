@@ -10,6 +10,7 @@
 // │ 가만히 있는 캐릭터 :  <PixelSprite frame={SHANTI_BASE} className="h-5" />
 // │ 눈을 깜빡이는 캐릭터:  <BlinkingShanti className="h-5" />
 // │ 생각하는 중        :  <BlinkingShanti className="h-5" busy />
+// │ 자는 중            :  <SleepingShanti className="h-5" />
 // │
 // │ · 크기   : className 에 높이(h-5 등)만 주면 가로는 비율대로 따라옵니다
 // │ · 색     : className 에 text-* 를 주면 그 색으로 칠해집니다 (기본은 글자색)
@@ -119,6 +120,39 @@ export function BlinkingShanti({
     // 뛰는 동안에도 눈은 계속 깜빡입니다 — 둘은 서로 다른 층이라 겹칩니다.
     <span className={cn("inline-block", busy && "animate-shanti-hop")}>
       <PixelSprite frame={blinking ? SHANTI_BLINK : SHANTI_BASE} className={className} title={title} />
+    </span>
+  )
+}
+
+/**
+ * 잠든 샨티 — 눈을 감은 그림에 Zzz 를 얹습니다.
+ *
+ * 온보딩(샨티 깨우기)의 첫 화면부터 마지막 물음까지 헤더에 이 모습이
+ * 있다가, 다 답한 순간 BlinkingShanti 로 바뀝니다. 그 한 번의 교체가
+ * 그 화면이 하는 이야기 전부입니다.
+ *
+ * ⚠️ 깜빡이지 않습니다. 자는 그림(SHANTI_BLINK)은 깨어 있는 그림에서 눈만
+ *    메운 것이라, 여기에 깜빡임을 넣으면 눈을 떴다 감는 것이 되어
+ *    "자고 있다"가 무너집니다.
+ */
+export function SleepingShanti({
+  className,
+  title,
+}: {
+  className?: string
+  title?: string
+}) {
+  return (
+    <span className="relative inline-block">
+      <PixelSprite frame={SHANTI_BLINK} className={className} title={title} />
+      {/* 글꼴로 적습니다 — 도트로 그리면 25칸짜리 그림 밖으로 나가야 해서
+          그림 전체를 다시 그려야 합니다. 기울인 소문자가 시안의 모양입니다. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-2.5 left-0 -translate-x-1/2 select-none text-[10px] font-semibold italic leading-none opacity-70"
+      >
+        Zzz
+      </span>
     </span>
   )
 }

@@ -653,3 +653,22 @@ export const topicContent: Record<ReadingTopicSlug, TopicContent> = {
     ],
   }
 }
+
+/**
+ * 사람이 미리 설계해 둔 질문인지 (칩 질문인지).
+ *
+ * ⚠️ 왜 필요한가 — 기록에서 다시 연 판에는 "직접 친 물음이었는지"가 남아
+ *    있지 않습니다. readings 에 남는 것은 문구뿐입니다. 그래서 문구가
+ *    준비된 질문 목록에 있으면 칩으로 봅니다.
+ *
+ *    안전 판정은 자유 질문에만 걸립니다 — 칩 질문은 질문·배열·흐름까지
+ *    사람이 설계해 둔 것이라 건드리지 않는다는 규칙이 있고, 기록 화면에서만
+ *    그 규칙이 깨지면 안 됩니다 (lib/question-safety.ts 머리말).
+ */
+export function isPreparedQuestionLabel(label: string): boolean {
+  const wanted = label.trim()
+  if (!wanted) return false
+  return Object.values(topicContent).some((topic) =>
+    topic.questions.some((question) => question.label === wanted)
+  )
+}

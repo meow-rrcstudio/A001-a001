@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react"
 import type { AuthProvider } from "@/app/api/account/route"
 import { isSupabaseConfigured } from "@/lib/supabase/env"
 import { claimLocalReadings, resetClaim } from "@/lib/claim-readings"
+import { claimOnboarding, resetOnboardingClaim } from "@/lib/onboarding-store"
 import {
   DEFAULT_ENTITLEMENT,
   getEntitlement,
@@ -59,8 +60,17 @@ export function useAccount() {
       //
       // ⚠️ 화면을 막지 않습니다. 옮기기가 느리거나 실패해도 로그인 자체는
       //    끝난 일이고, 못 옮긴 것은 브라우저에 남아 다음에 다시 갑니다.
-      if (next.isLoggedIn) void claimLocalReadings()
-      else resetClaim()
+      //
+      // 샨티를 깨우며 고른 것도 같은 자리에서 옮깁니다. 그 화면은 로그인보다
+      // 먼저 오기 때문에(lib/onboarding-store.ts), 여기서 옮기지 않으면
+      // 로그인한 사람의 대화에 그 앎이 영영 안 실립니다.
+      if (next.isLoggedIn) {
+        void claimLocalReadings()
+        void claimOnboarding()
+      } else {
+        resetClaim()
+        resetOnboardingClaim()
+      }
     } catch {
       // 잠깐 끊긴 것일 수 있습니다. 로그아웃으로 취급하되 화면은 계속 돕니다.
       setAccount(LOGGED_OUT)

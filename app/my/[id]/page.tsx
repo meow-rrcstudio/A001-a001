@@ -19,6 +19,8 @@ import { useAccount } from "@/lib/use-account"
 import { CREDIT_UNIT } from "@/lib/credit-packs"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { auditFreeQuestion } from "@/lib/question-safety"
+import { isPreparedQuestionLabel } from "@/lib/reading-content"
 import { layoutKeyForCount } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import type { LayoutKey } from "@/lib/spread-layouts"
@@ -39,6 +41,16 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
     done: (picked: PickedCard[]) => void
   } | null>(null)
   const [extraCards, setExtraCards] = useState<PickedCard[]>([])
+
+  // 문구로 가릅니다 — 칩 질문이면 판정하지 않고, 직접 친 물음이면 그때와
+  // 같은 판정을 다시 합니다.
+  //
+  // ⚠️ useMemo 를 두지 않습니다. 이 저장소는 React Compiler 를 켜 두어서
+  //    손으로 감싸면 오히려 최적화가 통째로 꺼집니다 (lint 가 막습니다).
+  const savedAudit =
+    reading?.question && !isPreparedQuestionLabel(reading.question)
+      ? auditFreeQuestion(reading.question)
+      : null
 
   const handleDrawRequest = useCallback(
     (draw: ChatDrawRequest, done: (picked: PickedCard[]) => void) => {
@@ -170,6 +182,10 @@ export default function SavedReadingPage({ params }: { params: Promise<{ id: str
     <>
       <ReadingResultView
         question={reading.question}
+        // 기록에는 "직접 친 물음이었는지"가 남아 있지 않아 문구로 가릅니다.
+        // 칩 질문이면 그대로 두고, 직접 친 물음이면 그때와 같은 판정을
+        // 다시 합니다 — 위기 연락처는 판을 다시 열었을 때도 있어야 합니다.
+        audit={savedAudit}
         result={reading.result}
         cards={reading.cards}
         layoutKey={reading.layoutKey}

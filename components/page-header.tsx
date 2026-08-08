@@ -50,7 +50,7 @@ import { ArrowLeft, Menu, MoreHorizontal, Share, X } from "lucide-react"
 import { useAppsInToss } from "@/lib/use-runtime"
 import { SiteMenu } from "@/components/site-menu"
 import { Wordmark } from "@/components/brand-mark"
-import { BlinkingShanti } from "@/components/pixel-sprite"
+import { BlinkingShanti, SleepingShanti } from "@/components/pixel-sprite"
 import { ACTIVE_CHARACTER } from "@/lib/character"
 
 // 고정 헤더가 떠 있는 만큼 페이지 위쪽에 비워야 하는 높이 (홈은 필요 없습니다).
@@ -76,6 +76,7 @@ export function PageHeader({
    */
   centerMark = false,
   centerCharacter = false,
+  characterAsleep = false,
   variant = "sub",
   /** 화면 위에 고정할지. 홈은 고정하지 않고 함께 스크롤됩니다. */
   fixed,
@@ -121,6 +122,13 @@ export function PageHeader({
   centerMark?: boolean
   /** 가운데에 캐릭터(샨티)를 놓을지. 타로를 보는 화면에서 씁니다 */
   centerCharacter?: boolean
+  /**
+   * 가운데 샨티가 자고 있을지 (centerCharacter 일 때만).
+   *
+   * 온보딩 전용입니다. 다 답하면 false 로 바뀌고, 그 자리에서 눈을 뜹니다 —
+   * 화면을 옮기지 않고 같은 자리에서 바뀌어야 "내가 깨웠다"가 됩니다.
+   */
+  characterAsleep?: boolean
   variant?: "sub" | "reading" | "home" | "minimal" | "close"
   fixed?: boolean
   surface?: "cream" | "lime"
@@ -224,7 +232,11 @@ export function PageHeader({
               워드마크(centerMark)와 같은 자리라 둘을 함께 켜지 않습니다. */}
           {centerCharacter && !centerMark && (
             <span className="pointer-events-none absolute inset-x-0 flex justify-center">
-              <BlinkingShanti className="h-7" title={ACTIVE_CHARACTER.name} />
+              {characterAsleep ? (
+                <SleepingShanti className="h-7" title={`잠든 ${ACTIVE_CHARACTER.name}`} />
+              ) : (
+                <BlinkingShanti className="h-7" title={ACTIVE_CHARACTER.name} />
+              )}
             </span>
           )}
 
