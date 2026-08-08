@@ -12,6 +12,8 @@
 // │ 한국어는 세는 말(개·장·번)이 물건마다 달라서 따로 둡니다.
 // └──────────────────────────────────────────────────────────────────
 
+import { withJosa, type JosaPair } from "@/lib/korean-josa"
+
 /** 파는 단위를 부르는 말 */
 export const CREDIT_UNIT = {
   /** 단위 이름 — "별조각이 부족해요" */
@@ -41,33 +43,17 @@ export function nameCredits(n: number): string {
  * │   장 → "3장을 썼다면"   개 → "3개를 썼다면"
  * │
  * │ 그래서 문장에 조사를 손으로 박아두면, 이름을 바꾸는 순간 사이트
- * │ 곳곳이 "1개이 듭니다"가 됩니다. 오류도 안 나고 빌드도 통과해서,
- * │ 누가 읽다가 발견할 때까지 그대로 남습니다.
+ * │ 곳곳이 "1개이 듭니다"가 됩니다.
  * │ (크레딧 → 별조각으로 바꾸면서 실제로 환불·약관 화면이 그렇게 됐습니다)
  * └──────────────────────────────────────────────────────────────────
  *
- * ⚠️ 받침이 없는 글자로 끝나면 뒤엣것, 있으면 앞엣것입니다.
- *    "으로/로" 만 예외로 ㄹ 받침도 뒤엣것을 씁니다 ("별로"·"쌀로").
+ * ⚠️ 셈은 lib/korean-josa.ts 에 있습니다 — 사용자가 친 물음을 되읽는
+ *    자리도 같은 규칙을 쓰기 때문입니다. 여기서는 이름만 이어 둡니다.
  */
-export function withJosa(word: string, pair: "을를" | "이가" | "은는" | "와과" | "으로로"): string {
-  const last = word.trim().slice(-1)
-  const code = last.charCodeAt(0)
-
-  // 한글 음절이 아니면(숫자·영문) 받침 없는 것으로 봅니다.
-  const isHangul = code >= 0xac00 && code <= 0xd7a3
-  const finalConsonant = isHangul ? (code - 0xac00) % 28 : 0
-
-  if (pair === "으로로") {
-    // 8 = ㄹ. "별로"처럼 ㄹ 뒤에는 "로"가 붙습니다.
-    return `${word}${finalConsonant === 0 || finalConsonant === 8 ? "로" : "으로"}`
-  }
-
-  const [withFinal, withoutFinal] = [pair.slice(0, 1), pair.slice(1)]
-  return `${word}${finalConsonant ? withFinal : withoutFinal}`
-}
+export { withJosa }
 
 /** "3개를" 처럼 세면서 조사까지 (세는 말이 바뀌어도 조사가 따라옵니다) */
-export function countCreditsWith(n: number, pair: Parameters<typeof withJosa>[1]): string {
+export function countCreditsWith(n: number, pair: JosaPair): string {
   return withJosa(countCredits(n), pair)
 }
 

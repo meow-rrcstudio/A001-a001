@@ -8,6 +8,7 @@
 // │ 판(readings)을 만들고 남김    아무것도 남기지 않습니다
 // │ 좋은 모델 · 생각 4096         낮은 등급 · 생각 없음
 // │ 이어묻기 가능                 한 판으로 끝
+// │ 직접 친 물음 가능             준비된 질문만 (아래 참고)
 // └──────────────────────────────────────────────────────────────────
 //
 // ┌─ 왜 판을 남기지 않는가 ───────────────────────────────────────────
@@ -26,9 +27,10 @@ import { NextResponse } from "next/server"
 import { topicContent } from "@/lib/reading-content"
 import type { ReadingTopicKey } from "@/lib/reading-prompt-templates"
 import { streamErrorPayload, streamFreeReadingWithGemini } from "@/lib/ai/gemini"
-import { FREE_QUESTION_SLUG, buildFreeQuestion } from "@/lib/free-question"
+import { FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { rateKey, rateLimit } from "@/lib/server/rate-limit"
 import { doorClosedMessage, takeFreeReading } from "@/lib/server/free-quota"
+import { resolveQuestion } from "@/lib/content/resolve"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -37,7 +39,10 @@ interface FreeReadingBody {
   topicKey?: string
   questionSlug?: string
   questionLabel?: string
-  plan?: { layoutKey: string; positions: { label: string; guide: string }[] }
+  /** 화면이 이미 고른 배열의 id (lib/content/resolve.ts) */
+  spreadId?: string
+  // ⚠️ plan(샨티가 고른 배열)은 여기 오지 않습니다. 그건 직접 친 물음에만
+  //    딸리는 것이고, 이 라우트는 준비된 질문만 받습니다 (아래 참고).
   cards?: { name: string; orientation: "정방향" | "역방향" }[]
 }
 
@@ -61,20 +66,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `주제 "${body.topicKey}" 를 찾을 수 없습니다.` }, { status: 400 })
   }
 
-  let question
+  // ── 2. 맛보기는 준비된 질문만 받습니다 ───────────────────────────
+  //
+  // ┌─ 왜 직접 친 물음을 여기서 안 받는가 ──────────────────────────
+  // │ 직접 친 물음은 서버가 배열을 골라줘야 제 값을 합니다
+  // │ (/api/reading/plan). 그런데 그 호출은 별조각을 낸 사람만 지나고,
+  // │ 이 라우트는 그 앞이라 지나지 않습니다. 그래서 여기로 들어온 자유
+  // │ 질문은 배열도 범용이고, 무엇보다 물음을 읽어보는 자리를 하나도
+  // │ 안 거칩니다.
+  // │
+  // │ 준비된 51개는 사람이 질문·배열·자리 이름·뽑을 때 문구까지 손으로
+  // │ 설계해 둔 것입니다. 자유도는 낮지만 받는 것은 오히려 낫습니다 —
+  // │ 잠그는 것이 품질을 낮추는 맞바꿈이 아닙니다.
+  // │
+  // │ 그리고 이렇게 두면 "직접 친 물음은 언제나 서버를 지난다"가
+  // │ 예외 없는 규칙이 됩니다. 앞으로 물음을 읽어보는 장치를 붙일 때
+  // │ 빠지는 경로가 하나도 없습니다.
+  // └──────────────────────────────────────────────────────────────
+  //
+  // ⚠️ 화면에서 입력창을 잠그는 것만으로는 막은 것이 아닙니다. 이 라우트는
+  //    로그인도 필요 없어서, 요청을 손으로 만들면 아무 문장이나 넣을 수
+  //    있었습니다. 진짜 자물쇠는 여기입니다.
   if (body.questionSlug === FREE_QUESTION_SLUG) {
-    const label = (body.questionLabel ?? "").trim()
-    if (!label) return NextResponse.json({ error: "질문이 비어 있습니다." }, { status: 400 })
-    // 프롬프트에 그대로 들어가므로 길이를 제한합니다.
-    question = buildFreeQuestion(label.slice(0, 200), body.plan ?? null)
-  } else {
-    question = topic.questions.find((q) => q.slug === body.questionSlug)
-    if (!question) {
-      return NextResponse.json(
-        { error: `질문 "${body.questionSlug}" 를 찾을 수 없습니다.` },
-        { status: 400 }
-      )
-    }
+    return NextResponse.json(
+      {
+        error: "직접 친 물음은 별조각이 있어야 볼 수 있어요.",
+        kind: "needCredits",
+        needCredits: true,
+      },
+      { status: 402 }
+    )
+  }
+
+  // ⚠️ 배열은 여기서 다시 고르지 않습니다. 화면이 이미 고른 것을 spreadId 로
+  //    받아 그대로 찾습니다 — 양쪽이 따로 굴리면 사람은 「마음의 거울」을
+  //    보는데 샨티는 「감정의 파도」를 읽습니다 (lib/content/resolve.ts).
+  //    남의 배열 id 를 밀어 넣으면 무시하고 이 질문의 것으로 되돌립니다.
+  const question = resolveQuestion(topicKey, body.questionSlug ?? "", body.spreadId)
+  if (!question) {
+    return NextResponse.json(
+      { error: `질문 "${body.questionSlug}" 를 찾을 수 없습니다.` },
+      { status: 400 }
+    )
   }
 
   const cards = body.cards ?? []

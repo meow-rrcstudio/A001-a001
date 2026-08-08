@@ -44,6 +44,7 @@ function Cursor() {
 export function FreeReadingResult({
   topicSlug,
   question,
+  spreadId,
   cards,
   isLoggedIn,
   signals,
@@ -51,6 +52,13 @@ export function FreeReadingResult({
 }: {
   topicSlug: ReadingTopicKey
   question: ReadingQuestion
+  /**
+   * 화면이 이미 고른 배열의 id (lib/content/resolve.ts).
+   *
+   * ⚠️ 서버가 이걸 안 받으면 같은 질문의 다른 배열을 골라서, 사람이 뽑은
+   *    자리 이름과 샨티가 읽는 자리 이름이 어긋납니다.
+   */
+  spreadId?: string
   cards: PickedCard[]
   isLoggedIn: boolean
   /** 이 판을 어떻게 뽑았는지 (재서 남기기만 합니다) */
@@ -84,6 +92,7 @@ export function FreeReadingResult({
       topicKey: topicSlug,
       questionSlug: question.slug,
       questionLabel: question.label,
+      spreadId,
       cards,
       free: true,
     })
@@ -158,6 +167,7 @@ export function FreeReadingResult({
                     topicKey: topicSlug,
                     questionSlug: question.slug,
                     questionLabel: question.label,
+                    spreadId,
                     cards,
                     free: true,
                   })}

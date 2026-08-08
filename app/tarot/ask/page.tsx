@@ -25,18 +25,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { QuestionPicker } from "@/components/question-picker"
 import { FreeReadingResult } from "@/components/free-reading-result"
 import { readingTopics, type ReadingTopicSlug } from "@/lib/reading-topics"
-import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
-import { getTopicConfig, type ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import type { ReadingQuestion } from "@/lib/reading-content"
+import { type ReadingTopicKey } from "@/lib/reading-prompt-templates"
+import type { ResolvedQuestion } from "@/lib/content/resolve"
+import { ENTRY_LINES, TOPIC_LINES } from "@/lib/content/lines"
+import { pickFor, PICK_MODE } from "@/lib/content/pick"
 import { HEADER_SPACE, HEADER_SPACE_PX } from "@/lib/layout"
 import { BlurVeil } from "@/components/blur-veil"
 import { ReadingCharacterBubble } from "@/components/reading-character-bubble"
 import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
-import { buildFreeQuestion, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
+import { buildFreeQuestion, freeIntroFor, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { auditFreeQuestion, type QuestionAudit } from "@/lib/question-safety"
 import { QuestionCareNotice, clearCareDismissed } from "@/components/question-care-notice"
 import { useReadingStream } from "@/lib/use-reading-stream"
@@ -59,30 +63,90 @@ type Step = "ask" | "draw" | "result"
  * 카드를 섞기 시작할 때 샨티가 하는 말.
  *
  * ┌─ 어느 말을 쓰는가 ────────────────────────────────────────────────
- * │ 준비된 질문   주제마다 손으로 쓴 확인 문구 (confirmTemplate)
+ * │ 준비된 질문   질문마다 손으로 쓴 확인 문구 (confirms 중 하나)
  * │               "그 사람이 마음에 걸리는구먼… 마음을 담아 섞어보라냥"
- * │ 주제 전체보기 그 주제를 통째로 보는 것이라 질문을 되뇌지 않습니다
  * │ 직접 친 질문  샨티가 배열을 고르며 함께 지은 말(plan.intro)
  * └──────────────────────────────────────────────────────────────────
  *
  * ⚠️ 예전에는 전부 plan.intro 하나로 갔습니다. 준비된 질문의 확인 문구가
- *    그때 통째로 묻혔습니다 — 주제마다 말투를 달리 써둔 것이 있는데도
- *    무슨 질문이든 같은 말이 나왔습니다.
+ *    그때 통째로 묻혔습니다 — 말투를 달리 써둔 것이 있는데도 무슨 질문이든
+ *    같은 말이 나왔습니다.
+ *
+ * ⚠️ 확인 문구는 여기서 고르지 않습니다. 질문을 고르는 순간 함께 골라
+ *    들고 옵니다(ResolvedQuestion.confirmLine) — 이 함수는 다시 그릴
+ *    때마다 불리므로, 여기서 고르면 섞는 도중에 말이 바뀝니다.
+ *
+ * ⚠️ 직접 친 물음의 기본 문구는 손으로 쓰지 않습니다(freeIntroFor). 예전에
+ *    여기 「"{q}"이라... 좋은 질문이구먼」이 박혀 있어서, 「힘들다」에도
+ *    「나 암이래 너무 걱정돼」에도 똑같이 좋은 질문이라고 답했습니다.
  */
 function drawIntro(
-  asked: { topicSlug: ReadingTopicKey; question: ReadingQuestion } | null,
+  asked: Asked | null,
   typed: string,
-  plan: ReadingPlan | null
+  plan: ReadingPlan | null,
+  audit: QuestionAudit | null
 ): string {
-  if (asked && asked.question.slug !== FREE_QUESTION_SLUG) {
-    const config = getTopicConfig(asked.topicSlug)
-    // "그냥 요즘 ~ 궁금해"는 주제를 통째로 보는 것이라 질문을 되읽지 않습니다
-    if (asked.question.slug === "general") {
-      return `${topicContent[asked.topicSlug].titleLabel}에 대해 마음을 담아 섞어보라냥.`
-    }
-    return config.confirmLine(asked.question.label)
-  }
-  return plan?.intro ?? `"${typed}"이라... 좋은 질문이구먼. 마음을 담아 섞어보라냥.`
+  if (asked?.resolved) return asked.resolved.confirmLine
+  return plan?.intro || freeIntroFor(typed, audit)
+}
+
+/**
+ * 이번에 보는 질문.
+ *
+ * question 은 옛 모양(ReadingQuestion)이라 아래쪽 화면들이 그대로 받습니다.
+ * resolved 는 준비된 질문일 때만 있습니다 — 어느 배열을 골랐는지(spreadId),
+ * 확인 문구, 섞기 멘트가 거기 붙어 있습니다.
+ */
+type Asked = {
+  topicSlug: ReadingTopicKey
+  question: ReadingQuestion
+  resolved?: ResolvedQuestion
+}
+
+/**
+ * 별조각이 없을 때 입력창 자리에 놓이는 잠긴 띠.
+ *
+ * ┌─ 왜 잠그는가 ─────────────────────────────────────────────────────
+ * │ 직접 친 물음은 서버가 배열을 골라줘야 제 값을 합니다
+ * │ (/api/reading/plan). 그 호출은 별조각을 낸 사람만 지나므로, 그
+ * │ 앞에서 친 물음은 범용 여섯 장으로 떨어지고 물음을 읽어보는 자리를
+ * │ 하나도 안 거칩니다. 자유도만 있고 품질이 없는 길이었습니다.
+ * │
+ * │ 준비된 51개는 질문·배열·자리 이름·뽑을 때 문구까지 사람이 손으로
+ * │ 설계해 둔 것입니다. 고르는 자유는 줄지만 받는 것은 오히려 낫습니다.
+ * │
+ * │ 그리고 이렇게 두면 "직접 친 물음은 언제나 서버를 지난다"가 예외
+ * │ 없는 규칙이 됩니다 — 앞으로 물음을 읽어보는 장치를 붙일 때 빠지는
+ * │ 경로가 없습니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 진짜 자물쇠는 여기가 아니라 서버입니다 (app/api/reading/free/route.ts).
+ *    이 띠는 사람에게 사정을 알리고 다음 걸음을 내미는 자리입니다.
+ *
+ * ⚠️ 로그인 여부로 갈리는 것은 "가는 곳"뿐이고 말은 하나입니다. 지금
+ *    이 자리에 서는 두 부류(로그인 전 · 선물 별조각을 다 쓴 사람)는
+ *    화면 어디서나 이미 한 덩어리로 다뤄집니다(canUseInsiteReading).
+ */
+function LockedAsk({ loggedIn }: { loggedIn: boolean }) {
+  return (
+    <Link
+      href={loggedIn ? "/my/credits/buy" : "/login?next=/tarot/ask"}
+      className="mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-white px-3 py-2.5 shadow-[0_2px_6px_0_rgba(0,0,0,0.20)] backdrop-blur-lg"
+      style={{
+        // 입력창과 같은 유리 (components/chat-input.tsx 의 시안 실측값)
+        background: "rgba(255, 255, 255, 0.60)",
+        WebkitBackdropFilter: "blur(8px)",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <span className="text-sm leading-snug text-muted-foreground">
+        직접 물어보기는 <span className="text-foreground">별조각</span>이 있으면 열려요
+      </span>
+      <span className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+        {loggedIn ? "받으러 가기" : "가입하고 받기"}
+      </span>
+    </Link>
+  )
 }
 
 export default function AskPage() {
@@ -96,11 +160,28 @@ export default function AskPage() {
   const [question, setQuestion] = useState("")
   // 고른 주제 (칩). 안 골랐으면 추천 질문이 뜹니다.
   const [topic, setTopic] = useState<ReadingTopicSlug | null>(null)
+  /**
+   * 말풍선에 지금 떠 있는 인사말 — 진입 열 줄 · 주제마다 열 줄.
+   *
+   * ⚠️ 성향으로 고르지 않습니다 (PICK_MODE.line = "even"). 여기에 랜덤을
+   *    넣은 까닭이 "매번 같은 말을 보고 싶지 않다"인데, 매칭을 걸면 잘
+   *    맞는 사람일수록 늘 같은 인사를 받습니다 — 넣은 뜻이 뒤집힙니다.
+   *
+   * ⚠️ 처음 값은 굴리지 않고 첫 줄로 둡니다. 이 화면은 서버에서 한 번
+   *    그려져 오는데, 서버가 고른 줄과 브라우저가 고른 줄이 다르면
+   *    하이드레이션이 어긋나 글자가 튑니다.
+   */
+  const [greeting, setGreeting] = useState(ENTRY_LINES[0].text)
+
+  // 붙은 뒤에 굴립니다. 주제가 바뀔 때마다 그 주제의 열 줄에서 하나.
+  useEffect(() => {
+    const pool = topic ? (TOPIC_LINES[topic] ?? ENTRY_LINES) : ENTRY_LINES
+    // 랜덤은 그리는 중에 굴릴 수 없습니다 (서버와 브라우저가 어긋납니다).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGreeting(pickFor(pool.length ? pool : ENTRY_LINES, null, PICK_MODE.line).text)
+  }, [topic])
   // 이번에 보는 질문 — 준비된 질문이면 배열까지 함께 정해져 있습니다.
-  const [asked, setAsked] = useState<{
-    topicSlug: ReadingTopicKey
-    question: ReadingQuestion
-  } | null>(null)
+  const [asked, setAsked] = useState<Asked | null>(null)
   // 키보드가 가린 높이 — 입력창을 그만큼 올려 키보드에 붙입니다
   const keyboardInset = useKeyboardInset()
   const [cards, setCards] = useState<PickedCard[]>([])
@@ -217,9 +298,20 @@ export default function AskPage() {
    * 정해져 있습니다. 직접 친 질문이면 배열을 정해야 하는데, 그건
    * 별조각을 낸 사람에게만 샨티가 해줍니다 (아래 참고).
    */
-  async function submit(text: string, prepared?: ReadingQuestion, topicSlug?: ReadingTopicSlug) {
+  async function submit(text: string, prepared?: ResolvedQuestion, topicSlug?: ReadingTopicSlug) {
     const q = text.trim()
     if (!q || planning) return
+
+    // ── 직접 친 물음은 별조각이 있어야 합니다 ────────────────────────
+    // 화면에서는 입력창 자리에 잠긴 띠가 서 있어서 여기까지 오지 않습니다.
+    // 그래도 막아둡니다 — 이 함수를 부르는 길이 늘어나면(칩·추천·딥링크)
+    // 그때 빠뜨리기 쉬운 자리이고, 빠뜨리면 카드를 다 뽑은 뒤에야
+    // 서버가 402 로 막아 한 판을 통째로 헛수고시킵니다.
+    // (진짜 자물쇠는 app/api/reading/free/route.ts 입니다)
+    if (!paid && !prepared) {
+      router.push(account.isLoggedIn ? "/my/credits/buy" : "/login?next=/tarot/ask")
+      return
+    }
     // 직접 친 물음만 읽어봅니다 (칩 질문은 사람이 설계한 것이라 그대로).
     // 물음은 친 그대로 두고, 조심할 물음이면 배열과 안내만 달라집니다.
     const typedAudit = prepared ? null : auditFreeQuestion(q)
@@ -261,6 +353,7 @@ export default function AskPage() {
         //    사람에게 "다가올 흐름"을 묻는 자리가 생기지 않도록
         //    (lib/free-question.ts 의 freeSpreadFor).
         question: prepared ?? buildFreeQuestion(q, freeSpreadFor(typedAudit)),
+        resolved: prepared,
       })
       setPlan(null)
       setStep("draw")
@@ -341,6 +434,7 @@ export default function AskPage() {
     setAsked({
       topicSlug: (topicSlug ?? nextPlan.audit?.topicKey ?? typedAudit?.topicKey ?? "self") as ReadingTopicKey,
       question: prepared ?? buildFreeQuestion(q, nextPlan),
+      resolved: prepared,
     })
     setPlanning(false)
     setStep("draw")
@@ -353,9 +447,14 @@ export default function AskPage() {
    */
   async function runReading(picked: PickedCard[]) {
     const built = await run({
+      // ⚠️ 준비된 질문은 슬러그와 고른 배열을 그대로 보냅니다. 예전에는
+      //    무엇이든 "free" 로 보내고 배열만 plan 에 실었는데, 그러면 서버가
+      //    손으로 쓴 자리 설명(long)과 배열 이름을 못 봅니다 — 프롬프트에서
+      //    「숨겨진 나」가 무엇을 보는 자리인지 모델이 짐작하게 됩니다.
       topicKey: asked?.topicSlug ?? "self",
-      questionSlug: FREE_QUESTION_SLUG,
+      questionSlug: asked?.resolved?.slug ?? FREE_QUESTION_SLUG,
       questionLabel: question,
+      spreadId: asked?.resolved?.spreadId,
       plan,
       cards: picked,
       readingId: plan?.readingId,
@@ -398,7 +497,8 @@ export default function AskPage() {
           <QuestionCareNotice audit={audit} className="mb-3 shrink-0" />
           <CardReadingFlow
             question={asked.question}
-            introMessage={drawIntro(asked, question, plan)}
+            introMessage={drawIntro(asked, question, plan, audit)}
+            shuffleLines={asked.resolved?.shuffleLines}
             // 이 판을 시작하는 뽑기에만 넘깁니다 — 면담 중 더 뽑기에는
             // 넘기지 않습니다 (같은 판을 이어가는 것이라 섞이면 안 됩니다)
             //
@@ -432,6 +532,7 @@ export default function AskPage() {
       <FreeReadingResult
         topicSlug={asked.topicSlug}
         question={asked.question}
+        spreadId={asked.resolved?.spreadId}
         cards={cards}
         isLoggedIn={account.isLoggedIn}
         signals={drawSignals}
@@ -585,11 +686,13 @@ export default function AskPage() {
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
           <ReadingCharacterBubble
             placement="top"
-            message={
-              topic
-                ? topicContent[topic].reactionLine
-                : "잘 왔다냥. 때로는 가볍게 던진 질문이 큰 울림을 준다네. 궁금한 것이 있으면 이 몸에게 물어보게냥."
-            }
+            /* 진입 열 줄 · 주제마다 열 줄 (lib/content/lines.ts).
+               ⚠️ 예전에는 주제마다 한 줄(reactionLine)이라, 두 번째
+                  방문부터는 늘 같은 인사였습니다.
+               ⚠️ 어느 줄도 "물어보게냥"이라 하지 않습니다. 별조각이 없는
+                  사람은 입력창이 잠겨 있어서, 물어보라고 해놓고 물을
+                  자리를 안 주는 꼴이 됩니다. */
+            message={greeting}
             onHeightChange={setBubbleHeight}
           />
         </div>
@@ -615,20 +718,24 @@ export default function AskPage() {
         style={{ marginBottom: keyboardInset }}
       >
         <div className="mx-auto w-full max-w-site px-6 sm:px-8">
-          <ChatInput
-            value={question}
-            onChange={(next) => {
-              trackerRef.current.typing(next.length)
-              setQuestion(next)
-            }}
-            onSubmit={() => submit(question)}
-            disabled={planning}
-            placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
-            ariaLabel="질문 입력"
-            // 흰 질문 칩이 깔린 화면이라 입력창은 회색으로 눌러둡니다
-            tone="muted"
-            className="mt-4"
-          />
+          {paid ? (
+            <ChatInput
+              value={question}
+              onChange={(next) => {
+                trackerRef.current.typing(next.length)
+                setQuestion(next)
+              }}
+              onSubmit={() => submit(question)}
+              disabled={planning}
+              placeholder={planning ? "샨티가 카드를 고르는 중..." : "무엇이든 물어보세요."}
+              ariaLabel="질문 입력"
+              // 흰 질문 칩이 깔린 화면이라 입력창은 회색으로 눌러둡니다
+              tone="muted"
+              className="mt-4"
+            />
+          ) : (
+            <LockedAsk loggedIn={account.isLoggedIn} />
+          )}
         </div>
 
         {/* ── 아래 띠 — 흐림은 여기서만 ────────────────────────────────

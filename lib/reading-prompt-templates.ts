@@ -5,6 +5,7 @@
 // 주제 목록의 단일 진실 소스는 lib/reading-topics.ts 입니다.
 // -----------------------------------------------------------------------------
 import { ACTIVE_CHARACTER } from "@/lib/character"
+import { josaFor } from "@/lib/korean-josa"
 import { topicContent, type ReadingQuestion } from "@/lib/reading-content"
 import { READING_JSON_INSTRUCTION } from "@/lib/ai/reading-schema"
 import { CHAT_INSTRUCTION } from "@/lib/ai/reading-chat"
@@ -23,13 +24,26 @@ import {
 export type ReadingTopicKey = ReadingTopicSlug
 export type { ReadingQuestion, SpreadPosition, TopicContent } from "@/lib/reading-content"
 
+/**
+ * 확인 문구에 질문을 끼워 넣습니다.
+ *
+ * ⚠️ 「"{q}"이라」 의 조사는 앞말의 받침을 따라갑니다. 문장에 "이라"가
+ *    박혀 있어서 「"힘들다"이라...」·「"좋을까?"이라...」 가 그대로 나갔습니다.
+ *    질문 문구는 여기서 정하는 것이 아니라 콘텐츠에서 오므로, 무엇으로
+ *    끝날지 모른 채 셈해서 붙입니다 (lib/korean-josa.ts).
+ */
+function fillQuestion(template: string, questionLabel: string): string {
+  return template
+    .replaceAll(`"{q}"이라`, `"${questionLabel}"${josaFor(questionLabel, "이라라")}`)
+    .replaceAll("{q}", questionLabel)
+}
+
 /** 페이지에서 쓰기 편하도록 confirmTemplate을 함수 형태(confirmLine)로 감싸 돌려줍니다. */
 export function getTopicConfig(topicKey: ReadingTopicKey) {
   const content = topicContent[topicKey]
   return {
     ...content,
-    confirmLine: (questionLabel: string) =>
-      content.confirmTemplate.replaceAll("{q}", questionLabel),
+    confirmLine: (questionLabel: string) => fillQuestion(content.confirmTemplate, questionLabel),
   }
 }
 
@@ -69,15 +83,29 @@ export function buildReadingLayer({
 }): string {
   const positionLabels = question.positions.map((p) => p.label)
   const inputLines = cards
-    .map(
-      (c, i) => `card${i + 1}=${c.name}\norientation${i + 1}=${c.orientation}\nposition${i + 1}=${positionLabels[i]}`
-    )
+    .map((c, i) => {
+      // 자리 설명(long)은 손으로 설계한 배열에만 있습니다. 자리 이름만으로는
+      // 「숨겨진 나」가 무엇을 보는 자리인지 모델이 짐작해야 하는데, 한 줄
+      // 붙여주면 우리가 뜻한 대로 읽습니다.
+      const meaning = question.positions[i]?.long
+      return [
+        `card${i + 1}=${c.name}`,
+        `orientation${i + 1}=${c.orientation}`,
+        `position${i + 1}=${positionLabels[i]}`,
+        meaning ? `meaning${i + 1}=${sanitizeForPrompt(meaning)}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    })
     .join("\n")
+
+  // 배열 이름 — 「마음의 거울」처럼 이름이 있으면 해석의 결이 잡힙니다
+  const spread = question.spreadName ? `,spread_name=${sanitizeForPrompt(question.spreadName)}` : ""
 
   // ⚠️ 물음은 씻어내서 싣습니다. 자유 질문은 사용자가 친 글이 그대로
   //    들어오는 유일한 자리라, @block{} 문법이 섞이면 모델이 그것을 규칙으로
   //    읽습니다 (sanitizeForPrompt 참고). 뜻은 바뀌지 않습니다.
-  return `@reading{spread=${cards.length}_card,positions=${positionLabels.join("|")},focus_question=${sanitizeForPrompt(question.label)},priority=core_message>keyword>flow>guidance}
+  return `@reading{spread=${cards.length}_card${spread},positions=${positionLabels.join("|")},focus_question=${sanitizeForPrompt(question.label)},priority=core_message>keyword>flow>guidance}
 
 ### INPUT
 ${inputLines}`
