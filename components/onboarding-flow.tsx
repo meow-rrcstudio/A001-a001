@@ -234,8 +234,11 @@ export function OnboardingFlow() {
 
   const result = useMemo(() => buildResult(answers), [answers])
 
+  // ⚠️ ?awakened=1 을 답니다. 문지기(middleware.ts)가 이걸 보면 쿠키를
+  //    서버 쪽에서 찍고 주소를 깨끗하게 되돌립니다. 쿠키를 막아둔
+  //    브라우저에서도 문 앞으로 되튕기지 않습니다.
   const goTarot = useCallback(() => {
-    router.push("/tarot/ask")
+    router.push("/tarot/ask?awakened=1")
   }, [router])
 
   // ── 결과에 닿으면: 남기고 · 옮기고 · 세기 ───────────────────────

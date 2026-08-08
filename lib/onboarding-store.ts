@@ -22,6 +22,42 @@ import { EMPTY_ANSWERS, type OnboardingAnswers } from "@/lib/onboarding"
 const KEY = "soulseoul.onboarding.v1"
 
 /**
+ * "이 브라우저는 샨티를 깨웠다"를 서버도 알 수 있게 남기는 쿠키.
+ *
+ * ┌─ 왜 localStorage 만으로는 안 되는가 ──────────────────────────────
+ * │ 문을 지키는 것은 미들웨어입니다(middleware.ts). 미들웨어는 요청이
+ * │ 화면에 닿기 전에 도는 서버 코드라 localStorage 를 볼 수 없습니다.
+ * │
+ * │ 화면에서 막으면 타로보기가 한 번 그려졌다가 온보딩으로 튕깁니다 —
+ * │ 처음 온 사람이 보는 첫 장면이 깜빡임이 됩니다.
+ * └──────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ 진실은 여전히 localStorage 입니다. 이 쿠키는 "문을 열어도 되는가"만
+ *    답하는 표식이라, 지워지면 다시 찍으면 그만입니다 (아래 markAwakened).
+ */
+const AWAKENED_COOKIE = "soulseoul.awakened"
+
+/** 1년. 이보다 짧으면 어느 날 갑자기 온보딩이 다시 뜹니다 */
+const AWAKENED_MAX_AGE = 60 * 60 * 24 * 365
+
+/**
+ * 문을 여는 표식을 찍습니다.
+ *
+ * 실패해도 괜찮습니다 — 온보딩을 마친 화면은 주소에 ?awakened=1 을 달고
+ * 넘어가고, 미들웨어가 그걸 보면 서버 쪽에서 다시 찍어줍니다. 쿠키를
+ * 막아둔 브라우저에서도 갇히지 않습니다.
+ */
+function markAwakened() {
+  if (typeof document === "undefined") return
+  try {
+    const secure = window.location.protocol === "https:" ? "; Secure" : ""
+    document.cookie = `${AWAKENED_COOKIE}=1; Path=/; Max-Age=${AWAKENED_MAX_AGE}; SameSite=Lax${secure}`
+  } catch {
+    // 위 주석 참고 — 주소에 단 표시가 대신 합니다.
+  }
+}
+
+/**
  * 브라우저에 남는 모양.
  *
  * step 까지 남기는 것은 "이어하기" 때문입니다. 세 물음 중 둘째에서
@@ -76,7 +112,11 @@ function write(next: Stored) {
 
 /** 하던 데까지 꺼냅니다 */
 export function loadOnboarding(): Stored {
-  return read()
+  const stored = read()
+  // 쿠키만 지운 사람(브라우저 청소·기기 설정)이 다시 문 앞에 서지 않도록,
+  // 이미 깨운 적이 있으면 표식을 다시 찍어 둡니다. 진실은 이쪽입니다.
+  if (stored.done) markAwakened()
+  return stored
 }
 
 /** 고르는 도중마다 남깁니다 */
@@ -89,6 +129,7 @@ export function saveOnboarding(answers: OnboardingAnswers, step: number) {
 export function finishOnboarding(answers: OnboardingAnswers) {
   const prev = read()
   write({ ...prev, answers, step: 4, done: true })
+  markAwakened()
 }
 
 /** 이 브라우저에서 샨티를 이미 깨웠는지 */

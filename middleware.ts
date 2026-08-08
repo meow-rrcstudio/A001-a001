@@ -11,6 +11,55 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { isAllowedTossOrigin, tossCorsHeaders } from "@/lib/server/toss-origin"
 
+// ═══════════════════════════════════════════════════════════════════
+// 온보딩 문지기
+// ═══════════════════════════════════════════════════════════════════
+//
+// ┌─ 무엇을 지키는가 ─────────────────────────────────────────────────
+// │ 타로보기 진입 화면(/tarot/ask) 하나입니다. 아직 샨티를 깨우지 않은
+// │ 사람이 이 문으로 들어오면 먼저 깨우는 자리로 보냅니다.
+// │ 로그인했는지는 보지 않습니다 — 깨웠는가만 봅니다.
+// └──────────────────────────────────────────────────────────────────
+//
+// ⚠️ 홈(/)은 지키지 않습니다. 홈은 검색으로 사람이 들어오는 자리인데,
+//    쿠키 없는 요청을 전부 넘겨보내면 크롤러도 함께 넘어갑니다. 그리고
+//    /onboarding 은 색인을 막아 둔 화면이라(robots noindex), 홈이 그쪽으로
+//    넘어가는 순간 검색에서 홈이 사라집니다. 글·아카이빙도 같은 이유로
+//    건드리지 않습니다.
+//
+// ⚠️ 화면이 아니라 여기서 막습니다. 화면에서 막으면 타로보기가 한 번
+//    그려졌다가 튕겨서, 처음 온 사람이 보는 첫 장면이 깜빡임이 됩니다.
+const AWAKENED_COOKIE = "soulseoul.awakened"
+const AWAKENED_MAX_AGE = 60 * 60 * 24 * 365
+
+/** 이 문을 지납니다 */
+const GATED_PATHS = new Set(["/tarot/ask"])
+
+function gateOnboarding(request: NextRequest): NextResponse | null {
+  // 화면을 여는 요청만 봅니다. 데이터를 가져가는 요청(fetch)까지 넘겨보내면
+  // 화면은 그대로 있는데 응답만 엉뚱한 HTML 이 됩니다.
+  if (request.method !== "GET") return null
+  if (!GATED_PATHS.has(request.nextUrl.pathname)) return null
+
+  // 온보딩을 막 마치고 오는 길. 쿠키를 여기서 찍어 주고 주소를 깨끗하게
+  // 되돌립니다 — 쿠키를 막아둔 브라우저에서도 문 앞에 갇히지 않습니다.
+  if (request.nextUrl.searchParams.get("awakened") === "1") {
+    const clean = request.nextUrl.clone()
+    clean.searchParams.delete("awakened")
+    const response = NextResponse.redirect(clean)
+    response.cookies.set(AWAKENED_COOKIE, "1", {
+      path: "/",
+      maxAge: AWAKENED_MAX_AGE,
+      sameSite: "lax",
+    })
+    return response
+  }
+
+  if (request.cookies.get(AWAKENED_COOKIE)) return null
+
+  return NextResponse.redirect(new URL("/onboarding", request.url))
+}
+
 export async function middleware(request: NextRequest) {
   // ── 앱인토스 미니앱에서 오는 요청 ────────────────────────────────
   //
@@ -41,6 +90,14 @@ export async function middleware(request: NextRequest) {
     }
     return response
   }
+
+  // ── 샨티를 아직 안 깨운 사람은 깨우는 자리로 ──────────────────────
+  //
+  // ⚠️ 아래 "Supabase 가 아직 없으면 그냥 통과"보다 **먼저** 봅니다.
+  //    뒤에 두었더니 연결 전 환경에서 문지기가 통째로 안 돌았습니다 —
+  //    이 문은 로그인과 아무 상관이 없는데 로그인 설정에 딸려 꺼진 셈입니다.
+  const awakenGate = gateOnboarding(request)
+  if (awakenGate) return withCors(awakenGate)
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key =
