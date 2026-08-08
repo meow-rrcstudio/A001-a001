@@ -31,6 +31,8 @@ import type { ChatErrorInfo } from "@/lib/chat-errors"
 import { useReadingChat, type ChatTurn } from "@/lib/use-reading-chat"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
 import { AiBadge } from "@/components/ai-badge"
+import { QuestionCareNotice } from "@/components/question-care-notice"
+import type { QuestionAudit } from "@/lib/question-safety"
 import { CREDIT_UNIT, countCredits } from "@/lib/credit-packs"
 import {
   FOLLOWUPS_PER_CREDIT,
@@ -245,6 +247,7 @@ export function MiniSpread({ cards, layoutKey }: { cards: PickedCard[]; layoutKe
 
 export function ReadingResultView({
   question,
+  audit,
   // ⚠️ null 이 들어올 수 있습니다. 해석을 못 받고 끝난 판(기록에 result 가
   //    비어 있는 판)을 열면 예전에는 result.title 에서 터져 브라우저가
   //    "This page couldn't load" 를 띄웠습니다. 빈 객체로 받아 넘깁니다 —
@@ -266,6 +269,14 @@ export function ReadingResultView({
   onRegenerate,
 }: {
   question: string
+  /**
+   * 이 물음을 조심해서 다뤄야 하는지 (lib/question-safety.ts).
+   *
+   * ⚠️ 사람이 가장 오래 머무는 자리가 여기라, 위기 연락처는 뽑기 화면에서
+   *    끝나지 않고 여기까지 따라옵니다. 기록에서 다시 연 판에는 없습니다 —
+   *    그때는 판을 만든 화면이 아니라 목록이 이 화면을 부르기 때문입니다.
+   */
+  audit?: QuestionAudit | null
   /** 아직 만들어지는 중이면 조각이 비어 있을 수 있습니다 */
   result: Partial<ReadingResult> | null
   cards?: PickedCard[]
@@ -460,6 +471,10 @@ export function ReadingResultView({
     <div className="flex min-h-screen flex-col bg-background">
       <main className={`mx-auto flex w-full max-w-site flex-1 flex-col px-6 pb-32 sm:px-8 ${HEADER_SPACE}`}>
         <PageHeader variant="reading" backHref={backHref} title={question} />
+
+        {/* 조심할 물음이면 헤더 아래에 붙어 따라옵니다 (위기면 연락처까지).
+            글은 이 카드 밑으로 흘러 지나갑니다 — 반투명이라 가려도 읽힙니다. */}
+        <QuestionCareNotice audit={audit} sticky className="mb-1" />
 
         {/* 내가 던진 질문 */}
         <div className="mt-1 flex justify-end">

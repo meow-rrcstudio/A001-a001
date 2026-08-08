@@ -38,7 +38,7 @@ import { CardReadingFlow } from "@/components/card-reading-flow"
 import { ReadingResultView, type PickedCard } from "@/components/reading-result-view"
 import { buildFreeQuestion, freeSpreadFor, FREE_QUESTION_SLUG } from "@/lib/free-question"
 import { auditFreeQuestion, type QuestionAudit } from "@/lib/question-safety"
-import { QuestionCareNotice } from "@/components/question-care-notice"
+import { QuestionCareNotice, clearCareDismissed } from "@/components/question-care-notice"
 import { useReadingStream } from "@/lib/use-reading-stream"
 import { FALLBACK_PLAN, layoutKeyForCount, type ReadingPlan } from "@/lib/ai/reading-plan"
 import type { ChatDrawRequest } from "@/lib/ai/reading-chat"
@@ -223,6 +223,8 @@ export default function AskPage() {
     // 직접 친 물음만 읽어봅니다 (칩 질문은 사람이 설계한 것이라 그대로).
     // 물음은 친 그대로 두고, 조심할 물음이면 배열과 안내만 달라집니다.
     const typedAudit = prepared ? null : auditFreeQuestion(q)
+    // 새 판입니다. 지난 판에서 안내를 닫아뒀더라도 이번 물음에는 다시 보입니다.
+    clearCareDismissed()
     setQuestion(q)
     setAudit(typedAudit)
     setStartError(null)
@@ -443,6 +445,8 @@ export default function AskPage() {
       <>
         <ReadingResultView
           question={question}
+          // 조심할 물음이면 결과·면담 화면에서도 안내가 따라옵니다
+          audit={audit}
           result={reading ?? {}}
           cards={cards}
           positions={plan?.positions.map((p) => p.label)}
@@ -477,6 +481,9 @@ export default function AskPage() {
                   setFollowup(null)
                 }}
               />
+              {/* 이 덮개는 결과 화면을 통째로 가립니다. 가리는 동안에도
+                  안내는 남아야 해서 여기에도 붙입니다. */}
+              <QuestionCareNotice audit={audit} className="mb-3 shrink-0" />
               <CardReadingFlow
                 question={{
                   slug: FREE_QUESTION_SLUG,
