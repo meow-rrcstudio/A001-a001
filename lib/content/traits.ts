@@ -90,14 +90,14 @@ export interface Combo {
 
 /** 열쇠는 `결-빛-때` 입니다 (comboKeyOf 로 만듭니다) */
 export const COMBOS: Record<string, Combo> = {
-  "flower-candle-root": { name: "오래 켜두는 등불", character: "moru" },
+  "flower-candle-root": { name: "숲속에 깃든 온기", character: "moru" },
   "flower-candle-wind": { name: "먼저 손 내미는 봄바람", character: "kkomi" },
-  "flower-moon-root": { name: "혼자 피는 밤꽃", character: "shanti" },
+  "flower-moon-root": { name: "달빛 아래 핀 꽃", character: "shanti" },
   "flower-moon-wind": { name: "떠도는 꽃씨", character: "popo" },
-  "stone-candle-root": { name: "자리를 지키는 주춧돌", character: "moru" },
-  "stone-candle-wind": { name: "길을 내는 디딤돌", character: "kkomi" },
-  "stone-moon-root": { name: "말 없는 옛돌", character: "shanti" },
-  "stone-moon-wind": { name: "바람에 닳는 조약돌", character: "popo" },
+  "stone-candle-root": { name: "밤을 지킨 불씨", character: "moru" },
+  "stone-candle-wind": { name: "새벽길을 여는 바람", character: "kkomi" },
+  "stone-moon-root": { name: "시간이 잠든 숲", character: "shanti" },
+  "stone-moon-wind": { name: "여행하는 작은 별", character: "popo" },
 }
 
 export function comboKeyOf(profile: TraitProfile): string {
