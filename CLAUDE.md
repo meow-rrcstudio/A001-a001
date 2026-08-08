@@ -27,3 +27,6 @@ Protection). 아리님 브라우저에서는 그냥 열립니다.
 - 디자인시스템: `/design-1859` (링크되지 않은 비공개 페이지)
 - 화면 검사: `node scripts/check-header-scrim.mjs` (배포된 주소를 인자로
   줄 수 있습니다)
+- 민감·위기 질문 검사:
+  `node --experimental-strip-types scripts/check-question-safety.mjs`
+  (`lib/question-safety.ts` 를 건드렸으면 반드시 돌립니다)
